@@ -1,0 +1,5 @@
+option,carriers,sampled,value,lo,hi,units,note
+pooled,37,260,14.23076923076923,10.503940013561005,18.99917870349966,percent,every phylum pooled; unadjusted
+pooled_fold,37,260,0.6082269200219954,0.4489412328274167,0.8120300286221737,fold,pooled rate over the 23.40 % overall rate; UNADJUSTED
+twophylum_fold,29,137,0.8597898707680207,0.39345470700412116,1.4088976526973993,fold,"geometric mean over Pseudomonadota, Bacillota only; not comparable to four-phylum rows"
+baseline,1259,5381,23.397138078424085,,,percent,overall rate across all sampled annotated genomes

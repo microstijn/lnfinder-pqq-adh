@@ -1,0 +1,99 @@
+# LnFinder — checksums of the archived data set
+#
+# sha256sum format: one line per file, "<digest>  <path>", the path relative to the DATA
+# ROOT ($LNFINDER_DATA, or dat/ in the clone). Lines beginning with # are comments, so
+# this file can be checked either with `scripts/verify_data.jl` or, from inside the data
+# root, with `sha256sum -c` (`shasum -a 256 -c` on macOS).
+#
+# WHAT IS HERE. The digests of the archived files, recorded when those files were
+# assembled for deposit, so that a data root can be checked against this repository and
+# not only against itself. The archive carries its own MANIFEST.sha256, and that copy is
+# the complete one: scripts/verify_data.jl checks a data root against it when it is there,
+# and then CROSS-CHECKS this file for the paths it covers. A disagreement between the two
+# is a failure in its own right — which of them records the bytes on disk cannot be decided
+# from inside the archive, and an archive that agrees only with itself has established
+# nothing. That second, independent location is the whole reason this file is shipped.
+#
+# The two section comments below are EXACT markers, not prose to be read for its sense. A
+# manifest assembled with the archive must copy them verbatim; an unrecognised "# ---"
+# comment makes verify_data.jl refuse to read the file rather than guess, because guessing
+# is how a required file silently becomes an optional one.
+#
+# WHAT IS DELIBERATELY NOT HERE. Two of the habitat route's inputs are not in the archive
+# at all, so neither this file nor the archive's own manifest records a digest of them:
+# the relation cache's stored response bodies, one per taxon and named for that taxon,
+# and the ontology path cache beside them. Both are third-party content rather than this
+# project's output — the bodies are a text-mining service's own responses, the path cache
+# a verbatim extract of an ontology's own structure — and neither is redistributed here.
+# What is recorded in their place is the digest of the cache's own manifest.csv, which
+# says which taxa were fetched, by which route and when, and carries none of the responses.
+# The deposit section below carries a digest for every archived file except one,
+# structures/structure_accessions.txt, and the paragraph below gives the reason.
+#
+# criteria/category_selection.csv is listed below. Its digest is that of the file the
+# archive carries, taken from the copy the archive is assembled from, so this record and
+# the archive's own manifest name the same bytes for it and a reader can check it against
+# two independent records like every other deposited file.
+#
+# The anchor targets step 4 checks its grid against, and the two files they were transcribed
+# from, are not here because they are not in the archive: they are tracked in this
+# repository under dat/criteria/, and step 4 checks the two sources against the digests the
+# targets file declares.
+#
+# The structure accession list is in the archive, and its digest is recorded in the
+# archive's own manifest rather than here: it is one identifier per member of the census,
+# so a list of them is the census's membership, and an integrity record that ships with
+# the code is not the place to publish it. The twelve experimental structures under
+# optional DO have digests, and that is a considered distinction rather than an oversight:
+# twelve published crystal entries, which the accompanying publication names in any case,
+# are not a census-wide identifier list.
+#
+# Nothing in this file is a measurement: it is file names and one-way digests.
+# --- deposit: every one of these must be present in a complete data root ---
+a37b6e1b5ea8f839f551f7a5d56408cc8b37beec090347a18d608ece5144707e  census/clusters.uc
+74522c860f8a3700c45df39ab3440f130e25ebf75de577f05c5acdf3b64075ae  census/clusters_50.uc
+70ed18adc8cdbebdf6ba14479e728239ae1676433a5f83988721b25041299894  census/final_deduplicated_data.csv
+110fc4bb0a49c42e3e20889b2500ca4af2ff7bfaffba0d23d437b11fdd1ea355  census/firstTry.fa
+58a9af6156dd21682b7104320adc1082073f41f26cfea205a1ad6875883fbd9a  criteria/category_selection.csv
+6f26f853054cc0612fe49f0a02a2ced294b50f73a4121d4ebff9de2d4698c5d1  determinant/pocket_labels_real.csv
+7be565ffa716c9b0c3d7a294c40a07c019ad29f83abb53c992d09a44ece9fede  habitat/background_pqq_scan.csv
+805a6d4036c3c733dbd8ee02ef44678f411d4d74fa6727e2be8a2f37329bb244  habitat/background_scan/acceptance.tsv
+14c439743910afb940f95fb7ec33b919c4952318e7b50dcb39192371bdbe781e  habitat/background_scan/calibration_scores.csv
+0e1634eb25e9653101c32895e4a8870aa6934004b34b8ae11f215e9c80691493  habitat/background_scan/recall.txt
+af59856ee65280099cad6e66de5d6b1652c744fe7d67d0eeb28a7058db3af558  habitat/background_scan/recall_proteomes.fasta.manifest
+4d40d4d77016f8682bcdc7035f9f9927c89b7d35621f68d74379b0db9830548f  habitat/background_scan/refs.fasta
+90d339a3e59e824ad6f3e9ca91d763bedfc31da6bacec4369e896c919c21bf6e  habitat/background_scan/threshold.txt
+2cfc41071e6870ac43b63e2ce3c5c65b93f2ee1d03ea9b29b808281bd54eb06b  habitat/background_scan/uniprot_release.txt
+fd9d421c59845a0a55e31e6dac77900f94d2df7c0aba36b64076b134b7f0d237  habitat/background_scan/uniprot_release_IPR017512.txt
+29a85e099e87e8257146739695f2276de8a38b4a1aab7db0e9a5e69d6120d7dc  habitat/census_habitat.csv
+0f687372356a16c46c5aed0aee2399b81a38d4dcff80f6542340a783e06da957  habitat/habitat_taxon_calls.csv
+1e25543c419a1d3f49117611d992fff5af7666ccda78173c52ae2403402099e6  habitat/omnicrobe_cache/manifest.csv
+62319cce602b1305168c3eba48be765375b2600eaa182f78defd1bc6b99c075d  habitat/prokaryote_background.csv
+61411f7bd2a87cea02dd701004f5ee7ea4471422cfb0e8e217e0290c3be9939c  habitat/prokaryote_taxa.csv
+
+# --- optional: checked only if present -------------------------------------------
+# Three of the five classes docs/DATA.md section 5 lists as not archived are here. Two are
+# not: step 2's download cache has no digest, and neither has the habitat relation cache
+# with the ontology path cache beside it, which a fresh query answers with different data
+# rather than with the same bytes. None of the five is in the archive. The three that are
+# here are large and come from public sources, so a reader regenerates or re-fetches them
+# (docs/DATA.md says how). The digests are of the files the analysis actually read, so a
+# regeneration or a download can be compared against them; a mismatch on a re-fetched
+# public file is information about drift in that source, not necessarily an error.
+708948b013097f880efee97076a1c46acfa94be0430dced8dabde776f17a56f8  derived/aligned_to_model.afa
+5c1a445354809ea64341228a9649b791c4cd2c07690011b86bacb5b00adefb05  derived/structures/crystals/1g72.pdb
+385cf656e0f99409012463aeb2d77196cc45e99fc5baaa3347705e29a52a9217  derived/structures/crystals/1h4i.pdb
+0e664ff2aa8b623e1ae680df12d3f9159c6de5cae4f773c7ad360a339bf3da07  derived/structures/crystals/1lrw.pdb
+567942d5be03e89e582cad4a4d9f39c909e601c434489c30968f27b88e03c9a2  derived/structures/crystals/1w6s.pdb
+8bf15a7a105d155b250b96990bec46fe5c4da03bd44b8c2e9c7edc6c555c1c98  derived/structures/crystals/2d0v.pdb
+091bbefdcaba805c4234bb34f8ede9ccb4978fb48a38b9ab4c825db5148db77b  derived/structures/crystals/4tqo.pdb
+7c5557a68d6ee091e46ff6bd6ed9047da406369f39b52da611d9ee5a1944fd2a  derived/structures/crystals/5xm3.pdb
+87f2ea14abb8f7b133e084a2b3c654b9c96b8da4ef94c527aaded1213d009d3c  derived/structures/crystals/6dam.pdb
+ff79b36130146ae307612fd3994085cdbd4e5df32b6d16a00954dc244461c8d6  derived/structures/crystals/6oc5.pdb
+e562e29b2caa394b2d743e5824572d65bb32042662c1bc58b999c551444ee82e  derived/structures/crystals/6oc6.pdb
+98a3e1678f34c42b33c8c1c3ace07dd029f26864b3eccfa46cfc930aac206f02  derived/structures/crystals/7ce5.pdb
+cc02c4da0e6dd8bd5f22bb1ea7007c3292a666d8664a94f4f149e942a3696553  derived/structures/crystals/7ce9.pdb
+d01aa7db20a5e85dd550f54b0872427f4ce11deaa89555422a36ec90ef62da9c  derived/taxdump/delnodes.dmp
+dcc3f3f2259f010c19cfebecc2a969cc005ce04fe790cb298659e7964bf94750  derived/taxdump/merged.dmp
+ac1f70a27251aca5271fb990319c6c7f32672b799c278266430bba0710e643a0  derived/taxdump/names.dmp
+6192869080fb9fbb55628a8960ec9398a1d48cc7fbbb2493ec34988ae1c1cff5  derived/taxdump/nodes.dmp

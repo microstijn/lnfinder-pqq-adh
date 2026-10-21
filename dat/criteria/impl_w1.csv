@@ -1,0 +1,589 @@
+anchor,unit,category,quantity,value
+T:fractional,taxa,Terrestrial,a,575.7166666666667
+T:fractional,taxa,Terrestrial,b,531.8666666666667
+T:fractional,taxa,Terrestrial,n1,2397
+T:fractional,taxa,Terrestrial,n2,2740
+T:fractional,taxa,Terrestrial,std,0.5481366033772114
+T:fractional,taxa,Terrestrial,lo,0.21170569873461897
+T:fractional,taxa,Terrestrial,hi,0.8845675080198038
+T:fractional,taxa,Host-plant,a,527.2333333333333
+T:fractional,taxa,Host-plant,b,281.8
+T:fractional,taxa,Host-plant,n1,2397
+T:fractional,taxa,Host-plant,n2,2740
+T:fractional,taxa,Host-plant,std,1.772138051850333
+T:fractional,taxa,Host-plant,lo,1.2585012781479168
+T:fractional,taxa,Host-plant,hi,2.285774825552749
+T:fractional,taxa,Host-animal,a,328.23333333333335
+T:fractional,taxa,Host-animal,b,1000.0333333333333
+T:fractional,taxa,Host-animal,n1,2397
+T:fractional,taxa,Host-animal,n2,2740
+T:fractional,taxa,Host-animal,std,-1.447370630911754
+T:fractional,taxa,Host-animal,lo,-1.6846889278959412
+T:fractional,taxa,Host-animal,hi,-1.2100523339275668
+T:fractional,taxa (chemistry),Thermal,a,91.0
+T:fractional,taxa (chemistry),Thermal,b,151.0
+T:fractional,taxa (chemistry),Thermal,n1,2397
+T:fractional,taxa (chemistry),Thermal,n2,2740
+T:fractional,taxa (chemistry),Thermal,std,-0.2951037859318868
+T:fractional,taxa (chemistry),Thermal,lo,-0.9814836268684005
+T:fractional,taxa (chemistry),Thermal,hi,0.3912760550046269
+T:fractional,taxa (chemistry),Hypersaline,a,621.0
+T:fractional,taxa (chemistry),Hypersaline,b,486.0
+T:fractional,taxa (chemistry),Hypersaline,n1,2397
+T:fractional,taxa (chemistry),Hypersaline,n2,2740
+T:fractional,taxa (chemistry),Hypersaline,std,0.49159340065014584
+T:fractional,taxa (chemistry),Hypersaline,lo,0.17644428259898148
+T:fractional,taxa (chemistry),Hypersaline,hi,0.8067425187013102
+T:fractional,taxa (chemistry),Alkaline,a,71.0
+T:fractional,taxa (chemistry),Alkaline,b,68.0
+T:fractional,taxa (chemistry),Alkaline,n1,2397
+T:fractional,taxa (chemistry),Alkaline,n2,2740
+T:fractional,taxa (chemistry),Alkaline,std,1.3662539371423754
+T:fractional,taxa (chemistry),Alkaline,lo,0.11122017362233572
+T:fractional,taxa (chemistry),Alkaline,hi,2.621287700662415
+T:alphabetical,taxa,Terrestrial,a,554.0
+T:alphabetical,taxa,Terrestrial,b,515.0
+T:alphabetical,taxa,Terrestrial,n1,2397
+T:alphabetical,taxa,Terrestrial,n2,2740
+T:alphabetical,taxa,Terrestrial,std,0.6316290497931392
+T:alphabetical,taxa,Terrestrial,lo,0.2795580107862724
+T:alphabetical,taxa,Terrestrial,hi,0.9837000888000059
+T:alphabetical,taxa,Host-plant,a,510.0
+T:alphabetical,taxa,Host-plant,b,260.0
+T:alphabetical,taxa,Host-plant,n1,2397
+T:alphabetical,taxa,Host-plant,n2,2740
+T:alphabetical,taxa,Host-plant,std,1.645566315614963
+T:alphabetical,taxa,Host-plant,lo,1.1250771184012427
+T:alphabetical,taxa,Host-plant,hi,2.166055512828683
+T:alphabetical,taxa,Host-animal,a,317.0
+T:alphabetical,taxa,Host-animal,b,1000.0
+T:alphabetical,taxa,Host-animal,n1,2397
+T:alphabetical,taxa,Host-animal,n2,2740
+T:alphabetical,taxa,Host-animal,std,-1.5151623899161701
+T:alphabetical,taxa,Host-animal,lo,-1.752836261167653
+T:alphabetical,taxa,Host-animal,hi,-1.2774885186646874
+T:alphabetical,taxa (chemistry),Thermal,a,91.0
+T:alphabetical,taxa (chemistry),Thermal,b,151.0
+T:alphabetical,taxa (chemistry),Thermal,n1,2397
+T:alphabetical,taxa (chemistry),Thermal,n2,2740
+T:alphabetical,taxa (chemistry),Thermal,std,-0.2951037859318868
+T:alphabetical,taxa (chemistry),Thermal,lo,-0.9814836268684005
+T:alphabetical,taxa (chemistry),Thermal,hi,0.3912760550046269
+T:alphabetical,taxa (chemistry),Hypersaline,a,621.0
+T:alphabetical,taxa (chemistry),Hypersaline,b,486.0
+T:alphabetical,taxa (chemistry),Hypersaline,n1,2397
+T:alphabetical,taxa (chemistry),Hypersaline,n2,2740
+T:alphabetical,taxa (chemistry),Hypersaline,std,0.49159340065014584
+T:alphabetical,taxa (chemistry),Hypersaline,lo,0.17644428259898148
+T:alphabetical,taxa (chemistry),Hypersaline,hi,0.8067425187013102
+T:alphabetical,taxa (chemistry),Alkaline,a,71.0
+T:alphabetical,taxa (chemistry),Alkaline,b,68.0
+T:alphabetical,taxa (chemistry),Alkaline,n1,2397
+T:alphabetical,taxa (chemistry),Alkaline,n2,2740
+T:alphabetical,taxa (chemistry),Alkaline,std,1.3662539371423754
+T:alphabetical,taxa (chemistry),Alkaline,lo,0.11122017362233572
+T:alphabetical,taxa (chemistry),Alkaline,hi,2.621287700662415
+T:unresolved,taxa,Terrestrial,a,554.0
+T:unresolved,taxa,Terrestrial,b,515.0
+T:unresolved,taxa,Terrestrial,n1,2397
+T:unresolved,taxa,Terrestrial,n2,2740
+T:unresolved,taxa,Terrestrial,std,0.6316290497931392
+T:unresolved,taxa,Terrestrial,lo,0.2795580107862724
+T:unresolved,taxa,Terrestrial,hi,0.9837000888000059
+T:unresolved,taxa,Host-plant,a,480.0
+T:unresolved,taxa,Host-plant,b,241.0
+T:unresolved,taxa,Host-plant,n1,2397
+T:unresolved,taxa,Host-plant,n2,2740
+T:unresolved,taxa,Host-plant,std,1.7519777231472868
+T:unresolved,taxa,Host-plant,lo,1.2013462207794263
+T:unresolved,taxa,Host-plant,hi,2.3026092255151474
+T:unresolved,taxa,Host-animal,a,288.0
+T:unresolved,taxa,Host-animal,b,972.0
+T:unresolved,taxa,Host-animal,n1,2397
+T:unresolved,taxa,Host-animal,n2,2740
+T:unresolved,taxa,Host-animal,std,-1.6412360074731458
+T:unresolved,taxa,Host-animal,lo,-1.8853857550102233
+T:unresolved,taxa,Host-animal,hi,-1.3970862599360683
+T:unresolved,taxa (chemistry),Thermal,a,91.0
+T:unresolved,taxa (chemistry),Thermal,b,151.0
+T:unresolved,taxa (chemistry),Thermal,n1,2397
+T:unresolved,taxa (chemistry),Thermal,n2,2740
+T:unresolved,taxa (chemistry),Thermal,std,-0.2951037859318868
+T:unresolved,taxa (chemistry),Thermal,lo,-0.9814836268684005
+T:unresolved,taxa (chemistry),Thermal,hi,0.3912760550046269
+T:unresolved,taxa (chemistry),Hypersaline,a,621.0
+T:unresolved,taxa (chemistry),Hypersaline,b,486.0
+T:unresolved,taxa (chemistry),Hypersaline,n1,2397
+T:unresolved,taxa (chemistry),Hypersaline,n2,2740
+T:unresolved,taxa (chemistry),Hypersaline,std,0.49159340065014584
+T:unresolved,taxa (chemistry),Hypersaline,lo,0.17644428259898148
+T:unresolved,taxa (chemistry),Hypersaline,hi,0.8067425187013102
+T:unresolved,taxa (chemistry),Alkaline,a,71.0
+T:unresolved,taxa (chemistry),Alkaline,b,68.0
+T:unresolved,taxa (chemistry),Alkaline,n1,2397
+T:unresolved,taxa (chemistry),Alkaline,n2,2740
+T:unresolved,taxa (chemistry),Alkaline,std,1.3662539371423754
+T:unresolved,taxa (chemistry),Alkaline,lo,0.11122017362233572
+T:unresolved,taxa (chemistry),Alkaline,hi,2.621287700662415
+T:share,taxa,Terrestrial,a,948.0
+T:share,taxa,Terrestrial,b,844.0
+T:share,taxa,Terrestrial,n1,2397
+T:share,taxa,Terrestrial,n2,2740
+T:share,taxa,Terrestrial,std,0.6622550755662461
+T:share,taxa,Terrestrial,lo,0.4091971969881123
+T:share,taxa,Terrestrial,hi,0.9153129541443799
+T:share,taxa,Host-plant,a,711.0
+T:share,taxa,Host-plant,b,430.0
+T:share,taxa,Host-plant,n1,2397
+T:share,taxa,Host-plant,n2,2740
+T:share,taxa,Host-plant,std,1.335164002644267
+T:share,taxa,Host-plant,lo,0.9504053480443465
+T:share,taxa,Host-plant,hi,1.7199226572441875
+T:share,taxa,Host-animal,a,462.0
+T:share,taxa,Host-animal,b,1117.0
+T:share,taxa,Host-animal,n1,2397
+T:share,taxa,Host-animal,n2,2740
+T:share,taxa,Host-animal,std,-1.0950420315140128
+T:share,taxa,Host-animal,lo,-1.304236342421456
+T:share,taxa,Host-animal,hi,-0.8858477206065696
+T:share,taxa (chemistry),Thermal,a,91.0
+T:share,taxa (chemistry),Thermal,b,151.0
+T:share,taxa (chemistry),Thermal,n1,2397
+T:share,taxa (chemistry),Thermal,n2,2740
+T:share,taxa (chemistry),Thermal,std,-0.2951037859318868
+T:share,taxa (chemistry),Thermal,lo,-0.9814836268684005
+T:share,taxa (chemistry),Thermal,hi,0.3912760550046269
+T:share,taxa (chemistry),Hypersaline,a,621.0
+T:share,taxa (chemistry),Hypersaline,b,486.0
+T:share,taxa (chemistry),Hypersaline,n1,2397
+T:share,taxa (chemistry),Hypersaline,n2,2740
+T:share,taxa (chemistry),Hypersaline,std,0.49159340065014584
+T:share,taxa (chemistry),Hypersaline,lo,0.17644428259898148
+T:share,taxa (chemistry),Hypersaline,hi,0.8067425187013102
+T:share,taxa (chemistry),Alkaline,a,71.0
+T:share,taxa (chemistry),Alkaline,b,68.0
+T:share,taxa (chemistry),Alkaline,n1,2397
+T:share,taxa (chemistry),Alkaline,n2,2740
+T:share,taxa (chemistry),Alkaline,std,1.3662539371423754
+T:share,taxa (chemistry),Alkaline,lo,0.11122017362233572
+T:share,taxa (chemistry),Alkaline,hi,2.621287700662415
+T:any_type,taxa,Terrestrial,a,1494.0
+T:any_type,taxa,Terrestrial,b,1284.0
+T:any_type,taxa,Terrestrial,n1,2397
+T:any_type,taxa,Terrestrial,n2,2740
+T:any_type,taxa,Terrestrial,std,0.6008493073348595
+T:any_type,taxa,Terrestrial,lo,0.42370403720975713
+T:any_type,taxa,Terrestrial,hi,0.7779945774599619
+T:any_type,taxa,Host-plant,a,1072.0
+T:any_type,taxa,Host-plant,b,869.0
+T:any_type,taxa,Host-plant,n1,2397
+T:any_type,taxa,Host-plant,n2,2740
+T:any_type,taxa,Host-plant,std,0.7883465405709611
+T:any_type,taxa,Host-plant,lo,0.5395353599317494
+T:any_type,taxa,Host-plant,hi,1.0371577212101728
+T:any_type,taxa,Host-animal,a,784.0
+T:any_type,taxa,Host-animal,b,1370.0
+T:any_type,taxa,Host-animal,n1,2397
+T:any_type,taxa,Host-animal,n2,2740
+T:any_type,taxa,Host-animal,std,-0.5595584344890232
+T:any_type,taxa,Host-animal,lo,-0.730015074994629
+T:any_type,taxa,Host-animal,hi,-0.3891017939834174
+T:any_type,taxa (chemistry),Thermal,a,91.0
+T:any_type,taxa (chemistry),Thermal,b,151.0
+T:any_type,taxa (chemistry),Thermal,n1,2397
+T:any_type,taxa (chemistry),Thermal,n2,2740
+T:any_type,taxa (chemistry),Thermal,std,-0.2951037859318868
+T:any_type,taxa (chemistry),Thermal,lo,-0.9814836268684005
+T:any_type,taxa (chemistry),Thermal,hi,0.3912760550046269
+T:any_type,taxa (chemistry),Hypersaline,a,621.0
+T:any_type,taxa (chemistry),Hypersaline,b,486.0
+T:any_type,taxa (chemistry),Hypersaline,n1,2397
+T:any_type,taxa (chemistry),Hypersaline,n2,2740
+T:any_type,taxa (chemistry),Hypersaline,std,0.49159340065014584
+T:any_type,taxa (chemistry),Hypersaline,lo,0.17644428259898148
+T:any_type,taxa (chemistry),Hypersaline,hi,0.8067425187013102
+T:any_type,taxa (chemistry),Alkaline,a,71.0
+T:any_type,taxa (chemistry),Alkaline,b,68.0
+T:any_type,taxa (chemistry),Alkaline,n1,2397
+T:any_type,taxa (chemistry),Alkaline,n2,2740
+T:any_type,taxa (chemistry),Alkaline,std,1.3662539371423754
+T:any_type,taxa (chemistry),Alkaline,lo,0.11122017362233572
+T:any_type,taxa (chemistry),Alkaline,hi,2.621287700662415
+C:share,taxa,Terrestrial,a,614.227
+C:share,taxa,Terrestrial,b,566.077
+C:share,taxa,Terrestrial,n1,2397
+C:share,taxa,Terrestrial,n2,2740
+C:share,taxa,Terrestrial,std,0.6502098789398163
+C:share,taxa,Terrestrial,lo,0.3179237557633475
+C:share,taxa,Terrestrial,hi,0.9824960021162851
+C:share,taxa,Host-plant,a,518.778
+C:share,taxa,Host-plant,b,263.912
+C:share,taxa,Host-plant,n1,2397
+C:share,taxa,Host-plant,n2,2740
+C:share,taxa,Host-plant,std,1.7068159420979983
+C:share,taxa,Host-plant,lo,1.185634391608602
+C:share,taxa,Host-plant,hi,2.227997492587394
+C:share,taxa,Host-animal,a,313.914
+C:share,taxa,Host-animal,b,998.996
+C:share,taxa,Host-animal,n1,2397
+C:share,taxa,Host-animal,n2,2740
+C:share,taxa,Host-animal,std,-1.5328067811651995
+C:share,taxa,Host-animal,lo,-1.7707696853333426
+C:share,taxa,Host-animal,hi,-1.2948438769970565
+C:share,taxa (chemistry),Thermal,a,84.0
+C:share,taxa (chemistry),Thermal,b,148.0
+C:share,taxa (chemistry),Thermal,n1,2397
+C:share,taxa (chemistry),Thermal,n2,2740
+C:share,taxa (chemistry),Thermal,std,-0.40357389191557996
+C:share,taxa (chemistry),Thermal,lo,-1.0979304317098733
+C:share,taxa (chemistry),Thermal,hi,0.2907826478787133
+C:share,taxa (chemistry),Hypersaline,a,621.0
+C:share,taxa (chemistry),Hypersaline,b,481.0
+C:share,taxa (chemistry),Hypersaline,n1,2397
+C:share,taxa (chemistry),Hypersaline,n2,2740
+C:share,taxa (chemistry),Hypersaline,std,0.4940701211580459
+C:share,taxa (chemistry),Hypersaline,lo,0.17844107423433608
+C:share,taxa (chemistry),Hypersaline,hi,0.8096991680817557
+C:share,taxa (chemistry),Alkaline,a,61.0
+C:share,taxa (chemistry),Alkaline,b,62.0
+C:share,taxa (chemistry),Alkaline,n1,2397
+C:share,taxa (chemistry),Alkaline,n2,2740
+C:share,taxa (chemistry),Alkaline,std,1.195313997547853
+C:share,taxa (chemistry),Alkaline,lo,-0.1055534305280943
+C:share,taxa (chemistry),Alkaline,hi,2.4961814256238
+C:winner_fractional,taxa,Terrestrial,a,614.227
+C:winner_fractional,taxa,Terrestrial,b,566.077
+C:winner_fractional,taxa,Terrestrial,n1,2397
+C:winner_fractional,taxa,Terrestrial,n2,2740
+C:winner_fractional,taxa,Terrestrial,std,0.6502098789398163
+C:winner_fractional,taxa,Terrestrial,lo,0.3179237557633475
+C:winner_fractional,taxa,Terrestrial,hi,0.9824960021162851
+C:winner_fractional,taxa,Host-plant,a,518.778
+C:winner_fractional,taxa,Host-plant,b,263.912
+C:winner_fractional,taxa,Host-plant,n1,2397
+C:winner_fractional,taxa,Host-plant,n2,2740
+C:winner_fractional,taxa,Host-plant,std,1.7068159420979983
+C:winner_fractional,taxa,Host-plant,lo,1.185634391608602
+C:winner_fractional,taxa,Host-plant,hi,2.227997492587394
+C:winner_fractional,taxa,Host-animal,a,313.914
+C:winner_fractional,taxa,Host-animal,b,998.996
+C:winner_fractional,taxa,Host-animal,n1,2397
+C:winner_fractional,taxa,Host-animal,n2,2740
+C:winner_fractional,taxa,Host-animal,std,-1.5328067811651995
+C:winner_fractional,taxa,Host-animal,lo,-1.7707696853333426
+C:winner_fractional,taxa,Host-animal,hi,-1.2948438769970565
+C:winner_fractional,taxa (chemistry),Thermal,a,53.666666666666664
+C:winner_fractional,taxa (chemistry),Thermal,b,128.83333333333334
+C:winner_fractional,taxa (chemistry),Thermal,n1,2397
+C:winner_fractional,taxa (chemistry),Thermal,n2,2740
+C:winner_fractional,taxa (chemistry),Thermal,std,-0.7838103752794013
+C:winner_fractional,taxa (chemistry),Thermal,lo,-1.5644861999099051
+C:winner_fractional,taxa (chemistry),Thermal,hi,-0.0031345506488976715
+C:winner_fractional,taxa (chemistry),Hypersaline,a,569.3333333333334
+C:winner_fractional,taxa (chemistry),Hypersaline,b,448.5
+C:winner_fractional,taxa (chemistry),Hypersaline,n1,2397
+C:winner_fractional,taxa (chemistry),Hypersaline,n2,2740
+C:winner_fractional,taxa (chemistry),Hypersaline,std,0.45335446067914986
+C:winner_fractional,taxa (chemistry),Hypersaline,lo,0.1255722403166376
+C:winner_fractional,taxa (chemistry),Hypersaline,hi,0.7811366810416621
+C:winner_fractional,taxa (chemistry),Alkaline,a,36.333333333333336
+C:winner_fractional,taxa (chemistry),Alkaline,b,46.666666666666664
+C:winner_fractional,taxa (chemistry),Alkaline,n1,2397
+C:winner_fractional,taxa (chemistry),Alkaline,n2,2740
+C:winner_fractional,taxa (chemistry),Alkaline,std,0.8713716337677658
+C:winner_fractional,taxa (chemistry),Alkaline,lo,-0.6545290686825892
+C:winner_fractional,taxa (chemistry),Alkaline,hi,2.397272336218121
+X:text_first,taxa,Terrestrial,a,614.227
+X:text_first,taxa,Terrestrial,b,566.077
+X:text_first,taxa,Terrestrial,n1,2397
+X:text_first,taxa,Terrestrial,n2,2740
+X:text_first,taxa,Terrestrial,std,0.6502098789398163
+X:text_first,taxa,Terrestrial,lo,0.3179237557633475
+X:text_first,taxa,Terrestrial,hi,0.9824960021162851
+X:text_first,taxa,Host-plant,a,518.778
+X:text_first,taxa,Host-plant,b,263.912
+X:text_first,taxa,Host-plant,n1,2397
+X:text_first,taxa,Host-plant,n2,2740
+X:text_first,taxa,Host-plant,std,1.7068159420979983
+X:text_first,taxa,Host-plant,lo,1.185634391608602
+X:text_first,taxa,Host-plant,hi,2.227997492587394
+X:text_first,taxa,Host-animal,a,313.914
+X:text_first,taxa,Host-animal,b,998.996
+X:text_first,taxa,Host-animal,n1,2397
+X:text_first,taxa,Host-animal,n2,2740
+X:text_first,taxa,Host-animal,std,-1.5328067811651995
+X:text_first,taxa,Host-animal,lo,-1.7707696853333426
+X:text_first,taxa,Host-animal,hi,-1.2948438769970565
+X:text_first,taxa (chemistry),Thermal,a,83.0
+X:text_first,taxa (chemistry),Thermal,b,146.0
+X:text_first,taxa (chemistry),Thermal,n1,2397
+X:text_first,taxa (chemistry),Thermal,n2,2740
+X:text_first,taxa (chemistry),Thermal,std,-0.4055169186626573
+X:text_first,taxa (chemistry),Thermal,lo,-1.1063716974194169
+X:text_first,taxa (chemistry),Thermal,hi,0.2953378600941022
+X:text_first,taxa (chemistry),Hypersaline,a,572.0
+X:text_first,taxa (chemistry),Hypersaline,b,446.0
+X:text_first,taxa (chemistry),Hypersaline,n1,2397
+X:text_first,taxa (chemistry),Hypersaline,n2,2740
+X:text_first,taxa (chemistry),Hypersaline,std,0.4264201510795292
+X:text_first,taxa (chemistry),Hypersaline,lo,0.10193872828810213
+X:text_first,taxa (chemistry),Hypersaline,hi,0.7509015738709562
+X:text_first,taxa (chemistry),Alkaline,a,31.0
+X:text_first,taxa (chemistry),Alkaline,b,45.0
+X:text_first,taxa (chemistry),Alkaline,n1,2397
+X:text_first,taxa (chemistry),Alkaline,n2,2740
+X:text_first,taxa (chemistry),Alkaline,std,0.38562114017541044
+X:text_first,taxa (chemistry),Alkaline,lo,-1.1018500191065057
+X:text_first,taxa (chemistry),Alkaline,hi,1.8730922994573265
+X:text_object,taxa,Terrestrial,a,614.227
+X:text_object,taxa,Terrestrial,b,566.077
+X:text_object,taxa,Terrestrial,n1,2397
+X:text_object,taxa,Terrestrial,n2,2740
+X:text_object,taxa,Terrestrial,std,0.6502098789398163
+X:text_object,taxa,Terrestrial,lo,0.3179237557633475
+X:text_object,taxa,Terrestrial,hi,0.9824960021162851
+X:text_object,taxa,Host-plant,a,518.778
+X:text_object,taxa,Host-plant,b,263.912
+X:text_object,taxa,Host-plant,n1,2397
+X:text_object,taxa,Host-plant,n2,2740
+X:text_object,taxa,Host-plant,std,1.7068159420979983
+X:text_object,taxa,Host-plant,lo,1.185634391608602
+X:text_object,taxa,Host-plant,hi,2.227997492587394
+X:text_object,taxa,Host-animal,a,313.914
+X:text_object,taxa,Host-animal,b,998.996
+X:text_object,taxa,Host-animal,n1,2397
+X:text_object,taxa,Host-animal,n2,2740
+X:text_object,taxa,Host-animal,std,-1.5328067811651995
+X:text_object,taxa,Host-animal,lo,-1.7707696853333426
+X:text_object,taxa,Host-animal,hi,-1.2948438769970565
+X:text_object,taxa (chemistry),Thermal,a,80.0
+X:text_object,taxa (chemistry),Thermal,b,142.0
+X:text_object,taxa (chemistry),Thermal,n1,2397
+X:text_object,taxa (chemistry),Thermal,n2,2740
+X:text_object,taxa (chemistry),Thermal,std,-0.33847382986812735
+X:text_object,taxa (chemistry),Thermal,lo,-1.0579840351179857
+X:text_object,taxa (chemistry),Thermal,hi,0.38103637538173085
+X:text_object,taxa (chemistry),Hypersaline,a,553.0
+X:text_object,taxa (chemistry),Hypersaline,b,437.0
+X:text_object,taxa (chemistry),Hypersaline,n1,2397
+X:text_object,taxa (chemistry),Hypersaline,n2,2740
+X:text_object,taxa (chemistry),Hypersaline,std,0.381975463472731
+X:text_object,taxa (chemistry),Hypersaline,lo,0.055901418645211476
+X:text_object,taxa (chemistry),Hypersaline,hi,0.7080495083002505
+X:text_object,taxa (chemistry),Alkaline,a,23.0
+X:text_object,taxa (chemistry),Alkaline,b,36.0
+X:text_object,taxa (chemistry),Alkaline,n1,2397
+X:text_object,taxa (chemistry),Alkaline,n2,2740
+X:text_object,taxa (chemistry),Alkaline,std,0.01782525566471748
+X:text_object,taxa (chemistry),Alkaline,lo,-1.5565319224863523
+X:text_object,taxa (chemistry),Alkaline,hi,1.592182433815787
+G:generic_none,taxa,Terrestrial,a,605.225
+G:generic_none,taxa,Terrestrial,b,555.824
+G:generic_none,taxa,Terrestrial,n1,2411
+G:generic_none,taxa,Terrestrial,n2,2758
+G:generic_none,taxa,Terrestrial,std,0.6614403714992679
+G:generic_none,taxa,Terrestrial,lo,0.32507705274862014
+G:generic_none,taxa,Terrestrial,hi,0.9978036902499157
+G:generic_none,taxa,Host-plant,a,495.526
+G:generic_none,taxa,Host-plant,b,255.159
+G:generic_none,taxa,Host-plant,n1,2411
+G:generic_none,taxa,Host-plant,n2,2758
+G:generic_none,taxa,Host-plant,std,1.6836576174389426
+G:generic_none,taxa,Host-plant,lo,1.1529209556846647
+G:generic_none,taxa,Host-plant,hi,2.2143942791932205
+G:generic_none,taxa,Host-animal,a,298.663
+G:generic_none,taxa,Host-animal,b,976.578
+G:generic_none,taxa,Host-animal,n1,2411
+G:generic_none,taxa,Host-animal,n2,2758
+G:generic_none,taxa,Host-animal,std,-1.5836191225549434
+G:generic_none,taxa,Host-animal,lo,-1.826353716544901
+G:generic_none,taxa,Host-animal,hi,-1.3408845285649857
+G:generic_none,taxa (chemistry),Thermal,a,91.0
+G:generic_none,taxa (chemistry),Thermal,b,151.0
+G:generic_none,taxa (chemistry),Thermal,n1,2411
+G:generic_none,taxa (chemistry),Thermal,n2,2758
+G:generic_none,taxa (chemistry),Thermal,std,-0.29027294129631975
+G:generic_none,taxa (chemistry),Thermal,lo,-0.9771802771963385
+G:generic_none,taxa (chemistry),Thermal,hi,0.396634394603699
+G:generic_none,taxa (chemistry),Hypersaline,a,621.0
+G:generic_none,taxa (chemistry),Hypersaline,b,485.0
+G:generic_none,taxa (chemistry),Hypersaline,n1,2411
+G:generic_none,taxa (chemistry),Hypersaline,n2,2758
+G:generic_none,taxa (chemistry),Hypersaline,std,0.4965313556266523
+G:generic_none,taxa (chemistry),Hypersaline,lo,0.18083011553373773
+G:generic_none,taxa (chemistry),Hypersaline,hi,0.8122325957195669
+G:generic_none,taxa (chemistry),Alkaline,a,72.0
+G:generic_none,taxa (chemistry),Alkaline,b,68.0
+G:generic_none,taxa (chemistry),Alkaline,n1,2411
+G:generic_none,taxa (chemistry),Alkaline,n2,2758
+G:generic_none,taxa (chemistry),Alkaline,std,1.3902820623124688
+G:generic_none,taxa (chemistry),Alkaline,lo,0.13576510369957462
+G:generic_none,taxa (chemistry),Alkaline,hi,2.6447990209253627
+I:iso_taxon,taxa,Terrestrial,a,602.377
+I:iso_taxon,taxa,Terrestrial,b,537.444
+I:iso_taxon,taxa,Terrestrial,n1,2327
+I:iso_taxon,taxa,Terrestrial,n2,2620
+I:iso_taxon,taxa,Terrestrial,std,0.6495810454102076
+I:iso_taxon,taxa,Terrestrial,lo,0.3172540887841715
+I:iso_taxon,taxa,Terrestrial,hi,0.9819080020362436
+I:iso_taxon,taxa,Host-plant,a,481.395
+I:iso_taxon,taxa,Host-plant,b,241.613
+I:iso_taxon,taxa,Host-plant,n1,2327
+I:iso_taxon,taxa,Host-plant,n2,2620
+I:iso_taxon,taxa,Host-plant,std,1.6349415445953133
+I:iso_taxon,taxa,Host-plant,lo,1.1096526670500793
+I:iso_taxon,taxa,Host-plant,hi,2.1602304221405473
+I:iso_taxon,taxa,Host-animal,a,292.163
+I:iso_taxon,taxa,Host-animal,b,966.08
+I:iso_taxon,taxa,Host-animal,n1,2327
+I:iso_taxon,taxa,Host-animal,n2,2620
+I:iso_taxon,taxa,Host-animal,std,-1.5968403268633113
+I:iso_taxon,taxa,Host-animal,lo,-1.838878133565914
+I:iso_taxon,taxa,Host-animal,hi,-1.3548025201607088
+I:iso_taxon,taxa (chemistry),Thermal,a,91.0
+I:iso_taxon,taxa (chemistry),Thermal,b,147.0
+I:iso_taxon,taxa (chemistry),Thermal,n1,2327
+I:iso_taxon,taxa (chemistry),Thermal,n2,2620
+I:iso_taxon,taxa (chemistry),Thermal,std,-0.2699151540017769
+I:iso_taxon,taxa (chemistry),Thermal,lo,-0.9555514549836985
+I:iso_taxon,taxa (chemistry),Thermal,hi,0.41572114698014473
+I:iso_taxon,taxa (chemistry),Hypersaline,a,605.0
+I:iso_taxon,taxa (chemistry),Hypersaline,b,457.0
+I:iso_taxon,taxa (chemistry),Hypersaline,n1,2327
+I:iso_taxon,taxa (chemistry),Hypersaline,n2,2620
+I:iso_taxon,taxa (chemistry),Hypersaline,std,0.48132349373983435
+I:iso_taxon,taxa (chemistry),Hypersaline,lo,0.1660554073217197
+I:iso_taxon,taxa (chemistry),Hypersaline,hi,0.7965915801579491
+I:iso_taxon,taxa (chemistry),Alkaline,a,68.0
+I:iso_taxon,taxa (chemistry),Alkaline,b,64.0
+I:iso_taxon,taxa (chemistry),Alkaline,n1,2327
+I:iso_taxon,taxa (chemistry),Alkaline,n2,2620
+I:iso_taxon,taxa (chemistry),Alkaline,std,1.3393383186797327
+I:iso_taxon,taxa (chemistry),Alkaline,lo,0.07512758704157729
+I:iso_taxon,taxa (chemistry),Alkaline,hi,2.603549050317888
+B:ipr017512,taxa,Terrestrial,a,614.227
+B:ipr017512,taxa,Terrestrial,b,764.075
+B:ipr017512,taxa,Terrestrial,n1,2397
+B:ipr017512,taxa,Terrestrial,n2,3610
+B:ipr017512,taxa,Terrestrial,std,0.6634620846709741
+B:ipr017512,taxa,Terrestrial,lo,0.46986083812378987
+B:ipr017512,taxa,Terrestrial,hi,0.8570633312181584
+B:ipr017512,taxa,Host-plant,a,518.778
+B:ipr017512,taxa,Host-plant,b,419.994
+B:ipr017512,taxa,Host-plant,n1,2397
+B:ipr017512,taxa,Host-plant,n2,3610
+B:ipr017512,taxa,Host-plant,std,0.5986305604905221
+B:ipr017512,taxa,Host-plant,lo,0.3752657364650341
+B:ipr017512,taxa,Host-plant,hi,0.8219953845160102
+B:ipr017512,taxa,Host-animal,a,313.914
+B:ipr017512,taxa,Host-animal,b,1210.027
+B:ipr017512,taxa,Host-animal,n1,2397
+B:ipr017512,taxa,Host-animal,n2,3610
+B:ipr017512,taxa,Host-animal,std,-1.3025507032300838
+B:ipr017512,taxa,Host-animal,lo,-1.4882449229722594
+B:ipr017512,taxa,Host-animal,hi,-1.1168564834879082
+B:ipr017512,taxa (chemistry),Thermal,a,91.0
+B:ipr017512,taxa (chemistry),Thermal,b,186.0
+B:ipr017512,taxa (chemistry),Thermal,n1,2397
+B:ipr017512,taxa (chemistry),Thermal,n2,3610
+B:ipr017512,taxa (chemistry),Thermal,std,-0.20608997244184707
+B:ipr017512,taxa (chemistry),Thermal,lo,-0.654134178127799
+B:ipr017512,taxa (chemistry),Thermal,hi,0.24195423324410475
+B:ipr017512,taxa (chemistry),Hypersaline,a,621.0
+B:ipr017512,taxa (chemistry),Hypersaline,b,684.0
+B:ipr017512,taxa (chemistry),Hypersaline,n1,2397
+B:ipr017512,taxa (chemistry),Hypersaline,n2,3610
+B:ipr017512,taxa (chemistry),Hypersaline,std,0.2414714267805982
+B:ipr017512,taxa (chemistry),Hypersaline,lo,0.06587560590841621
+B:ipr017512,taxa (chemistry),Hypersaline,hi,0.41706724765278014
+B:ipr017512,taxa (chemistry),Alkaline,a,71.0
+B:ipr017512,taxa (chemistry),Alkaline,b,81.0
+B:ipr017512,taxa (chemistry),Alkaline,n1,2397
+B:ipr017512,taxa (chemistry),Alkaline,n2,3610
+B:ipr017512,taxa (chemistry),Alkaline,std,1.0014707190289704
+B:ipr017512,taxa (chemistry),Alkaline,lo,0.31249869982174605
+B:ipr017512,taxa (chemistry),Alkaline,hi,1.6904427382361948
+B:none,taxa,Terrestrial,a,614.227
+B:none,taxa,Terrestrial,b,847.157
+B:none,taxa,Terrestrial,n1,2397
+B:none,taxa,Terrestrial,n2,3948
+B:none,taxa,Terrestrial,std,0.5588080460402566
+B:none,taxa,Terrestrial,lo,0.3877835126280976
+B:none,taxa,Terrestrial,hi,0.7298325794524155
+B:none,taxa,Host-plant,a,518.778
+B:none,taxa,Host-plant,b,512.909
+B:none,taxa,Host-plant,n1,2397
+B:none,taxa,Host-plant,n2,3948
+B:none,taxa,Host-plant,std,0.33484441411984056
+B:none,taxa,Host-plant,lo,0.14795505725569366
+B:none,taxa,Host-plant,hi,0.5217337709839874
+B:none,taxa,Host-animal,a,313.914
+B:none,taxa,Host-animal,b,1243.027
+B:none,taxa,Host-animal,n1,2397
+B:none,taxa,Host-animal,n2,3948
+B:none,taxa,Host-animal,std,-1.0705347254614632
+B:none,taxa,Host-animal,lo,-1.2534831465601195
+B:none,taxa,Host-animal,hi,-0.8875863043628069
+B:none,taxa (chemistry),Thermal,a,91.0
+B:none,taxa (chemistry),Thermal,b,198.0
+B:none,taxa (chemistry),Thermal,n1,2397
+B:none,taxa (chemistry),Thermal,n2,3948
+B:none,taxa (chemistry),Thermal,std,-0.1796426300404952
+B:none,taxa (chemistry),Thermal,lo,-0.5947399546661589
+B:none,taxa (chemistry),Thermal,hi,0.2354546945851686
+B:none,taxa (chemistry),Hypersaline,a,621.0
+B:none,taxa (chemistry),Hypersaline,b,771.0
+B:none,taxa (chemistry),Hypersaline,n1,2397
+B:none,taxa (chemistry),Hypersaline,n2,3948
+B:none,taxa (chemistry),Hypersaline,std,0.17671974300168575
+B:none,taxa (chemistry),Hypersaline,lo,0.019807533451231124
+B:none,taxa (chemistry),Hypersaline,hi,0.3336319525521404
+B:none,taxa (chemistry),Alkaline,a,71.0
+B:none,taxa (chemistry),Alkaline,b,89.0
+B:none,taxa (chemistry),Alkaline,n1,2397
+B:none,taxa (chemistry),Alkaline,n2,3948
+B:none,taxa (chemistry),Alkaline,std,0.763512174882057
+B:none,taxa (chemistry),Alkaline,lo,0.16996199358560704
+B:none,taxa (chemistry),Alkaline,hi,1.3570623561785071
+B:hmmsearch_movein,taxa,Terrestrial,a,752.975
+B:hmmsearch_movein,taxa,Terrestrial,b,566.077
+B:hmmsearch_movein,taxa,Terrestrial,n1,3011
+B:hmmsearch_movein,taxa,Terrestrial,n2,2740
+B:hmmsearch_movein,taxa,Terrestrial,std,0.6012406638597859
+B:hmmsearch_movein,taxa,Terrestrial,lo,0.2709159465600537
+B:hmmsearch_movein,taxa,Terrestrial,hi,0.9315653811595181
+B:hmmsearch_movein,taxa,Host-plant,a,692.442
+B:hmmsearch_movein,taxa,Host-plant,b,263.912
+B:hmmsearch_movein,taxa,Host-plant,n1,3011
+B:hmmsearch_movein,taxa,Host-plant,n2,2740
+B:hmmsearch_movein,taxa,Host-plant,std,1.7892184759822967
+B:hmmsearch_movein,taxa,Host-plant,lo,1.267314257475939
+B:hmmsearch_movein,taxa,Host-plant,hi,2.3111226944886543
+B:hmmsearch_movein,taxa,Host-animal,a,416.329
+B:hmmsearch_movein,taxa,Host-animal,b,998.996
+B:hmmsearch_movein,taxa,Host-animal,n1,3011
+B:hmmsearch_movein,taxa,Host-animal,n2,2740
+B:hmmsearch_movein,taxa,Host-animal,std,-1.4568229302393345
+B:hmmsearch_movein,taxa,Host-animal,lo,-1.6843099816415879
+B:hmmsearch_movein,taxa,Host-animal,hi,-1.2293358788370812
+B:hmmsearch_movein,taxa (chemistry),Thermal,a,108.0
+B:hmmsearch_movein,taxa (chemistry),Thermal,b,151.0
+B:hmmsearch_movein,taxa (chemistry),Thermal,n1,3011
+B:hmmsearch_movein,taxa (chemistry),Thermal,n2,2740
+B:hmmsearch_movein,taxa (chemistry),Thermal,std,-0.3574662923766412
+B:hmmsearch_movein,taxa (chemistry),Thermal,lo,-1.0486696404223206
+B:hmmsearch_movein,taxa (chemistry),Thermal,hi,0.3337370556690382
+B:hmmsearch_movein,taxa (chemistry),Hypersaline,a,757.0
+B:hmmsearch_movein,taxa (chemistry),Hypersaline,b,486.0
+B:hmmsearch_movein,taxa (chemistry),Hypersaline,n1,3011
+B:hmmsearch_movein,taxa (chemistry),Hypersaline,n2,2740
+B:hmmsearch_movein,taxa (chemistry),Hypersaline,std,0.4522500631726921
+B:hmmsearch_movein,taxa (chemistry),Hypersaline,lo,0.13563767108006985
+B:hmmsearch_movein,taxa (chemistry),Hypersaline,hi,0.7688624552653144
+B:hmmsearch_movein,taxa (chemistry),Alkaline,a,83.0
+B:hmmsearch_movein,taxa (chemistry),Alkaline,b,68.0
+B:hmmsearch_movein,taxa (chemistry),Alkaline,n1,3011
+B:hmmsearch_movein,taxa (chemistry),Alkaline,n2,2740
+B:hmmsearch_movein,taxa (chemistry),Alkaline,std,1.2526602645865847
+B:hmmsearch_movein,taxa (chemistry),Alkaline,lo,-0.0020690499482629576
+B:hmmsearch_movein,taxa (chemistry),Alkaline,hi,2.5073895791214325

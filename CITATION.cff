@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------------
+# THIS FILE IS NOT YET COMPLETE, AND IT SAYS SO ON PURPOSE.
+#
+# `authors:` below names the copyright holder of this repository and no one else.
+# The publication this software accompanies has an author list that is NOT recorded
+# here yet. When that publication appears, the list must be added in the
+# agreed order, each entry with its ORCID and affiliation, together with a
+# `preferred-citation:` block for the publication itself and the DOI of the archived
+# release. None of that is guessed here: no second author, no ORCID, no affiliation
+# and no DOI is written into this file until it is confirmed.
+#
+# `repository-code:` and `date-released:` are deliberately absent for the same
+# reason — there is no public URL and no release yet. Add both at release.
+#
+# The software was written by the author below together with Claude Code (Anthropic).
+# A software tool is not an author of a citable work: it cannot take responsibility for
+# the content and cannot be contacted about it, so it is not listed under `authors:`.
+# That contribution is recorded where it belongs — in the commit history, through
+# `Co-Authored-By` trailers — and stated in README.md under "How this code was written".
+# ---------------------------------------------------------------------------------
+cff-version: 1.2.0
+title: LnFinder
+message: >-
+  If you use this software, please cite it using the metadata in this file. The
+  author list of the accompanying publication is not recorded here yet (see the note
+  at the top of this file), and neither is a DOI; both are added when the archived
+  release is made.
+type: software
+authors:
+  - family-names: Peeters
+    given-names: Stijn
+abstract: >-
+  Julia tooling for finding PQQ-dependent alcohol dehydrogenases in large sequence
+  sets and calling the metal cofactor of each one — lanthanide or calcium — from the
+  residue found at the calibrated active-site column of a profile HMM. The package
+  also carries the control-set validation of that call, the taxonomy and habitat
+  tooling built around it, and a library for looking for further specificity
+  determinants in the alignment and in structures.
+# SPDX identifier of the licence that covers the software. One data file,
+# dat/models/methanol_dehydrogenase_pqq_xoxF_mxaF.hmm, is third-party and is excluded
+# from that grant; see the "Exceptions" section of LICENSE and dat/models/PROVENANCE.md.
+license: MIT
+version: 0.1.0
+keywords:
+  - lanthanide
+  - calcium
+  - methanol dehydrogenase
+  - PQQ
+  - profile hidden Markov model
+  - sequence analysis
+  - Julia
+# The third-party databases and services this software reads are listed, with their
+# endpoints, under "Data sources" in README.md. Citing this software does not cite them;
+# cite them yourself if you use the data. The profile HMM shipped under dat/models/ carries
+# its own citation and licence status in dat/models/PROVENANCE.md, and the third-party rows
+# of the control set carry theirs in the header of dat/control_set/known_cofactor_mdhs.tsv.
+# A `references:` block with each database's own publication and DOI is added at release,
+# alongside the author list and the release DOI; no DOI is guessed here.

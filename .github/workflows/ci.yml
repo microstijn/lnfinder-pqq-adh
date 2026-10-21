@@ -1,0 +1,161 @@
+# Continuous integration: instantiate the pinned environment and run the offline test
+# suite on both a case-sensitive and a case-insensitive filesystem.
+#
+# WHY BOTH OPERATING SYSTEMS. Julia resolves `include` through the OS. On Windows and on a
+# default macOS volume, `include("Foo.jl")` will happily open `foo.jl`; on Linux it is a
+# fatal error at load time that takes the package, the test suite and every script down
+# with it. A suite that only ever runs on Windows cannot see that difference, which is
+# exactly how a mismatch of that kind can sit in a repository unnoticed. ubuntu-latest is
+# here to see it; windows-latest is here because that is where the code is developed.
+#
+# The suite itself is offline: no network, no HMMER, no external binary, no input the
+# repository does not carry. So this workflow needs no secrets, no services and no
+# credentials, and it uploads nothing anywhere.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A rapid second push cancels the first: nothing here deploys, so only the newest commit's
+# answer is worth waiting for.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Julia ${{ matrix.julia-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # Manifest.toml records the patch version it was resolved on, and setup-julia
+        # resolves a bare minor to the newest patch of that minor, which then instantiates
+        # with nothing worse than a warning. The patch is pinned so that a run measures the
+        # recorded environment rather than whatever patch is newest on the day it runs.
+        # [compat] julia in Project.toml declares the oldest version this repository
+        # supports; on an older one, instantiation fails on the standard library set rather
+        # than on anything here.
+        julia-version: ['1.12.6']
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia-version }}
+
+      # Without this, every run pays the full cold cost of downloading and precompiling the
+      # pinned closure, which is most of the wall clock of this workflow.
+      - name: Cache the package depot
+        uses: julia-actions/cache@v2
+
+      - name: Instantiate the pinned environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          julia --project=. -e 'using Pkg; Pkg.instantiate()' 2>&1 | tee instantiate.log
+
+          # Instantiation accepts a manifest that no longer matches the project: it settles
+          # the difference in memory, prints a warning and exits 0. On its own it therefore
+          # does not enforce the pin, and the environment under test would be one no file in
+          # this repository describes. So ask afterwards whether the manifest on disk was
+          # resolved from this project file. Pkg.is_manifest_current is not exported, and a
+          # release that moved it would turn this step red on an untouched tree: call it
+          # only where it exists, and otherwise read the warning instantiation prints.
+          state=$(julia --project=. -e '
+              using Pkg
+              function manifest_state()
+                  isdefined(Pkg, :is_manifest_current) || return "unavailable"
+                  try
+                      current = Pkg.is_manifest_current(pwd())
+                      return current === true ? "current" : (current === false ? "stale" : "unknown")
+                  catch
+                      return "unavailable"
+                  end
+              end
+              println(manifest_state())' | tr -d '\r')
+
+          case "$state" in
+            current)
+              ;;
+            stale)
+              echo "::error::Manifest.toml was not resolved from this Project.toml. Re-resolve the environment and commit the manifest."
+              exit 1
+              ;;
+            *)
+              if grep -q "dependencies or compat requirements have changed" instantiate.log; then
+                echo "::error::Manifest.toml was not resolved from this Project.toml. Re-resolve the environment and commit the manifest."
+                exit 1
+              fi
+              echo "::warning::This Julia does not report manifest currency directly, so the check read the instantiation output instead."
+              ;;
+          esac
+
+      # The runner exits non-zero on a failed or errored assertion, but no exit status can
+      # see a suite that stops before its last testset, so the log is read as well. bash is
+      # named because the default shell differs between the runners, and because
+      # set -o pipefail is what keeps the run's own status through the pipe into tee.
+      - name: Run the test suite
+        shell: bash
+        env:
+          # The aggregate pass count the gate refuses to go below. It fires only BELOW the
+          # floor, so a floor set low is inert, while one set above the count a full run
+          # reports fails every run: tighten it to just under the count the suite reports on
+          # each operating system. It catches assertions that go missing rather than fail,
+          # which is why it stands alongside the greps below and not instead of them.
+          #
+          # A full run reports 6342. Nothing under test/ branches on the operating system and
+          # nothing skips on a missing binary, so that count is expected to be the same on
+          # both; the margin is there only because this workflow has not yet run on Linux.
+          # Once it has, set this to two below whichever count is LOWER of the two observed,
+          # never to a predicted one.
+          PASS_FLOOR: '6330'
+        run: |
+          set -euo pipefail
+          status=0
+          julia --project=. test/runtests.jl 2>&1 | tee test-suite.log || status=$?
+
+          gate=0
+
+          summary=$(grep -E "^LnFinder Ca/Ln tooling +\|" test-suite.log | head -n 1 || true)
+          if [ -z "$summary" ]; then
+            echo "::error::No aggregate test summary line in the log: the suite did not reach its end."
+            gate=1
+          else
+            passes=$(printf '%s\n' "$summary" | sed -E 's/^.*[|][[:space:]]*([0-9]+).*$/\1/')
+            if ! printf '%s' "$passes" | grep -qE '^[0-9]+$'; then
+              echo "::error::No pass count could be read from the summary line: $summary"
+              gate=1
+            elif [ "$passes" -lt "$PASS_FLOOR" ]; then
+              echo "::error::The suite reports $passes passing assertions, below the floor of $PASS_FLOOR."
+              gate=1
+            fi
+          fi
+
+          # grep -c exits 1 when it counts nothing, which is the ordinary case here, so its
+          # status is discarded and only the count is read.
+          hits=$(grep -c -E "Test Failed|Error During Test|Some tests did not pass" test-suite.log || true)
+          if [ "$hits" != "0" ]; then
+            echo "::error::The log carries $hits line(s) reporting a failed or errored test."
+            gate=1
+          fi
+
+          if [ "$status" -ne 0 ]; then
+            echo "::error::The test runner exited $status."
+            gate=1
+          fi
+
+          exit "$gate"

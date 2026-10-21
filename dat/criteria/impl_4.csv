@@ -1,0 +1,43 @@
+anchor,unit,category,quantity,value
+primary,taxa,Terrestrial,a,614.2270000000001
+primary,taxa,Terrestrial,b,566.077
+primary,taxa,Terrestrial,n1,2397
+primary,taxa,Terrestrial,n2,2740
+primary,taxa,Terrestrial,std,0.6502098789398165
+primary,taxa,Terrestrial,lo,0.3179237557633478
+primary,taxa,Terrestrial,hi,0.9824960021162852
+primary,taxa,Host-plant,a,518.7780000000002
+primary,taxa,Host-plant,b,263.912
+primary,taxa,Host-plant,n1,2397
+primary,taxa,Host-plant,n2,2740
+primary,taxa,Host-plant,std,1.7068159420979987
+primary,taxa,Host-plant,lo,1.1856343916086027
+primary,taxa,Host-plant,hi,2.2279974925873947
+primary,taxa,Host-animal,a,313.914
+primary,taxa,Host-animal,b,998.9960000000001
+primary,taxa,Host-animal,n1,2397
+primary,taxa,Host-animal,n2,2740
+primary,taxa,Host-animal,std,-1.5328067811651995
+primary,taxa,Host-animal,lo,-1.7707696853333426
+primary,taxa,Host-animal,hi,-1.2948438769970565
+primary,taxa (chemistry),Thermal,a,91.0
+primary,taxa (chemistry),Thermal,b,151.0
+primary,taxa (chemistry),Thermal,n1,2397
+primary,taxa (chemistry),Thermal,n2,2740
+primary,taxa (chemistry),Thermal,std,-0.29510378593188685
+primary,taxa (chemistry),Thermal,lo,-0.9814836268684002
+primary,taxa (chemistry),Thermal,hi,0.39127605500462653
+primary,taxa (chemistry),Hypersaline,a,621.0
+primary,taxa (chemistry),Hypersaline,b,486.0
+primary,taxa (chemistry),Hypersaline,n1,2397
+primary,taxa (chemistry),Hypersaline,n2,2740
+primary,taxa (chemistry),Hypersaline,std,0.4915934006501458
+primary,taxa (chemistry),Hypersaline,lo,0.17644428259898148
+primary,taxa (chemistry),Hypersaline,hi,0.8067425187013101
+primary,taxa (chemistry),Alkaline,a,71.0
+primary,taxa (chemistry),Alkaline,b,68.0
+primary,taxa (chemistry),Alkaline,n1,2397
+primary,taxa (chemistry),Alkaline,n2,2740
+primary,taxa (chemistry),Alkaline,std,1.3662539371423754
+primary,taxa (chemistry),Alkaline,lo,0.11122017362233572
+primary,taxa (chemistry),Alkaline,hi,2.621287700662415

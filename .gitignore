@@ -1,0 +1,191 @@
+# What this repository does NOT track.
+#
+# Everything the code writes is regenerable from the inputs named in the README, so no
+# output, cache or rendered figure is tracked. The rules are written by FORMAT and
+# LOCATION rather than by the name of any particular run, so a new output file is ignored
+# the day it first appears instead of the day someone remembers to add a line here.
+#
+# Six data files ARE tracked. Five are inputs: the profile HMM under dat/models/, the
+# curated control set under dat/control_set/, and under dat/criteria/ the anchor targets
+# step 4 checks its grid against together with the two files their cells were transcribed
+# from. The sixth is a result: the control set's validation predictions, beside the control
+# set. Every one of them that a rule below would catch is re-included by name.
+
+# ---- generated tables and caches under dat/ ---------------------------------------
+# dat/ is where every run lands. Ignore the tabular and cache formats wholesale; the
+# shipped files are re-included underneath.
+dat/**/*.csv
+dat/**/*.tsv
+dat/**/*.json
+dat/**/*.jsonl
+dat/**/*.txt
+dat/**/*.jls
+dat/**/*.log
+dat/**/*.gz
+dat/**/*.zip
+dat/**/*.toml
+!dat/control_set/known_cofactor_mdhs.tsv
+# The classifier's call on each control of the shipped control set: a result, tracked as the
+# record of that validation. No code reads it, and a validation run writes its own tables
+# into a directory of its own (see below), never over this file.
+!dat/control_set/control_validation_predictions.csv
+
+# ---- the data root, when it lives inside the clone --------------------------------
+# $LNFINDER_DATA defaults to dat/ in this clone, so an unpacked data set lands in the
+# directories below (docs/DATA.md gives the layout, docs/data_manifest.sha256 its
+# checksums). They are ignored whole rather than by format: the archive is large, several
+# of its files are results, and a rule by format would let a new extension through.
+dat/habitat/
+dat/census/
+dat/criteria/*
+# The anchor targets and their two sources are tracked inputs, not tables a run produced:
+# step 4 checks its grid against them, and that check is worth nothing if the file it reads
+# is not in the history. dat/criteria/ is ignored by its contents rather than whole, because
+# git cannot re-include a file whose parent directory is excluded; the deposited criteria
+# file that lands beside them when the data set is unpacked in place stays ignored.
+!dat/criteria/anchor_targets.csv
+!dat/criteria/impl_4.csv
+!dat/criteria/impl_w1.csv
+dat/determinant/
+dat/derived/
+dat/structures/
+dat/MANIFEST.sha256
+# A taxonomy dump unpacked anywhere. Nothing tracked here carries this extension.
+*.dmp
+
+# ---- whole directories a run creates ----------------------------------------------
+# No code in this release writes any of these three: a general response cache, the pocket
+# export and the control-set validation harness all lack a command-line driver here. They
+# are ignored anyway, so that a reader who calls those library functions on their own data,
+# or who brings a driver of their own, does not commit the result by accident.
+dat/cache/
+dat/pockets_exported/
+dat/control_set/validate_run*/
+
+# Kept for older working trees, and for nothing else. The habitat relation cache (step 1)
+# and the background scan's working directory (step 2) are written under the data root now —
+# that is dat/habitat/, which the block above already ignores whole — so no code in this
+# release writes either of these two paths. The rules stay so that a tree checked out before
+# the data root existed does not start offering up a directory of stored response bodies, or
+# a scan's HMMER working files, the day somebody pulls.
+dat/omnicrobe_cache/
+dat/background_scan/
+
+# ---- a run that has not passed its gates leaves its output staged -----------------
+# Each step names its own staging directory, and step 5's is _staging_habitat_figure, so
+# the glob has to cover any name a step invents rather than the one name the first step
+# happened to use.
+_staging/
+**/_staging*/
+
+# ---- half-written and gate-failed siblings of an output, wherever they land --------
+# Outputs are written to <name>.part and renamed into place, and a step whose acceptance
+# checks fail leaves this run's table as <name>.pending and renames the table it would
+# have replaced to <name>.stale. None of those names ends in the extension the rules
+# above match, so they are matched here by suffix, format-globally. Nothing tracked in
+# this repository carries any of these suffixes.
+*.part
+*.pending
+*.stale
+
+# ---- run outputs that land in a figure directory the user names --------------------
+# The figure directory is whatever --figdir / $LNFINDER_FIGDIR points at, so it cannot be
+# ignored by location. These are the names steps 4 and 5 publish, ignored wherever they
+# land. Add -f only for something you have checked is not a result.
+*_source_data.csv
+*caption_values*.csv
+*_provenance.csv
+habitat_robustness.csv
+habitat_sensitivity*.csv
+habitat_sensitivity_table.md
+# Steps 1 and 3 write these under dat/ by default, where the rules above already catch
+# them; named here as well so that relocating a run with --calls / --stats / --summary
+# cannot land a result table somewhere this file does not reach.
+habitat_taxon_calls.csv
+habitat_enrichment*.csv
+habitat_arm_summary.csv
+
+# ---- census output, wherever a census was told to land ----------------------------
+# LNFINDER_CENSUS_OUT is yours to choose, and the tabular rules above are anchored to
+# dat/. A manifest carries counts and local paths, so it is ignored by name everywhere.
+*.manifest.toml
+census_rebuild_*/
+
+# ---- figures, logs and rendered output ---------------------------------------------
+# figs/ is only the conventional figure directory; the pipeline's figure directory is
+# whatever --figdir names, which is why the output NAMES are ignored above as well.
+figs/
+logs/
+*.log
+nohup.out
+
+# ---- sequence, alignment, clustering and structure files, wherever they land -------
+# None of these belongs in version control: they are large, they are regenerated by the
+# external tools the README lists, and they are the inputs this repository does not carry.
+*.afa
+*.fa
+*.fasta
+*.faa
+*.fna
+*.sto
+*.uc
+*.pdb
+*.cif
+*.nwk
+*.newick
+*.tblout
+*.domtblout
+
+# ---- documents, archives and images -----------------------------------------------
+# Rendered figures and working documents are the easiest thing to commit by accident, so
+# they are ignored by extension everywhere. Anything that genuinely belongs in the
+# repository can be added with `git add -f`.
+*.pdf
+*.docx
+*.pptx
+*.xlsx
+*.odt
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.tif
+*.tiff
+*.bundle
+*.tar
+*.tar.gz
+*.7z
+
+# ---- Julia -------------------------------------------------------------------------
+/Manifest-v*.toml
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+*.cov
+/docs/build/
+/deps/deps.jl
+/deps/build.log
+LocalPreferences.toml
+
+# ---- editor, OS and agent state -----------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+.claude/
+*.local.md
+*.local.toml
+*.local.json
+
+# ---- the environment figure's inputs ----------------------------------------------
+# Three small tables (under 5 KB together) are tracked so scripts/fold_change_figure.jl
+# renders from a bare clone with no data set to hand. They are DERIVED: scripts/
+# prevalence.py and scripts/prevalence_phylum_average.py regenerate them byte-for-byte
+# from <data root>/habitat/, which is how they were made. Everything else the figure
+# step writes stays ignored by the dat/ rules above.
+!dat/figure/prevalence.csv
+!dat/figure/prevalence_phylum_average.csv
+!dat/figure/thermal_options.csv

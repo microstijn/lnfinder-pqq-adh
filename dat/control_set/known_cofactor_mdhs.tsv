@@ -1,0 +1,114 @@
+# Control set: PQQ-dependent alcohol dehydrogenases (methanol/ethanol family) whose
+# metal cofactor is known from the primary literature. Used by src/validate_classifier.jl
+# to test whether the D-x-D rule, read at the calibrated active-site column, recovers the
+# cofactor that experiment reports.
+#
+# Every row is a factual claim about a published enzyme. The accession, organism, PDB id
+# and metal of each row were checked against the cited paper, the UniProt entry and the
+# PDB entry before the row was written. Rows without a direct measurement are not thrown
+# away: they are placed in a weaker tier so that they can be scored apart.
+#
+# role
+#   reference  Sequences the pipeline calibrates on. They locate the active-site column
+#              and never enter a held-out stratum, so they cannot flatter one; they are
+#              reported apart, in a stratum of their own. Which
+#              two of them calibrate a run is passed to validate() as ln_ref_acc and
+#              ca_ref_acc; it is not read from this file.
+#   test       Held out. Only rows with role = test enter an accuracy.
+#
+# tier, strongest evidence first
+#   ref  A reference row (see above). Belongs to no held-out stratum.
+#   A    Direct determination for this protein: the metal resolved in a crystal structure
+#        of the enzyme itself, or measured in (or required by) the purified enzyme.
+#   B    Indirect but gene specific: expression, deletion mutant or growth evidence ties
+#        this gene to a Ca- or Ln-dependent activity, but no metal was measured in,
+#        reconstituted into or shown to be required by the purified enzyme, or the enzyme
+#        was not purified at all.
+#   C    Homology only. The cofactor is inherited from close relatives and was never
+#        measured for this protein. Kept as a separate stratum.
+#   X    Contested. Reported together with its call and excluded from every accuracy.
+#
+# cofactor  Lanthanide | Calcium   (the Symbol values the pipeline emits)
+# domain    Bacteria on every row; the set contains no archaeal enzyme.
+# evidence  One line on why the cofactor is considered known for this protein.
+# citation  Author year of the work the evidence comes from and, where no published work
+#           covers the row's own strain, the sequence record the row rests on.
+# pdb       Structures holding that metal, semicolon separated. Blank when there is none.
+# source    Provenance of the row: manual (pinned by hand from the cited papers),
+#           robinson2026 (adopted from Robinson et al. 2026 Table S4), ncbi (the sequence
+#           is fetched from the NCBI protein record; its UniProtKB entry D5MI89 was
+#           deleted, so there is no active accession to fetch).
+#
+# Deleted UniProtKB entries keep their accession here, and the fetcher rescues the sequence
+# from UniParc and names the UniParc id in the evidence cell. The one exception is the
+# source = ncbi row, which carries the NCBI protein accession instead (see source above).
+#
+# ---------------------------------------------------------------------------------
+# THIRD-PARTY SOURCE OF THE source = robinson2026 ROWS
+#
+#   Robinson CM, Martinez-Gomez NC, West-Roberts J, Voutsinos M, Banfield JF.
+#   "Evidence for lanthanide and PQQ dependent dehydrogenases in Eukarya."
+#   bioRxiv 2026.07.14.738520, posted 2026-07-14.
+#   Preprint:              https://doi.org/10.64898/2026.07.14.738520
+#   Supplementary tables:  https://doi.org/10.6084/m9.figshare.32981990.v1
+#   Licence:               CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+#
+# What was taken from Table S4 and what was not. Taken: the accession, the organism, the
+# calcium cofactor, the fact that the determination is inferred rather than direct, and a
+# short author-year for the underlying work where that work covers the row's own strain.
+# For Q9L935 it does not, so that row cites the GenBank sequence record the entry rests on
+# instead, and its evidence cell says why. NOT taken: that table's own reference
+# strings, its motif calls, and its coordinating-oxygen counts. Every evidence cell in
+# this file is written here, not copied. The rows are a small factual extraction, checked
+# against the cited papers and the UniProt entries before they were written, and they are
+# marked source = robinson2026 so that they can be dropped or re-derived as a block.
+#
+# LICENCE OF THIS FILE. The compilation is covered by this repository's MIT licence (see
+# LICENSE). That does not replace the citations the rows carry: if you reuse the table,
+# carry them with it, and carry the attribution above with the robinson2026 rows.
+# ---------------------------------------------------------------------------------
+#
+# columns (tab-separated):
+accession	cofactor	role	tier	gene	organism	domain	evidence	citation	pdb	source
+# --- Calibration references (role = reference; reported apart) ------------------
+# There are three, because a sequence the pipeline is calibrated against cannot also
+# serve as a held-out test: scoring it would be circular. A run calibrates on the two
+# accessions passed as ln_ref_acc and ca_ref_acc; any further reference row takes no
+# part in the calibration and, like the other two, is reported apart and enters no
+# held-out stratum.
+I0JWN7	Lanthanide	reference	ref	xoxF (MFUM_190005)	Methylacidiphilum fumariolicum SolV	Bacteria	Crystal structure of the purified MDH holds cerium in the PQQ site (4MAE); the strain grows only when rare earth elements are supplied	Pol et al. 2014	4MAE	manual
+P16027	Calcium	reference	ref	mxaF (moxF)	Methylorubrum extorquens AM1	Bacteria	Ca in the PQQ site of the atomic resolution MxaF structure (1W6S) and of the wild type entry 1H4I, whose RCSB record carries the 1995 structure paper as its primary citation while the D303E mutant 1H4J carries Afolabi et al. 2001	Williams et al. 2005; Afolabi et al. 2001	1W6S;1H4I	manual
+C5B120	Lanthanide	reference	ref	xoxF1 (MexAM1_META1p1740)	Methylorubrum extorquens AM1	Bacteria	MDH purified from La grown cells was identified as XoxF1 and contained La; La bound crystal structures of the same enzyme (6OC5, 6OC6)	Nakagawa et al. 2012; Good et al. 2020	6OC5;6OC6	manual
+# --- Tier A, Calcium: metal determined for this protein --------------------------
+P38539	Calcium	test	A	mxaF (moxF)	Methylophilus methylotrophus W3A1	Bacteria	Ca bridged to PQQ in the MDH structure (4AAH) and in the re-refined 1.9 A crystal form (1G72, which supersedes the 1998 deposition 1B2N)	Xia et al. 1996; Xia et al. 1999; Zheng et al. 2001	4AAH;1G72	manual
+P12293	Calcium	test	A	mxaF (moxF)	Paracoccus denitrificans	Bacteria	Ca in the PQQ site of the P. denitrificans MDH structure (1LRW); the structural gene of the same organism was sequenced earlier	Xia et al. 2003; Harms et al. 1987	1LRW	manual
+Q4AE26	Calcium	test	A	mxaF (moxF)	Hyphomicrobium denitrificans A3151	Bacteria	Ca in the PQQ site of the purified Hd-MDH structure (2D0V); the UniProt entry is a fragment, but it covers the active site	Nojiri et al. 2006	2D0V	manual
+Q60AR6	Calcium	test	A	mxaF (MCA0779)	Methylococcus capsulatus (Bath)	Bacteria	Ca with PQQ in the core of the M. capsulatus MDH structure (4TQO)	Culpepper & Rosenzweig 2014	4TQO	manual
+Q88JH5	Calcium	test	A	pedE (PP_2674)	Pseudomonas putida KT2440	Bacteria	Purified PedE oxidises a broad range of alcohols and aldehydes with Ca; its paralogue PedH is inactive under the same Ca conditions and requires a lanthanide	Wehrmann et al. 2017		manual
+Q9Z4J7	Calcium	test	A	exaA (PA1982)	Pseudomonas aeruginosa PAO1	Bacteria	Ca at the PQQ site of the quinoprotein ethanol dehydrogenase structure (1FLG, which supersedes the original 1EEE deposition), with a second Ca at the N terminus; the UniProt entry is the PAO1 reference entry, while Keitel et al. purified the enzyme from strain ATCC 17933	Keitel et al. 2000	1FLG	manual
+Q8GR64	Calcium	test	A	qbdA	Pseudomonas putida HK5	Bacteria	Quinohemoprotein ADH IIB structure carries Ca together with PQQ and heme c (1KV9)	Chen et al. 2002	1KV9	manual
+Q4W6G0	Calcium	test	A	qgdA	Pseudomonas putida HK5	Bacteria	Quinohemoprotein ADH-IIG structure carries Ca together with PQQ and heme c (1YIQ)	Toyama et al. 2005	1YIQ	manual
+# --- Tier A, Lanthanide: metal determined for this protein -----------------------
+Q89GY2	Lanthanide	test	A	xoxF5 (blr6213; UniProt still carries the genome name mxaF')	Bradyrhizobium diazoefficiens USDA 110	Bacteria	XoxF5-type MDH purified from Ce grown cells carried 0.58 cerium atoms per subunit; growth and MDH activity respond to light lanthanides	Wang et al. 2019		manual
+C5AXV8	Lanthanide	test	A	exaF (MexAM1_META1p1139)	Methylorubrum extorquens AM1	Bacteria	Purified ExaF is a La dependent ethanol dehydrogenase; substituting its Ln coordinating aspartate abolishes function	Good et al. 2016; Good et al. 2020		manual
+Q88JH0	Lanthanide	test	A	pedH (PP_2679)	Pseudomonas putida KT2440	Bacteria	Purified PedH is active only when a lanthanide is present; the wild type enzyme was later crystallised with Pr in the PQQ site (6ZCW)	Wehrmann et al. 2017; Wehrmann et al. 2020	6ZCW	manual
+A0A3F2YLY8	Lanthanide	test	A	xoxF (EQU24_18605)	Methylotuvimicrobium buryatense 5GB1C	Bacteria	La modelled with PQQ in the active site of the purified XoxF structure (6DAM)	Deng et al. 2018	6DAM	manual
+# --- Tier B, Lanthanide: purified, but the Ln dependence is shown by growth only -
+C6WXM5	Lanthanide	test	B	xoxF4 (Mmol_1770)	Methylotenera mobilis JLW8	Bacteria	XoxF4-2 was purified from Ce3+-grown cells and kinetically characterised; strains expressing only this enzyme grow on methanol solely with light Ln3+ (La-Sm), not with Ca2+	Huang et al. 2018		manual
+C6WZ02	Lanthanide	test	B	xoxF4 (Mmol_2048)	Methylotenera mobilis JLW8	Bacteria	XoxF4-1 was purified from Ce3+-grown cells and kinetically characterised; strains expressing only this enzyme grow on methanol solely with light Ln3+ (La-Gd), not with Ca2+	Huang et al. 2018		manual
+# --- Tier A, Lanthanide, continued -----------------------------------------------
+A0ACD6B9F2	Lanthanide	test	A	xoxF1	Methylacidimicrobium sp. AP8 (described as M. thermophilum AP8 by Schmitz et al. 2021)	Bacteria	XoxF1 purified from cells grown with Nd as the only lanthanide; Nd occupies the metal site of the structure (7O6Z). UniProtKB entry deleted, sequence via UniParc UPI0018C0EF6D	Schmitz et al. 2021 (mBio)	7O6Z	manual
+# --- Tier B, Lanthanide: gene specific but indirect evidence ---------------------
+A0A0C6F7V8	Lanthanide	test	B	xoxF1 (Maq22A_c05215)	Methylobacterium aquaticum 22A	Bacteria	xoxF1 and mxaF are inversely regulated by La and a xoxF1 deletion mutant fails to grow on methanol; the enzyme itself was not purified	Masuda et al. 2018		manual
+C5ATJ3	Lanthanide	test	B	xoxF2 (MexAM1_META1p2757)	Methylorubrum extorquens AM1	Bacteria	Deleting xoxF2 on top of xoxF1 slows La dependent methanol growth further, so XoxF2 contributes to Ln dependent methanol oxidation; the enzyme was not purified	Vu et al. 2016		manual
+Q92WY9	Lanthanide	test	B	xoxF (SM_b20173)	Sinorhizobium meliloti 1021	Bacteria	S. meliloti grows on methanol markedly better when lanthanum is supplied; the responsible XoxF was assigned as the closest homologue of AM1 XoxF1, with the locus given in the paper's supporting information rather than the main text; that work used the near isogenic strain 2011	Mineo et al. 2025		manual
+# --- Tier C, Calcium by homology only (never measured for these proteins) --------
+P15279	Calcium	test	C	mxaF (moxF)	Methylobacterium organophilum XX	Bacteria	MDH structural gene sequenced from this strain; Ca carried over from the conserved MxaF active site and not measured here	Machlin & Hanson 1988; Keltjens et al. 2014		manual
+C6XAQ0	Calcium	test	C	mxaF-type (Msip34_0734)	Methylovorus glucosotrophus SIP3-4	Bacteria	MxaF-type MDH large subunit; Ca assigned from the conserved MxaF active site, with no cofactor determination for this protein	Keltjens et al. 2014		manual
+O24759	Calcium	test	C	mxaF	Hyphomicrobium methylovorum GM2	Bacteria	Methanol oxidation genes cloned from this strain; entered as an inferred Ca standard, the cofactor resting on homology	Robinson et al. 2026 (Table S4); Tanaka et al. 1997		robinson2026
+A0A2D2D5V5	Calcium	test	C	mxaF-type (CQW49_14425)	Methylosinus trichosporium OB3b	Bacteria	mxaF of this strain characterised genetically; entered as an inferred Ca standard, the cofactor resting on homology	Robinson et al. 2026 (Table S4); Farhan Ul Haque et al. 2016		robinson2026
+Q9L935	Calcium	test	C	mxaF	Methylovorus sp. SS1	Bacteria	Entered as an inferred Ca standard, the cofactor resting on homology. UniProtKB entry deleted, sequence via UniParc UPI00000B8E23. Robinson's citation of record, Doronina et al. 2011, is the Methylovorus menthalis species description and does not cover strain SS1.	Robinson et al. 2026 (Table S4); GenBank AF184915.2 / AAD56237.2 (Methylovorus sp. SS1 mxaF, direct submission, unpublished)		robinson2026
+A8R3S4	Calcium	test	C	qedA	Pseudomonas putida HK5	Bacteria	ADH I, one of three quinoprotein ADHs expressed by this strain (Toyama et al. 1995); the qedA gene symbol is UniProt's, not Toyama et al.'s, which writes 'ADH I'. Ca never measured here - assigned by similarity to P. aeruginosa ExaA (UniProt A8R3S4, ECO:0000250 to Q9Z4J7; structure 1FLG)	Robinson et al. 2026 (Table S4); Toyama et al. 1995		robinson2026
+A0A8D4UZ35	Calcium	test	C	mxaF-type (MKFW12EY_12080)	Methylomonas koyamae	Bacteria	Entered as an inferred Ca standard, the cofactor resting on homology. UniProtKB entry deleted, sequence via UniParc UPI001C33007C	Robinson et al. 2026 (Table S4); Ogiso et al. 2012		robinson2026
+# --- Tier X, contested: reported with its call, never scored ---------------------
+CBE67239	Calcium	test	X	xoxF1 (DAMO_0124)	Methylomirabilis oxygeniifera (as 'Candidatus Methylomirabilis oxyfera' in Wu et al. 2015)	Bacteria	ICP-MS of the purified XoxF1-type MDH found calcium only, with rare earth metals below the limit of detection (<0.1 mol per cent); calcium also appeared in enzyme free hydroxyapatite column fractions, so its calcium content could not be quantified, though the 445 nm absorbance maximum led the authors to conclude the enzyme holds calcium	Wu et al. 2015		ncbi

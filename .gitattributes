@@ -1,0 +1,16 @@
+# Source is stored with LF and checked out with the platform's line endings.
+* text=auto
+
+# The profile HMM under dat/models/ is redistributed third-party data, and its SHA-256 is
+# the integrity record that stands behind that redistribution. Line-ending normalisation
+# would rewrite the bytes on a Windows checkout and falsify the published digest, so the
+# model is never treated as text: it is checked out byte-for-byte as it is stored.
+*.hmm -text
+
+# The anchor targets under dat/criteria/ name the two files their cells were transcribed from
+# by sha256, and step 4 refuses to publish when a source beside them is not those bytes; it
+# also records the targets file's own digest in its provenance. The two sources are stored
+# with CRLF line endings, so normalising them would store other bytes than the ones declared,
+# and every Linux or macOS clone would then fail that check on files nobody edited. None of
+# the three is treated as text: each is stored and checked out byte-for-byte.
+dat/criteria/*.csv -text

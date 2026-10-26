@@ -19,7 +19,18 @@ The rule itself is published: the extra aspartate was proposed by Keltjens et al
 crystal structures of Good et al. 2020 (cited in full under
 [The cofactor call](#the-cofactor-call)), and applied at scale by Voutsinos et al. 2025,
 [doi:10.1093/ismejo/wraf057](https://doi.org/10.1093/ismejo/wraf057). What this repository
-adds is the machinery around it:
+adds is the machinery around it.
+
+## The data
+
+The tables this code reads are deposited at Zenodo under CC BY 4.0. The DOI is pending; it goes
+here once the deposit is published. That archive holds the habitat calls, the stored
+OmniCrobe responses they were aggregated from, the background carrier scan with its calibration
+and recall records, the sampled reference-proteome pool, the census table, and the summary
+tables the figure is drawn from, each with a SHA-256 checksum.
+
+Those three summary tables are also tracked here under `dat/figure/`, so the figure renders
+from a clone with the archive absent. Everything upstream of them needs it.
 
 ## What you need
 

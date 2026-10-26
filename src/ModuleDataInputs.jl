@@ -104,6 +104,8 @@ code and never move when the data root does.
   `:run`             written by an earlier step of the pipeline, not archived
   `:notdistributed`  obtainable only by re-querying a live service, which returns
                      different data
+  `:unreleased`      part of the data set, but not in the archive published so far: it
+                     is released with the accompanying publication
 
 `env` is the per-input override variable, or `""` when the input has none.
 """
@@ -155,7 +157,7 @@ const INPUTS = DataInput[
               "habitat step 4, which checks it against the digest anchor_targets.csv declares"),
 
     # ---- the habitat route -----------------------------------------------------
-    DataInput("census_habitat", ("habitat", "census_habitat.csv"), :file, :deposit, "",
+    DataInput("census_habitat", ("habitat", "census_habitat_rerun_v2.csv"), :file, :deposit, "",
               "the census table carrying the habitat layer, one row per sequence",
               "habitat steps 1, 2, 3 and 4"),
     DataInput("pool_taxa", ("habitat", "prokaryote_taxa.csv"), :file, :deposit, "",
@@ -166,10 +168,10 @@ const INPUTS = DataInput[
               "the habitat annotation of that pool",
               "habitat step 1, and step 3 for its provenance when present; written by step 0"),
     DataInput("obt_path_cache", ("habitat", "obt_path_cache.csv"),
-              :file, :notdistributed, "",
+              :file, :deposit, "",
               "the habitat ontology climb, cached, so the ontology is walked once",
               "habitat steps 0 and 1"),
-    DataInput("relation_cache", ("habitat", "omnicrobe_cache"), :dir, :notdistributed, "",
+    DataInput("relation_cache", ("habitat", "omnicrobe_cache"), :dir, :deposit, "",
               "the directory the stored response bodies and their manifest live in; the archive " *
               "carries the manifest and not the bodies",
               "habitat step 1"),
@@ -178,7 +180,7 @@ const INPUTS = DataInput[
     # property that has to hold before an offline run: "the bodies are there" is. A cache
     # put in place one level wrong satisfies the parent and nothing else.
     DataInput("relation_bodies", ("habitat", "omnicrobe_cache", "relations"),
-              :dir, :notdistributed, "",
+              :dir, :deposit, "",
               "the stored response bodies themselves, one <taxid>.json per taxon",
               "habitat step 1"),
     DataInput("relation_manifest", ("habitat", "omnicrobe_cache", "manifest.csv"),
@@ -218,23 +220,23 @@ const INPUTS = DataInput[
               "habitat step 5; written by step 3"),
 
     # ---- the criteria a run is held to, supplied on the command line ------------
-    DataInput("category_selection", ("criteria", "category_selection.csv"), :file, :deposit, "",
+    DataInput("category_selection", ("criteria", "category_selection.csv"), :file, :unreleased, "",
               "which category each recorded outcome rule speaks for, which categories the " *
               "grid counts are exported for, and which phylum the standardisation shares " *
               "are quoted for, each with a note saying where that selection came from",
               "habitat steps 3 and 5, as --categories"),
 
     # ---- the census route ------------------------------------------------------
-    DataInput("hits_fasta", ("census", "firstTry.fa"), :file, :deposit, "",
+    DataInput("hits_fasta", ("census", "firstTry.fa"), :file, :unreleased, "",
               "the unaligned sequences of the database search the census was built from",
               "the census driver"),
-    DataInput("uc_clusters", ("census", "clusters.uc"), :file, :deposit, "",
+    DataInput("uc_clusters", ("census", "clusters.uc"), :file, :unreleased, "",
               "the clustering of those sequences that defines the census centroids",
               "the census driver"),
-    DataInput("uc_clusters_50", ("census", "clusters_50.uc"), :file, :deposit, "",
+    DataInput("uc_clusters_50", ("census", "clusters_50.uc"), :file, :unreleased, "",
               "the coarser clustering used as the sub-family unit of the phylogenetic control",
               NO_STAGE),
-    DataInput("census_table", ("census", "final_deduplicated_data.csv"), :file, :deposit, "",
+    DataInput("census_table", ("census", "final_deduplicated_data.csv"), :file, :unreleased, "",
               "the census as the driver in this repository writes it; the habitat input " *
               "carries its identifiers, calls and taxonomy row for row",
               NO_STAGE),
@@ -247,11 +249,11 @@ const INPUTS = DataInput[
               "the census driver"),
 
     # ---- the determinant and structure route -----------------------------------
-    DataInput("pocket_labels", ("determinant", "pocket_labels_real.csv"), :file, :deposit, "",
+    DataInput("pocket_labels", ("determinant", "pocket_labels_real.csv"), :file, :unreleased, "",
               "the per-accession metal label set of the whole census",
               NO_STAGE),
     DataInput("structure_accessions", ("structures", "structure_accessions.txt"),
-              :file, :deposit, "",
+              :file, :unreleased, "",
               "the identifiers of every predicted and experimental structure the analysis read, " *
               "so the structures themselves can be fetched from their own archives",
               NO_STAGE),
@@ -384,7 +386,18 @@ function Base.showerror(io::IO, e::MissingInput)
         isempty(e.env) ||
             print(io, "\n  or set:      \$", e.env, ", to name this one ", thing, " somewhere else")
     end
-    if e.origin === :notdistributed
+    if e.origin === :unreleased
+        print(io, "
+  That ", thing, " is part of the data set, but it is not in the",
+                  "
+  archive published so far: it is a result of the analysis this",
+                  "
+  software was written for, and it is released with the accompanying",
+                  "
+  publication. docs/DATA.md section 2 says what the published archive",
+                  "
+  carries and which steps it is enough for.")
+    elseif e.origin === :notdistributed
         print(io, "\n  That ", thing, " holds a live service's own content, which is not",
                   "\n  redistributed here or with the archived data set: a fresh query",
                   "\n  answers with different data rather than these bytes.",

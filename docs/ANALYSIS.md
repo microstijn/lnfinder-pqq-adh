@@ -22,10 +22,10 @@ Every measured value in it is in a file this repository or the archived data set
 written by one of this repository's steps (the step is named), or is stated by the cited
 paper; every parameter of this repository's own steps is in its code, except the criteria
 supplied on the command line (see [Where the inputs come from](#where-the-inputs-come-from)).
-The procedure behind each subsection is set out in [`docs/TOOLING.md`](docs/TOOLING.md),
+The procedure behind each subsection is set out in [`docs/TOOLING.md`](TOOLING.md),
 under the section title given at its end; the data set is described in
-[`docs/DATA.md`](docs/DATA.md) and is not public yet (see
-[The archived data set](#the-archived-data-set)).
+[`docs/DATA.md`](DATA.md); the habitat and figure part of it is published, the rest is
+not (see [`docs/DATA.md`](DATA.md) §2).
 
 ### Census
 
@@ -35,14 +35,14 @@ first two are the calibration references and the remaining **59,173** are the hi
 (`dat/models/methanol_dehydrogenase_pqq_xoxF_mxaF.hmm`). The two references are first because
 the calibration takes the first two sequences of the alignment, and they are the file's only
 two full UniProt `sp|` records; every other record carries a bare identifier. All 59,175 are
-aligned to the same profile with `hmmalign` ([`docs/DATA.md`](docs/DATA.md) §5 gives the
+aligned to the same profile with `hmmalign` ([`docs/DATA.md`](DATA.md) §5 gives the
 command). The census driver (`src/scriptLn.jl`) reads that alignment, calls every aligned
 sequence (next subsection), and keeps the centroids of a USEARCH `-cluster_fast` clustering
 at 90 % identity, `census/clusters.uc` in the data set: **33,428 centroids, one census row
 each**. Rebuilding with `EXPECTED_CENTROIDS=33428`
 stops the driver if the clustering yields any other count.
 
-*Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *The census pipeline*.
+*Detail:* [`docs/TOOLING.md`](TOOLING.md), *The census pipeline*.
 
 ### The cofactor call
 
@@ -77,7 +77,7 @@ additional aspartate two positions downstream of a conserved one, where MxaFI-ty
 dehydrogenases carry Ala and ExaA-type ethanol dehydrogenases Ser or Thr. Asp318 and Asp320
 are the `D-x-D` pair the calibration looks for.
 
-*Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *The equivalence being applied* and
+*Detail:* [`docs/TOOLING.md`](TOOLING.md), *The equivalence being applied* and
 *Calibrating the active-site column*.
 
 ### Validation
@@ -121,7 +121,7 @@ tier, strongest evidence first
   X    Contested. Reported together with its call and excluded from every accuracy.
 ```
 
-*Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *Control-set validation*.
+*Detail:* [`docs/TOOLING.md`](TOOLING.md), *Control-set validation*.
 
 ### Taxonomy
 
@@ -135,14 +135,14 @@ own cross-reference on it. UniParc's `commonTaxonId` is never used as a fallback
 21,533 through a single-organism UniParc record and 2,765 through the accession's own
 cross-reference (the `taxid_source` column of `census/final_deduplicated_data.csv` in the
 data set). The lineage of each TaxID is then read from an NCBI taxonomy dump
-([`docs/DATA.md`](docs/DATA.md) §5).
+([`docs/DATA.md`](DATA.md) §5).
 
 **UniProt release 2026_03 is the release the taxonomy was resolved against, not the one the
 hits were drawn from.** Every census row records it (`uniprot_release`), and 24,298 of the
 33,428 accessions are inactive in it (`entry_status`). The release the search read is not
 recorded.
 
-*Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *Taxonomy*.
+*Detail:* [`docs/TOOLING.md`](TOOLING.md), *Taxonomy*.
 
 ### Habitat
 
@@ -174,7 +174,7 @@ response, and no release date is recorded with them.
 - **Taxa without a phylum are in no arm.** They are excluded when the arms are assembled,
   and step 3 stops if an assembled arm still holds one.
 
-*Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *Habitat*, *The habitat call table* and
+*Detail:* [`docs/TOOLING.md`](TOOLING.md), *Habitat*, *The habitat call table* and
 *The comparison arms*.
 
 ### Estimator
@@ -224,7 +224,7 @@ variance — or thin, and it assumes the units are independent. Every row theref
 carries how many contributing strata have an empty background cell, and the smallest
 background cell among the contributing strata.
 
-*Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *Enrichment estimators* and *Two estimators,
+*Detail:* [`docs/TOOLING.md`](TOOLING.md), *Enrichment estimators* and *Two estimators,
 always reported together*.
 
 ### Sensitivity and robustness
@@ -273,7 +273,7 @@ draws as a tick beside each carrier dot. The comparator is what separates a cate
 specific to the lanthanide-type carriers from one that belongs to the enzyme family as a
 whole; step 5 draws both, so the comparison is read off the figure rather than asserted here.
 
-*Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *Sensitivity grid and the robustness flag*.
+*Detail:* [`docs/TOOLING.md`](TOOLING.md), *Sensitivity grid and the robustness flag*.
 
 ### Coverage
 
@@ -285,7 +285,7 @@ Every estimate above is therefore conditional on annotation: it compares annotat
 lanthanide-type carriers with annotated background taxa, and says nothing about taxa for
 which OmniCrobe holds no usable relation.
 
-*Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *The comparison arms*.
+*Detail:* [`docs/TOOLING.md`](TOOLING.md), *The comparison arms*.
 
 ### Reproducibility
 
@@ -327,9 +327,9 @@ plan names those thresholds without stating the collapse rule that uses them or 
 the rule definitions of four variant levels — `T:alphabetical`, `T:unresolved`, `C:share` and
 `C:winner_fractional`; and one edge case of a fifth, `I:iso_taxon`, which affects two taxa.
 For those three the anchors check the wiring and the arithmetic, not the rule choice.
-[`docs/DATA.md`](docs/DATA.md) lists the same three beside the targets file it describes.
+[`docs/DATA.md`](DATA.md) lists the same three beside the targets file it describes.
 
-*Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *Sensitivity grid and the robustness flag* and
+*Detail:* [`docs/TOOLING.md`](TOOLING.md), *Sensitivity grid and the robustness flag* and
 *Where the numbers come from, and where they do not*.
 
 ---

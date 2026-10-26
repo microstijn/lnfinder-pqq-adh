@@ -58,16 +58,23 @@ see the two switches.
 
 ## 2. How to obtain it, and when
 
-**The data set is not public yet, and there is no DOI to give you.** It contains results —
-see §6 — so it is released with the accompanying publication and not before. When it is
-released, this line is replaced by its archive identifier:
+**Part of the data set is published. The rest is not.** The habitat route's inputs and the
+figure's summary tables — the `habitat/` and `figure/` trees of §3 — are deposited and open:
 
-> **Data set DOI: `<to be assigned at release — this placeholder is filled in when the
-> archive is published, and the same identifier is added to CITATION.cff>`**
+> **Data set DOI:
+> [`10.5281/zenodo.23667326`](https://doi.org/10.5281/zenodo.23667326)**, under CC BY 4.0.
+> That is the concept DOI, so it resolves to whichever version of the deposit is current.
 
-Until then, nothing here promises an archive exists. What this document does promise is
-that the *layout* the archive will have is the layout the code already reads, so this
-section is the only part of this file that changes on the day it appears.
+Unpack that archive at the data root and every required entry of
+[`docs/data_manifest.sha256`](data_manifest.sha256) is satisfied.
+
+The `census/`, `criteria/`, `determinant/` and `structures/` trees are not in it, and neither
+are three of step 2's bulk working files. Several of them are results of the analysis this
+software was written for — see §6 — so they are released with the accompanying publication and
+not before. `src/ModuleDataInputs.jl` marks those inputs `:unreleased`, so a step that needs
+one names it and says why it is absent rather than failing obscurely, and `verify_data.jl` does
+not require them. §7 says which stage needs which file, and
+[`docs/REPRODUCING.md`](REPRODUCING.md) says which steps the published archive is enough for.
 
 ### Verifying what you got
 
@@ -99,21 +106,26 @@ some other record is used, the repository's copy is **also** consulted for the p
 covers, and a disagreement between the two is a failure in its own right. That is the
 reason this file is shipped at all: it is the second, independent location.
 
-The repository's copy leaves one thing out on purpose:
+The repository's copy covers the published archive's files, with two deliberate exceptions:
 
+- **the relation cache's stored response bodies**, one JSON file per taxon. There are
+  thirteen thousand of them, and they *are* in the archive. The archive's own
+  `MANIFEST.sha256` records every one, and the purpose of this file is to be a second record
+  of the paths it covers rather than a copy of the first — so it carries a digest for the
+  cache's `manifest.csv` and for the ontology path cache beside it, and leaves the bodies to
+  the archive's own record.
 - **`structures/structure_accessions.txt`**, because it is one identifier per member of the
   census, so a list of them is the census's membership, and an integrity record is not the
-  place to publish one. The twelve experimental structures further down **do** have digests,
-  and that is a deliberate distinction rather than an inconsistency: twelve published
-  crystal entries, which the accompanying publication names in any case, are not a
-  census-wide identifier list.
+  place to publish one. It is not in the published archive either way. The twelve
+  experimental structures further down **do** have digests, and that is a deliberate
+  distinction rather than an inconsistency: twelve published crystal entries, which the
+  accompanying publication names in any case, are not a census-wide identifier list.
 
-Everything else the archive carries has a digest here, `criteria/category_selection.csv`
-included: its digest is that of the copy the archive is assembled from, so the repository's
-record and the archive's own name the same bytes for it. The habitat relation cache's stored
-bodies and the ontology climb beside them are not in the archive at all (§5), so an integrity
-record of the archive holds no digest of them; the archive does carry that cache's own
-`manifest.csv`, and its digest is in the repository copy.
+The files the published archive does not carry yet keep their digests here as well, in the
+`optional` section, so that the record exists before the files do and a reader who obtains
+them later can check them. `criteria/category_selection.csv` is one of those: its digest is
+that of the copy the archive will be assembled from, so the repository's record and the
+archive's own will name the same bytes for it.
 
 **One consequence worth stating, because it is easy to get the order wrong.** A step-4 run
 records `anchor_targets_sha256` in its provenance file, and step 5 records the digest of
@@ -137,7 +149,7 @@ the figure provenance, so the deposited copy has to be the copy both of those ru
 <data root>/                          $LNFINDER_DATA, else dat/ in the clone
   MANIFEST.sha256                     the archive's own checksums
   habitat/                            the habitat comparison, steps 0 to 5
-    census_habitat.csv
+    census_habitat_rerun_v2.csv
     prokaryote_taxa.csv
     prokaryote_background.csv
     obt_path_cache.csv                NOT in the archive — written by steps 0 and 1
@@ -180,13 +192,15 @@ the repository whatever `$LNFINDER_DATA` says, so an archive unpacked at `dat/` 
 `category_selection.csv` beside them and a root elsewhere leaves them where they are. The
 archive carries no file of those three names, so unpacking it in place overwrites none of them.
 
-Under `habitat/omnicrobe_cache/` the archive carries `manifest.csv` and nothing else: the
-stored response bodies under `relations/` are not redistributed, and neither is
-`obt_path_cache.csv` beside it (§5). A reader who holds those caches puts them where the tree
-above does; a run without them fetches, which §5 and §7 spell out.
+Under `habitat/omnicrobe_cache/` the archive carries `manifest.csv` and the stored response
+bodies under `relations/`, one `<taxid>.json` per taxon, and it carries `obt_path_cache.csv`
+beside the cache (§5). So a reader who unpacks the archive has the caches already; §5 and §7
+say what step 1 replays from them and what a run without them measures instead.
 
-Total, as assembled: **about 88 MB** unpacked, of which `census/firstTry.fa` and
-`habitat/habitat_taxon_calls.csv` are the bulk. Plan disk for that order of size — the
+The published archive is **26 MB compressed, about 200 MB unpacked**, of which
+`habitat/habitat_taxon_calls.csv` and the thirteen thousand stored response bodies under
+`habitat/omnicrobe_cache/relations/` are the bulk. The trees that are not in it yet are listed
+file by file in §4; `census/firstTry.fa` is the largest of them. Plan disk accordingly — the
 per-file figures are the archive's own, and `du` on the unpacked root reports them once you
 have it.
 
@@ -235,12 +249,12 @@ as the record of that validation (§6).
 
 | name | path | size | what it is, and which stage reads it |
 |---|---|---|---|
-| `census_habitat` | `habitat/census_habitat.csv` | 8.5 MB | the census table carrying the habitat layer, one row per sequence. **Steps 1, 2, 3 and 4 all read it, and nothing in this repository writes it.** Its identifier, cofactor-call, active-site, `pos2_aa` and taxonomy columns (`TaxID` to `species`) are those of `census/final_deduplicated_data.csv`, row for row. Its seventeen habitat-layer columns — `report_group`, `isolation`, `chemistry_share` and the `habitat_*`, `published_*` and `pillar_*` families — are a per-row annotation joined to it on `id` by a step that is not part of this release; only step 1 reads them, for its replication report, and the habitat comparison takes every call from `habitat_calls`. Those columns are computed from relations the microbe–habitat service returns, and the habitat names in them are the habitat ontology's own term labels (§8) |
+| `census_habitat` | `habitat/census_habitat_rerun_v2.csv` | 8.5 MB | the census table carrying the habitat layer, one row per sequence. **Steps 1, 2, 3 and 4 all read it, and nothing in this repository writes it.** Its identifier, cofactor-call, active-site, `pos2_aa` and taxonomy columns (`TaxID` to `species`) are those of `census/final_deduplicated_data.csv`, row for row. Its seventeen habitat-layer columns — `report_group`, `isolation`, `chemistry_share` and the `habitat_*`, `published_*` and `pillar_*` families — are a per-row annotation joined to it on `id` by a step that is not part of this release; only step 1 reads them, for its replication report, and the habitat comparison takes every call from `habitat_calls`. Those columns are computed from relations the microbe–habitat service returns, and the habitat names in them are the habitat ontology's own term labels (§8) |
 | `pool_taxa` | `habitat/prokaryote_taxa.csv` | 0.34 MB | the reference-proteome taxon pool the comparison arm is drawn from. Steps 1 and 2 read it, and step 3 records its digest and taxon count in its provenance when it is there; step 0 writes it, from a live query whose answer moves, which is why the archived copy matters |
 | `pool_background` | `habitat/prokaryote_background.csv` | 0.62 MB | the habitat annotation of that pool. Step 1 reads it, and step 3 records its digest and taxon count in its provenance when it is there; step 0 writes it |
-| `obt_path_cache` | `habitat/obt_path_cache.csv` | — | the habitat-ontology climb, cached, so the ontology is walked once. Steps 0 and 1 read it, and both write it back. **Not in the archive** (§5): it is a verbatim extract of a third-party ontology, keyed by ontology term id, and it is not redistributed here |
+| `obt_path_cache` | `habitat/obt_path_cache.csv` | — | the habitat-ontology climb, cached, so the ontology is walked once. Steps 0 and 1 read it, and both write it back. **In the archive** (§5): it is a verbatim extract of a third-party ontology, keyed by ontology term id, carrying no taxon and no census value, redistributed under that ontology's own terms (§8) |
 | `relation_cache` | `habitat/omnicrobe_cache` | — | the habitat relation cache: the directory the stored response bodies and their manifest live in. Step 1. The archive carries the manifest and not the bodies (§5), so **this is the item whose absence makes a step-1 run a new measurement rather than a replay** — the service behind it is text-mined and unversioned, so a fresh fetch is a different data set, not the same one |
-| `relation_bodies` | `habitat/omnicrobe_cache/relations` | — | the stored bodies themselves, one `<taxid>.json` per taxon. **Not in the archive** (§5). Step 1 **requires them by name** unless it is given seed directories: a cache miss here is a live fetch, so requiring the directory that holds them instead would let a cache that exists with nothing underneath it pass every check and then go to the network on a run that reports itself as replaying from disk |
+| `relation_bodies` | `habitat/omnicrobe_cache/relations` | — | the stored bodies themselves, one `<taxid>.json` per taxon. **In the archive** (§5), stored unmodified. Step 1 **requires them by name** unless it is given seed directories: a cache miss here is a live fetch, so requiring the directory that holds them instead would let a cache that exists with nothing underneath it pass every check and then go to the network on a run that reports itself as replaying from disk |
 | `relation_manifest` | `habitat/omnicrobe_cache/manifest.csv` | 0.69 MB | what that cache holds, where each body came from and when: one row per taxon with a relation count, a source, a fetch stamp, and the service and ontology releases the run records. It records the fetch and carries none of the responses, and it is in the archive. Steps 1 and 3. Step 1 **rewrites it in place** at the end of a run, wherever `--out` sends the call table |
 | `habitat_calls` | `habitat/habitat_taxon_calls.csv` | 24.4 MB | one habitat call per taxon per rule variant. Steps 3, 4 and 5 read it; step 1 writes it. **It is the archive's entry point to steps 3, 4 and 5**, which run from it with no network; step 1, which writes it, cannot be replayed from the archive (§5). It is computed from relations the microbe–habitat service returns, and its habitat names are the habitat ontology's own term labels (§8) |
 | `background_scan_dir` | `habitat/background_scan` | 0.14 MB | the scan's own records, listed under §3. Step 3 reads four of them; **without them it records the evidence as unknown and withholds the background licence rather than refusing** — unknown withholds the licence instead of erroring or passing. The rest record which sequences and which release the threshold was set on, and exist so that step 2 can be audited without re-running it |
@@ -346,7 +360,7 @@ family is named after the phylum the criteria file selects). Nothing else in the
 | `hits_fasta` | `census/firstTry.fa` | 33.0 MB | the unaligned sequences the census was built from, as retrieved. Read by `src/scriptLn.jl`. It is archived, so the census is rebuilt from these exact sequences |
 | `uc_clusters` | `census/clusters.uc` | 4.1 MB | the clustering of those sequences that defines the census centroids. Read by `src/scriptLn.jl`. Archived because regenerating it needs USEARCH 11, a proprietary binary that is not and cannot be redistributed. The clustering command is documented in `src/scriptLn.jl` (`USEARCH_CMD`) |
 | `uc_clusters_50` | `census/clusters_50.uc` | 4.3 MB | the coarser clustering used as the sub-family unit of the phylogenetic control. **No stage in this release reads it**; it is archived because it cannot be rebuilt without that same proprietary binary |
-| `census_table` | `census/final_deduplicated_data.csv` | 7.6 MB | the census as `src/scriptLn.jl` writes it: one row per centroid with its cofactor call, active-site residues, TaxID and lineage, and the route, entry status and sequence-database release each TaxID was resolved through. It was written with `RUN_HABITAT=false`, so its `report_group` reads `_Not Mapped_` on every row. `habitat/census_habitat.csv` carries its identifiers, calls and taxonomy row for row. **No stage in this release reads it**: it is here so that the habitat input can be checked against the table it came from |
+| `census_table` | `census/final_deduplicated_data.csv` | 7.6 MB | the census as `src/scriptLn.jl` writes it: one row per centroid with its cofactor call, active-site residues, TaxID and lineage, and the route, entry status and sequence-database release each TaxID was resolved through. It was written with `RUN_HABITAT=false`, so its `report_group` reads `_Not Mapped_` on every row. `habitat/census_habitat_rerun_v2.csv` carries its identifiers, calls and taxonomy row for row. **No stage in this release reads it**: it is here so that the habitat input can be checked against the table it came from |
 
 ### `determinant/` and `structures/`
 
@@ -370,7 +384,7 @@ width; the sizes of the tables above are stated, and §6 says which of them are 
 
 ---
 
-## 5. What is not in the archive, and how to get it
+## 5. What the archive does not carry, and the caches it does
 
 Five things the analysis read are not archived. Four of them are large and come from public
 sources, and **three of the five have digests** in `docs/data_manifest.sha256` under
@@ -435,24 +449,25 @@ Step 2's download cache and its HMMER working files are not archived. The *recor
 reads are (§4), and the caches themselves are re-fetchable from the sequence database at the
 release pinned in `uniprot_release.txt`.
 
-### `relation_cache`, `relation_bodies` and `obt_path_cache`: not redistributed
+### `relation_cache`, `relation_bodies` and `obt_path_cache`: in the archive
 
 `habitat/omnicrobe_cache/relations/<taxid>.json` is one stored response body per taxon from
 the microbe–habitat service the code queries, and `habitat/obt_path_cache.csv` is the climb
 over the habitat ontology those responses are read against — an `obtid,path` table keyed by
 ontology term id, carrying no taxon and no census value. Both are third-party content as
-retrieved, and they are **not redistributed here**. What the archive carries is the habitat
-layer's derived output instead: `habitat/habitat_taxon_calls.csv`, one call per taxon per
-rule variant, and `habitat/omnicrobe_cache/manifest.csv`, the record of which taxon was
-fetched, from where and when, with the service and ontology releases the run declares.
+retrieved, and both **are** in the published archive, stored unmodified, under the service's
+own CC BY terms (§8). The archive carries the habitat layer's derived output beside them:
+`habitat/habitat_taxon_calls.csv`, one call per taxon per rule variant, and
+`habitat/omnicrobe_cache/manifest.csv`, the record of which taxon was fetched, from where and
+when, with the service and ontology releases the run declares.
 
-**What that costs, plainly.** Habitat steps 3, 4 and 5 run from the archive with no network
-(§7), because they read the call table. Step 1, which writes the call table, does not: without
-the cache it fetches, and the service behind it is text-mined, unversioned and periodically
-re-mined, so what comes back is a different data set rather than these bytes again. A step-1
-run made that way is a **new measurement, not a reproduction** of the call table in the
-archive. The call table is therefore the reproducible starting point, not an intermediate a
-reader regenerates.
+**What that buys, plainly.** Step 1 reads the stored bodies instead of re-querying, for every
+taxon the cache covers — `manifest.csv` says which — so the call table in the archive can be
+recomputed from the bytes it was computed from rather than from a fresh answer. That
+distinction matters because the service behind it is text-mined, unversioned and periodically
+re-mined: a query made today returns a different data set rather than these bytes again, so a
+step-1 run that fetches is a **new measurement, not a reproduction**. Which steps need a
+network for other reasons is §7's business, not this section's.
 
 **What step 1 does when the caches are not there.** It stops before it does any work and
 refuses, naming the input, where the layout puts it and which variable moves it, and saying
@@ -479,7 +494,7 @@ publication and not before:
 | file | what it discloses |
 |---|---|
 | `census/final_deduplicated_data.csv` | the census: one row per centroid with its cofactor call, active-site residues and resolved taxonomy |
-| `habitat/census_habitat.csv` | the census table carrying the habitat layer as published, one row per sequence |
+| `habitat/census_habitat_rerun_v2.csv` | the census table carrying the habitat layer as published, one row per sequence |
 | `habitat/habitat_taxon_calls.csv` | per-taxon habitat calls with the per-taxon carrier counts the comparison is computed from |
 | `habitat/background_pqq_scan.csv` | which background taxa carry the enzyme at the calibrated threshold |
 | `habitat/background_scan/` records | the calibrated threshold and its measured recall — small files, but fitted quantities |
@@ -509,7 +524,7 @@ this analysis (§5).
 |---|---|---|
 | census — `src/scriptLn.jl` | `model_alignment`, `hits_fasta`, `taxdump`, `uc_clusters`, `profile_hmm`; and a sequence database over the network, always | `$LNFINDER_CENSUS_OUT/census_rebuild_<date>/` |
 | habitat step 0 — `scripts/prokaryote_background.jl` | the network; on a rerun, its own three outputs (it is resumable) | `pool_taxa`, `pool_background`, `obt_path_cache`, of which the archive carries the first two |
-| habitat step 1 — `scripts/habitat_reaggregate.jl` | `census_habitat` (or the file `--census` names), `pool_taxa`, `pool_background`, `relation_bodies`, `relation_manifest`, `obt_path_cache` — **two of those three cache inputs, `relation_bodies` and `obt_path_cache`, are not in the archive (§5), so a run that has only the archive fetches rather than replays** — and `--no-gates` on the command line (§4); a reader's own `--gate-targets` file makes the four reproduction gates only if it carries one `census,,<sha256>,,<note>` row matching the digest of the census read | `habitat_calls` (or `--out`), and `relation_manifest` and `obt_path_cache`, **always in place under the data root** |
+| habitat step 1 — `scripts/habitat_reaggregate.jl` | `census_habitat` (or the file `--census` names), `pool_taxa`, `pool_background`, `relation_bodies`, `relation_manifest`, `obt_path_cache` — **all three of those cache inputs are in the archive (§5), so a run that has only the archive replays from the stored bodies for every taxon the cache covers rather than fetching** — and `--no-gates` on the command line (§4); a reader's own `--gate-targets` file makes the four reproduction gates only if it carries one `census,,<sha256>,,<note>` row matching the digest of the census read | `habitat_calls` (or `--out`), and `relation_manifest` and `obt_path_cache`, **always in place under the data root** |
 | habitat step 2 — `scripts/background_pqq_scan.jl` | `profile_hmm`, `census_habitat`, `pool_taxa`; plus HMMER and the network | `background_scan_table`, `background_scan_dir` |
 | habitat step 3 — `scripts/habitat_enrichment.jl` | `habitat_calls`, `background_scan_table`, `census_habitat`, `scan_recall`, `scan_threshold`, `scan_acceptance`, `uniprot_release`, `relation_manifest`; `pool_taxa` and `pool_background` for its provenance, when they are there; **`category_selection` on the command line as `--categories`, required, no default**; and two plan bounds on the command line, which this release does not carry (§4) | `enrichment_table`, `arm_summary`, and the legacy configuration's rows beside `--out` (`habitat_enrichment_anchor.csv`), which no stage reads |
 | habitat step 4 — `scripts/habitat_sensitivity.jl` | `habitat_calls`, `background_scan_table`, `census_habitat`, and `anchor_targets` on the command line, with `anchor_source_primary` and `anchor_source_variants` read from beside it; no `--anchor-reference` (§4). **Not the step-3 tables**: it includes step 3 and recomputes, so it runs whether or not they are there | the grid, its robustness table, its panel and its provenance, under `--figdir`, else `$LNFINDER_FIGDIR`, else `figs/` in the clone |
@@ -545,12 +560,13 @@ and the run says so, unless a `--gate-targets` file declares that census by its 
 - **With the archive in place, habitat steps 3, 4 and 5 run with no network and no
   external binary.** They read `habitat_calls`, and nothing in them reaches the service the
   habitat layer is computed from.
-- **Step 1 is not one of those three.** It has **two** network paths, not one — the relation
-  fetch and the ontology climb — and the archive answers neither, because the stored bodies
-  and `obt_path_cache.csv` are not redistributed (§5). Step 1 requires `relation_bodies`,
-  `relation_manifest` and `obt_path_cache` by name unless it is given seed directories, so a
-  missing cache is a refusal rather than a quiet crawl, and a run that fetches or seeds is a
-  new measurement rather than a replay.
+- **Step 1 has two network paths** — the relation fetch and the ontology climb — and the
+  archive answers both, because it carries the stored bodies and `obt_path_cache.csv` (§5).
+  Step 1 requires `relation_bodies`, `relation_manifest` and `obt_path_cache` by name unless
+  it is given seed directories, so a missing cache is a refusal rather than a quiet crawl.
+  What it replays is bounded by what the cache covers: `manifest.csv` says which taxa those
+  are, and a taxon outside it is fetched, which makes that run a new measurement rather than
+  a replay.
 - **Steps 0 and 2 are not offline, and do not need to be**: their outputs are archived, but
   for the ontology cache step 0 writes (§5). Step 2 additionally needs HMMER, and on Windows
   WSL.
@@ -567,7 +583,7 @@ and the run says so, unless a `--gate-targets` file declares that census by its 
 
 | item | origin | terms |
 |---|---|---|
-| `habitat/habitat_taxon_calls.csv`, the habitat-layer columns of `habitat/census_habitat.csv` and of `habitat/prokaryote_background.csv`, and `habitat/omnicrobe_cache/manifest.csv` | this project's own tables, computed from relations returned by the microbe–habitat service the code queries, over the habitat ontology those responses are climbed against; the habitat names in them are that ontology's term labels. The manifest is the fetch record for the cache — a relation count per taxon and none of the retrieved content | the tables are the authors'. The service and the ontology are **cited, not redistributed** — cite each in its own right |
+| `habitat/habitat_taxon_calls.csv`, the habitat-layer columns of `habitat/census_habitat_rerun_v2.csv` and of `habitat/prokaryote_background.csv`, and `habitat/omnicrobe_cache/manifest.csv` | this project's own tables, computed from relations returned by the microbe–habitat service the code queries, over the habitat ontology those responses are climbed against; the habitat names in them are that ontology's term labels. The manifest is the fetch record for the cache — a relation count per taxon and none of the retrieved content | the tables are the authors'. The service's own stored responses and the ontology extract beside them **are** redistributed, in the archive and unmodified, under the service's and the ontology's own terms — cite each in its own right |
 | `habitat/omnicrobe_cache/relations`, `habitat/obt_path_cache.csv` | response bodies from that service, as retrieved, and the climb over that ontology. **Not redistributed here** (§5) | the service's own terms and the ontology's own licence; cite each in its own right |
 | `census/firstTry.fa`, `habitat/background_scan/refs.fasta` | public sequence records, the second being the two calibration reference records as retrieved | the sequence database's own licence (CC BY 4.0 at the time of writing); cite the release |
 | `census/clusters.uc`, `census/clusters_50.uc` | output of USEARCH 11 | the output is the authors'. **The binary is not, and is not redistributed** |

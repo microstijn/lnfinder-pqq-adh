@@ -19,67 +19,61 @@
 # comment makes verify_data.jl refuse to read the file rather than guess, because guessing
 # is how a required file silently becomes an optional one.
 #
-# WHAT IS DELIBERATELY NOT HERE. Two of the habitat route's inputs are not in the archive
-# at all, so neither this file nor the archive's own manifest records a digest of them:
-# the relation cache's stored response bodies, one per taxon and named for that taxon,
-# and the ontology path cache beside them. Both are third-party content rather than this
-# project's output — the bodies are a text-mining service's own responses, the path cache
-# a verbatim extract of an ontology's own structure — and neither is redistributed here.
-# What is recorded in their place is the digest of the cache's own manifest.csv, which
-# says which taxa were fetched, by which route and when, and carries none of the responses.
-# The deposit section below carries a digest for every archived file except one,
-# structures/structure_accessions.txt, and the paragraph below gives the reason.
+# WHAT THE PUBLISHED ARCHIVE CARRIES. The archive published so far is the habitat route's
+# inputs and the figure's summary tables — the `habitat/` and `figure/` trees. Those are
+# the required entries below, and a data root unpacked from it satisfies every one of them.
 #
-# criteria/category_selection.csv is listed below. Its digest is that of the file the
-# archive carries, taken from the copy the archive is assembled from, so this record and
-# the archive's own manifest name the same bytes for it and a reader can check it against
-# two independent records like every other deposited file.
+# The habitat relation cache's stored response bodies ARE in that archive, one JSON file
+# per taxon, and so is the ontology path cache beside them. The bodies are not enumerated
+# here: there are thirteen thousand of them, the archive's own MANIFEST.sha256 records
+# every one, and this file's job is to be a second record of the paths it covers rather
+# than a copy of the first. The cache's own manifest.csv and the path cache both have a
+# digest here.
+#
+# WHAT IS NOT IN IT YET. The `census/`, `criteria/`, `determinant/` and `structures/`
+# trees, and three of step 2's working files, are not in the published archive. Several of
+# them are results of the analysis this software was written for, so they are released with
+# the accompanying publication. Their digests are kept below, under `optional`, so that the
+# record exists before the files do and a reader who obtains them later can check them; a
+# data root without them is not a failure. `src/ModuleDataInputs.jl` marks those inputs
+# `:unreleased`, which is why verify_data.jl does not require them.
+#
+# The optional section also holds what it always held: the model alignment, the taxonomy
+# dump and the twelve experimental structures. Those are large and come from public
+# sources, so a reader regenerates or re-fetches them (docs/DATA.md says how). The digests
+# are of the files the analysis actually read, so a regeneration or a download can be
+# compared against them; a mismatch on a re-fetched public file is information about drift
+# in that source, not necessarily an error.
 #
 # The anchor targets step 4 checks its grid against, and the two files they were transcribed
 # from, are not here because they are not in the archive: they are tracked in this
 # repository under dat/criteria/, and step 4 checks the two sources against the digests the
 # targets file declares.
 #
-# The structure accession list is in the archive, and its digest is recorded in the
-# archive's own manifest rather than here: it is one identifier per member of the census,
-# so a list of them is the census's membership, and an integrity record that ships with
-# the code is not the place to publish it. The twelve experimental structures under
-# optional DO have digests, and that is a considered distinction rather than an oversight:
-# twelve published crystal entries, which the accompanying publication names in any case,
-# are not a census-wide identifier list.
-#
 # Nothing in this file is a measurement: it is file names and one-way digests.
 # --- deposit: every one of these must be present in a complete data root ---
-a37b6e1b5ea8f839f551f7a5d56408cc8b37beec090347a18d608ece5144707e  census/clusters.uc
-74522c860f8a3700c45df39ab3440f130e25ebf75de577f05c5acdf3b64075ae  census/clusters_50.uc
-70ed18adc8cdbebdf6ba14479e728239ae1676433a5f83988721b25041299894  census/final_deduplicated_data.csv
-110fc4bb0a49c42e3e20889b2500ca4af2ff7bfaffba0d23d437b11fdd1ea355  census/firstTry.fa
-58a9af6156dd21682b7104320adc1082073f41f26cfea205a1ad6875883fbd9a  criteria/category_selection.csv
-6f26f853054cc0612fe49f0a02a2ced294b50f73a4121d4ebff9de2d4698c5d1  determinant/pocket_labels_real.csv
+568068764f82c94fe3d14a748845ec4a710f8e8c3c227a8c2a25ad701e3e1539  figure/prevalence.csv
+a2bdafef86a4633f991af136804d11aee6a2f9cbecca786740604aa95b631191  figure/prevalence_phylum_average.csv
+2a774cb73885a2998ba22495e450cf717d12b2ce648721bb4413c791ab53b93f  figure/thermal_options.csv
 7be565ffa716c9b0c3d7a294c40a07c019ad29f83abb53c992d09a44ece9fede  habitat/background_pqq_scan.csv
 805a6d4036c3c733dbd8ee02ef44678f411d4d74fa6727e2be8a2f37329bb244  habitat/background_scan/acceptance.tsv
-14c439743910afb940f95fb7ec33b919c4952318e7b50dcb39192371bdbe781e  habitat/background_scan/calibration_scores.csv
 0e1634eb25e9653101c32895e4a8870aa6934004b34b8ae11f215e9c80691493  habitat/background_scan/recall.txt
-af59856ee65280099cad6e66de5d6b1652c744fe7d67d0eeb28a7058db3af558  habitat/background_scan/recall_proteomes.fasta.manifest
-4d40d4d77016f8682bcdc7035f9f9927c89b7d35621f68d74379b0db9830548f  habitat/background_scan/refs.fasta
 90d339a3e59e824ad6f3e9ca91d763bedfc31da6bacec4369e896c919c21bf6e  habitat/background_scan/threshold.txt
 2cfc41071e6870ac43b63e2ce3c5c65b93f2ee1d03ea9b29b808281bd54eb06b  habitat/background_scan/uniprot_release.txt
 fd9d421c59845a0a55e31e6dac77900f94d2df7c0aba36b64076b134b7f0d237  habitat/background_scan/uniprot_release_IPR017512.txt
-29a85e099e87e8257146739695f2276de8a38b4a1aab7db0e9a5e69d6120d7dc  habitat/census_habitat.csv
+29a85e099e87e8257146739695f2276de8a38b4a1aab7db0e9a5e69d6120d7dc  habitat/census_habitat_rerun_v2.csv
 0f687372356a16c46c5aed0aee2399b81a38d4dcff80f6542340a783e06da957  habitat/habitat_taxon_calls.csv
+36dc2ad4dd7e20b66e898fcd3c1bbbd7b3f001530be59a8a257ce9596cd69268  habitat/obt_path_cache.csv
 1e25543c419a1d3f49117611d992fff5af7666ccda78173c52ae2403402099e6  habitat/omnicrobe_cache/manifest.csv
 62319cce602b1305168c3eba48be765375b2600eaa182f78defd1bc6b99c075d  habitat/prokaryote_background.csv
 61411f7bd2a87cea02dd701004f5ee7ea4471422cfb0e8e217e0290c3be9939c  habitat/prokaryote_taxa.csv
 
 # --- optional: checked only if present -------------------------------------------
-# Three of the five classes docs/DATA.md section 5 lists as not archived are here. Two are
-# not: step 2's download cache has no digest, and neither has the habitat relation cache
-# with the ontology path cache beside it, which a fresh query answers with different data
-# rather than with the same bytes. None of the five is in the archive. The three that are
-# here are large and come from public sources, so a reader regenerates or re-fetches them
-# (docs/DATA.md says how). The digests are of the files the analysis actually read, so a
-# regeneration or a download can be compared against them; a mismatch on a re-fetched
-# public file is information about drift in that source, not necessarily an error.
+a37b6e1b5ea8f839f551f7a5d56408cc8b37beec090347a18d608ece5144707e  census/clusters.uc
+74522c860f8a3700c45df39ab3440f130e25ebf75de577f05c5acdf3b64075ae  census/clusters_50.uc
+70ed18adc8cdbebdf6ba14479e728239ae1676433a5f83988721b25041299894  census/final_deduplicated_data.csv
+110fc4bb0a49c42e3e20889b2500ca4af2ff7bfaffba0d23d437b11fdd1ea355  census/firstTry.fa
+58a9af6156dd21682b7104320adc1082073f41f26cfea205a1ad6875883fbd9a  criteria/category_selection.csv
 708948b013097f880efee97076a1c46acfa94be0430dced8dabde776f17a56f8  derived/aligned_to_model.afa
 5c1a445354809ea64341228a9649b791c4cd2c07690011b86bacb5b00adefb05  derived/structures/crystals/1g72.pdb
 385cf656e0f99409012463aeb2d77196cc45e99fc5baaa3347705e29a52a9217  derived/structures/crystals/1h4i.pdb
@@ -97,3 +91,7 @@ d01aa7db20a5e85dd550f54b0872427f4ce11deaa89555422a36ec90ef62da9c  derived/taxdum
 dcc3f3f2259f010c19cfebecc2a969cc005ce04fe790cb298659e7964bf94750  derived/taxdump/merged.dmp
 ac1f70a27251aca5271fb990319c6c7f32672b799c278266430bba0710e643a0  derived/taxdump/names.dmp
 6192869080fb9fbb55628a8960ec9398a1d48cc7fbbb2493ec34988ae1c1cff5  derived/taxdump/nodes.dmp
+6f26f853054cc0612fe49f0a02a2ced294b50f73a4121d4ebff9de2d4698c5d1  determinant/pocket_labels_real.csv
+14c439743910afb940f95fb7ec33b919c4952318e7b50dcb39192371bdbe781e  habitat/background_scan/calibration_scores.csv
+af59856ee65280099cad6e66de5d6b1652c744fe7d67d0eeb28a7058db3af558  habitat/background_scan/recall_proteomes.fasta.manifest
+4d40d4d77016f8682bcdc7035f9f9927c89b7d35621f68d74379b0db9830548f  habitat/background_scan/refs.fasta

@@ -95,7 +95,7 @@ end
             @test !isempty(i.read_by)
             @test i.kind in (:file, :dir)
             @test i.origin in (:repo, :deposit, :regenerate, :refetch, :run,
-                               :notdistributed)
+                               :notdistributed, :unreleased)
         end
     end
 

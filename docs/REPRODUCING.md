@@ -15,9 +15,9 @@ external binary, or a live web service.
 There is a defined route to the missing half: **the repository plus the archived data
 set**, which is one directory in a documented layout under one environment variable. What
 that route does and does not buy is set out tier by tier below, and in full in
-[`docs/DATA.md`](docs/DATA.md). The data set is not public yet — see
-[Where the inputs come from](#where-the-inputs-come-from) — so tiers 2 and 3 describe what
-will be possible with it, not something you can do today with a clone alone.
+[`docs/DATA.md`](DATA.md). Part of the data set is published and part is not — see
+[Where the inputs come from](#where-the-inputs-come-from) — so tiers 2 and 3 are partly
+available today and partly a description of what the rest will make possible.
 
 ### Tier 1 — runs from a clone, offline, with nothing else
 
@@ -36,7 +36,7 @@ the list of what the next tier needs.
 | what | needs |
 |---|---|
 | **the figure's tables** — `python scripts/prevalence.py` then `python scripts/prevalence_phylum_average.py` | the data set, for `<root>/habitat/habitat_taxon_calls.csv` and `<root>/habitat/background_pqq_scan.csv`. They rewrite the three tables under `<root>/figure/` **byte for byte**, bootstrap columns included, so the tracked copies can be checked rather than trusted. Run them before `fold_change_figure.jl` only if you want to re-derive; the figure does not need them |
-| **habitat step 3** — `scripts/habitat_enrichment.jl` | the data set (steps 1 and 2 are already in it, so step 3 can be run without running them), and **`--categories` pointed at `criteria/category_selection.csv` in it** — required, with no default, because which categories the recorded rules speak for was selected from this data set's own estimates. It also takes two plan bounds on the command line that this release does not carry; a run without them differs only by twelve provenance keys ([`docs/DATA.md`](docs/DATA.md) §4) |
+| **habitat step 3** — `scripts/habitat_enrichment.jl` | the data set (steps 1 and 2 are already in it, so step 3 can be run without running them), and **`--categories` pointed at `criteria/category_selection.csv` in it** — required, with no default, because which categories the recorded rules speak for was selected from this data set's own estimates. It also takes two plan bounds on the command line that this release does not carry; a run without them differs only by twelve provenance keys ([`docs/DATA.md`](DATA.md) §4) |
 | **habitat step 4** — `scripts/habitat_sensitivity.jl` | the data set, and **`--anchor-targets dat/criteria/anchor_targets.csv`**: the targets ship with this repository, with the two tables they were transcribed from beside them. `--anchor-reference` is not needed: the anchor levels whose rows it would be compared with are not evaluated (`ANCHOR_LEVELS_RETIRED` in the script), and a path given is recorded without being opened. Its outputs go to `--figdir`, else `$LNFINDER_FIGDIR`, else `figs/` in the clone; set one of the first two, and give step 5 the same directory, since step 5 has no such fallback. **Not step 3's outputs**: this step includes step 3 and recomputes, so it runs whether or not they are on disk |
 | **habitat step 5** — `scripts/habitat_figure.jl` | the step-3 and step-4 outputs, a `--figdir` (else `$LNFINDER_FIGDIR`) that already exists, and **the same `--categories` file step 3 was given** |
 
@@ -74,9 +74,9 @@ than a reproduction of the deposited table.
 |---|---|---|
 | **control-set validation** — `ValidateClassifier.validate(; control_tsv, hmm, ln_ref_acc, ca_ref_acc, …)` | HMMER `hmmalign` on `PATH`, and network (UniProt, plus NCBI for one row) | the only analysis entry point whose **data** inputs are both in this repository: the control set and the profile. There is no command-line driver — load the file in Julia and call the function. For the two reference accessions, pass one lanthanide-binding and one calcium-binding row from those whose `role` is `reference`; the recorded run passed I0JWN7 and P16027, and the harness reports whether the column they calibrate is unique. It writes its own outputs where `work_dir` says; this repository ships one of them from the recorded run, the call for every row, as `dat/control_set/control_validation_predictions.csv` |
 | **step 0, the background pool** — `julia --project=. scripts/prokaryote_background.jl` | network (UniProt reference proteomes, then the habitat service per taxon) | takes a long time and is resumable. It writes three files step 1 reads: the taxon pool and the background table, both of which the data set carries, and the ontology path cache, which it does not. It takes **no options**: `--help` prints what it reads and writes and exits, and any other argument is refused rather than ignored |
-| **habitat step 1** — `scripts/habitat_reaggregate.jl` | the data set, **plus** the stored OmniCrobe relation responses and the OntoBiotope path cache, which the data set does not carry — so network, unless you prime the cache from bodies you already hold, given as bare arguments or in `$LNFINDER_RELATION_SEED`. Also `--no-gates`, because the data set carries no gate-targets file, and **`--out <path>` pointed outside the data set**, because without it the call table is written over the archived copy | **what this step produces is a new measurement, not a reproduction of the deposited call table.** The responses are a third-party service's own output and are not redistributed with the data set, so every taxon a seed does not cover is fetched live, and so is every ontology term the path cache does not hold; the service is re-mined and unversioned, so a fetch returns different data rather than the bytes the deposited table was computed from. Given neither a seed nor a cache the step refuses, naming what it wants, rather than fetching silently. Under `--no-gates` it makes the gates the method itself fixes (no ontology path left unresolved, no failed relation fetch), reports each gate whose expected value is a measurement of the data as not checked, and declines as not applicable the four gates that re-derive the calls the archived census and background tables already carry; its closing line says which gates it did not make. See [`docs/DATA.md`](docs/DATA.md) §7 for the command and for the two files `--out` does not move |
+| **habitat step 1** — `scripts/habitat_reaggregate.jl` | the data set, which carries the stored OmniCrobe relation responses and the OntoBiotope path cache, so no network for any taxon the cache covers. Also `--no-gates`, because the data set carries no gate-targets file, and **`--out <path>` pointed outside the data set**, because without it the call table is written over the archived copy | the step replays from the stored bodies rather than fetching, so for the taxa the cache covers it recomputes the deposited call table from the bytes that table was computed from. `habitat/omnicrobe_cache/manifest.csv` says which taxa those are; a taxon outside the cache is fetched live, as is any ontology term the path cache does not hold, and the service is re-mined and unversioned, so such a run is a new measurement for those rows rather than a replay. Under `--no-gates` it makes the gates the method itself fixes (no ontology path left unresolved, no failed relation fetch), reports each gate whose expected value is a measurement of the data as not checked, and declines as not applicable the four gates that re-derive the calls the archived census and background tables already carry; its closing line says which gates it did not make. See [`docs/DATA.md`](DATA.md) §7 for the command and for the two files `--out` does not move |
 | **habitat step 2** — `scripts/background_pqq_scan.jl` | the data set, HMMER `hmmsearch` and `hmmalign`, and network — on Windows also WSL, since HMMER has no native Windows build (see [Platform note](#platform-note-hmmer-through-wsl-on-windows)) | several hundred megabytes of downloads. Its outputs are in the data set, so with the data set you do not need to run it either |
-| **the census** — `julia --project=. src/scriptLn.jl` | the data set, **plus** an alignment you regenerate with HMMER and a taxonomy dump you re-fetch (both in [`docs/DATA.md`](docs/DATA.md) §5), **plus** network, and `$LNFINDER_CENSUS_OUT` naming a directory outside the clone | this one is not offline even with the data set: it resolves accessions against a live service before any other switch applies, so a re-run will not reproduce the census byte for byte. `EXPECTED_CENTROIDS=33428` makes it stop if the clustering yields any other centroid count than the recorded census has |
+| **the census** — `julia --project=. src/scriptLn.jl` | the data set, **plus** an alignment you regenerate with HMMER and a taxonomy dump you re-fetch (both in [`docs/DATA.md`](DATA.md) §5), **plus** network, and `$LNFINDER_CENSUS_OUT` naming a directory outside the clone | this one is not offline even with the data set: it resolves accessions against a live service before any other switch applies, so a re-run will not reproduce the census byte for byte. `EXPECTED_CENTROIDS=33428` makes it stop if the clustering yields any other centroid count than the recorded census has |
 
 ### Tier 4 — not reproducible from this repository, with or without the data set
 
@@ -92,7 +92,7 @@ root** in a documented layout. The root is the directory named by `$LNFINDER_DAT
 that unset it is `dat/` inside the clone. Unpack the archived data set at the root and every
 path the data set carries is satisfied at once — every path but the criteria files, which
 are deliberately passed on the command line for the reason given below. What the data set
-does not carry, and what each step does without it, is [`docs/DATA.md`](docs/DATA.md) §5.
+does not carry, and what each step does without it, is [`docs/DATA.md`](DATA.md) §5.
 
 | variable | what it names |
 |---|---|
@@ -114,7 +114,7 @@ prefix is exactly what could not see those two switches.
 
 The layout under the root, what every file in it is, which stage reads it, how to obtain or
 rebuild the things the archive does not carry, and which of them are results are all in
-**[`docs/DATA.md`](docs/DATA.md)**. A step that cannot find an input it resolved from the
+**[`docs/DATA.md`](DATA.md)**. A step that cannot find an input it resolved from the
 root refuses before it does any work, naming the input, the place in the layout it looked
 and the variable that moves it (a path you typed yourself is reported as the path you
 typed, because the layout is not what is wrong with it):
@@ -123,7 +123,7 @@ typed, because the layout is not what is wrong with it):
 LnFinder: the required input "census_habitat" is not there.
   what it is:  the census table carrying the habitat layer, one row per sequence
   read by:     habitat steps 1, 2, 3 and 4
-  looked for:  habitat/census_habitat.csv, under the data root
+  looked for:  habitat/census_habitat_rerun_v2.csv, under the data root
   data root:   $LNFINDER_DATA when that is set; dat/ in the clone when it is not
   This repository does not carry that file;
   docs/DATA.md says which stage reads it and how to obtain or rebuild it.
@@ -153,7 +153,7 @@ A default in the code would publish that choice as the software's own and could 
 apart from a selection somebody checked, so steps 3 and 5 hold no default and refuse by
 name without it. The names in the file also reach the output keys, derived rather than
 written down, so a run on other categories emits keys for those categories. See
-[`docs/DATA.md`](docs/DATA.md) §4.
+[`docs/DATA.md`](DATA.md) §4.
 
 Where each of them comes from: the data set carries `criteria/category_selection.csv`, and
 this repository carries the anchor targets at `dat/criteria/anchor_targets.csv`, with the two
@@ -188,17 +188,21 @@ selected from the analysis's own earlier estimates rather than fixed in advance.
 Where a script says "see THE RECORDED CRITERIA below" (step 3 does), that section of the same
 file says which bounds the plan fixed and how a run reports them against the measured values;
 the bounds themselves are the two `--plan-*` values, which arrive on the command line and are
-not part of this release ([`docs/DATA.md`](docs/DATA.md) §4).
+not part of this release ([`docs/DATA.md`](DATA.md) §4).
 
 ### The archived data set
 
-**It is not published yet, and there is no DOI to give you.** Several of its files are
-results of the analysis this software was written for, so it is released with the
-accompanying publication and not before. What exists today is the other half of the work:
-the layout is fixed, the code reads it, [`docs/DATA.md`](docs/DATA.md) documents it file by
-file, and [`docs/data_manifest.sha256`](docs/data_manifest.sha256) already carries a digest
+**Part of it is published.** The habitat route's inputs and the figure's summary tables are
+deposited and open at
+[doi:10.5281/zenodo.23667326](https://doi.org/10.5281/zenodo.23667326), under CC BY 4.0. The
+`census/`, `criteria/`, `determinant/` and `structures/` trees are not in it: several of those
+files are results of the analysis this software was written for, so they are released with the
+accompanying publication and not before. For those, what exists today is the other half of the
+work:
+the layout is fixed, the code reads it, [`docs/DATA.md`](DATA.md) documents it file by
+file, and [`docs/data_manifest.sha256`](data_manifest.sha256) already carries a digest
 for every archived file **except one named exception**, whose reason is in
-[`docs/DATA.md`](docs/DATA.md) §2. Two of the habitat route's inputs carry no digest at all,
+[`docs/DATA.md`](DATA.md) §2. Two of the habitat route's inputs carry no digest at all,
 in that file or in the archive's own manifest, because they are not in the archive: the stored
 relation responses, one per taxon, and the ontology path cache beside them. Both are
 third-party content rather than this project's output, and neither is redistributed here. What
@@ -223,10 +227,10 @@ every case, and this file does not pretend otherwise. `census/firstTry.fa` is th
 set an `hmmsearch` returned from a database that has changed since; the clusterings need a
 proprietary binary that is not redistributed; the habitat relation cache is a frozen
 snapshot of a service that is re-mined, so a fresh fetch is different data rather than the
-same data again. That last one is why the habitat route is the one the archive cannot make
-replayable end to end: those responses are third-party content, they are not redistributed,
-and re-fetching them does not give them back. What the archive deposits in their place is what
-step 1 computed from them — the call table — which is where the reproducible route starts. For
+same data again. That last one is why the snapshot itself had to be deposited rather
+than described: re-fetching those responses does not give them back. The archive therefore
+carries both the stored bodies and the call table step 1 computed from them, so the habitat
+route replays from the bytes it was computed from for every taxon the cache covers. For
 everything else, the archive is the difference between reading this code and running it, and
 is why this repository alone is not enough.
 

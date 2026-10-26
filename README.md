@@ -23,11 +23,11 @@ adds is the machinery around it.
 
 ## The data
 
-The tables this code reads are deposited at Zenodo under CC BY 4.0. The DOI is pending; it goes
-here once the deposit is published. That archive holds the habitat calls, the stored
-OmniCrobe responses they were aggregated from, the background carrier scan with its calibration
-and recall records, the sampled reference-proteome pool, the census table, and the summary
-tables the figure is drawn from, each with a SHA-256 checksum.
+The tables this code reads are deposited at Zenodo under CC BY 4.0,
+[doi:10.5281/zenodo.23667326](https://doi.org/10.5281/zenodo.23667326). That archive holds the
+habitat calls, the stored OmniCrobe responses they were aggregated from, the background carrier
+scan with its calibration and recall records, the sampled reference-proteome pool, the census
+table, and the summary tables the figure is drawn from, each with a SHA-256 checksum.
 
 Those three summary tables are also tracked here under `dat/figure/`, so the figure renders
 from a clone with the archive absent. Everything upstream of them needs it.

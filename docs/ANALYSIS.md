@@ -200,12 +200,12 @@ other packages default to. The version is pinned in `Manifest.toml` (HypothesisT
 foreground and at least 20 in the background (`MIN_FG_K`, `MIN_BG_K`); every other phylum is
 relabelled "Other phyla" in both arms before anything is counted, and a stratum with
 foreground taxa but no background taxa is dropped. Collapsing thin strata changes the
-standardised Thermal estimate materially, and on this data the two thresholds' asymmetry does
-not: with no collapsing at all the estimate is -0.455, and at each of 10 and 20 (the shipped
-pair), 10 and 10, 20 and 20, and 20 and 10 it is -0.2951. The shipped pair's value is step
-4's, in `habitat_robustness.csv`; the other three pairs and the uncollapsed estimate are probes of
-the same arms through the estimator's `min_fg_k` and `min_bg_k` arguments
-(`src/ModuleHabitatStats.jl`), and no file in the data set carries them.
+standardised Thermal estimate materially; the asymmetry of the two thresholds does not, and
+the estimate is the same at each of 10 and 20 (the shipped pair), 10 and 10, 20 and 20, and
+20 and 10. The shipped pair's value is step 4's, in `habitat_robustness.csv`. The other three
+pairs and the uncollapsed estimate are probes of the same arms through the estimator's
+`min_fg_k` and `min_bg_k` arguments (`src/ModuleHabitatStats.jl`); no file in the data set
+carries them, and they are not reproduced here.
 
 **Intervals** are the estimate ± 1.96 standard errors in both estimators, 1.96 being a
 literal constant in the code.
@@ -254,36 +254,24 @@ all is `undecidable`. A variant whose axis cannot reach a unit reproduces the pr
 construction, so the robustness table also records how many variants moved each estimate
 (`n_variants_that_moved_the_estimate`).
 
-**The classes** (step 4's robustness table, `habitat_robustness.csv`; the primary
-standardised 95 % interval of the log2 risk ratio):
+**The classes.** Step 4 writes one row per category to `habitat_robustness.csv`, carrying the
+primary standardised interval, each variant's interval, the count of variants that moved the
+estimate, and the resulting class in its `robust_sign` column. That file is a result: it is
+not tracked in this repository and it is not in the archived data set, so its values are not
+reproduced in this document. Run step 4 to obtain them.
 
-| category | unit | class | primary interval | breaking variants |
-|---|---|---|---|---|
-| Terrestrial | `taxa` | `+` | [0.318, 0.983] | none |
-| Host-plant | `taxa` | `+` | [1.186, 2.228] | none |
-| Host-animal | `taxa` | `-` | [-1.771, -1.295] | none |
-| Hypersaline | `taxa (chemistry)` | `+` | [0.176, 0.807] | none |
-| Alkaline | `taxa (chemistry)` | `fragile` | [0.111, 2.621] | `B:hmmsearch_movein`, `C:share`, `C:winner_fractional`, `X:text_first`, `X:text_object` |
-
-Two of Alkaline's five breakers, `C:share` and `C:winner_fractional`, are levels whose rule
-definition is taken from the implementation (see [Reproducibility](#reproducibility)).
-
-Those five are the rows whose primary interval excludes zero. The robustness table holds
-seventeen; of the other twelve, ten are `null` — the primary interval includes zero, whatever
-the variants do — and two, Food/substance and Lab-medium in unit `taxa`, are `undecidable`:
-the primary computes no interval for them at all, and the one variant that does compute one
-(`I:iso_taxon`) is recorded as breaking for that reason. Those five class names are the five
-values its `robust_sign` column takes.
+The table holds one row per category. `robust_sign` takes five values — `+`, `-`, `fragile`,
+`null` and `undecidable` — defined by the rule above. Where a category's breaking variants
+include `C:share` or `C:winner_fractional`, note that those two levels have rule definitions
+taken from the implementation rather than from the registered specification (see
+[Reproducibility](#reproducibility)).
 
 **The comparator inside the family.** Step 3 runs the same estimator on further contrasts
-beside the lanthanide-type carriers, among them the census taxa that carry a family member but
-no lanthanide-class centroid (`non-Ln PQQ-ADH carriers vs background`, 2,801 taxa against the
-same 2,740), which step 5 draws as a tick beside each carrier dot. For four of the five rows
-above, that comparator sits nearer zero than the carriers' own estimate. Hypersaline is the
-one that does not: +0.75 [+0.49, +1.00] against the carriers' +0.49 [+0.18, +0.81]. The two
-intervals overlap, so the data do not resolve a difference between them; what the row does
-not support is reading Hypersaline as specific to the lanthanide-type carriers rather than to
-the family.
+beside the lanthanide-type carriers, among them the census taxa that carry a family member
+but no lanthanide-class centroid (`non-Ln PQQ-ADH carriers vs background`), which step 5
+draws as a tick beside each carrier dot. The comparator is what separates a category that is
+specific to the lanthanide-type carriers from one that belongs to the enzyme family as a
+whole; step 5 draws both, so the comparison is read off the figure rather than asserted here.
 
 *Detail:* [`docs/TOOLING.md`](docs/TOOLING.md), *Sensitivity grid and the robustness flag*.
 

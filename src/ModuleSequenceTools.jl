@@ -67,10 +67,9 @@ Streams sequences from disk and writes a FASTA whose headers carry metadata
     carry every annotation in separate iTOL dataset files instead.
 
     These headers, not bare accessions, are what a tree built from this FASTA carries on its
-    leaves, and `ModulePhyloTools` is written for both shapes: it keeps `_` verbatim, so the
-    spaces this function substitutes out of the habitat field round-trip through parse →
-    prune → root → write. It is the pipe, not the underscore, that makes the label something
-    other than a leaf id.
+    leaves. A Newick reader has to keep `_` verbatim for the spaces this function substitutes
+    out of the habitat field to survive parse → prune → root → write; it is the pipe, not the
+    underscore, that makes the label something other than a leaf id.
 """
 function export_tree_fasta(df_dedup::DataFrame, input_fasta::String, output_fasta::String)
     # IDs to keep (cluster centroids)

@@ -1,7 +1,6 @@
 #=
     Offline self-test for the habitat classification + aggregation. No network: the OBT
-    ontology climb is dependency-injected (`path_of`), the same pattern contrastive_potts.jl
-    uses for the DCA backend.
+    ontology climb is dependency-injected through `path_of`.
 
     The failures this suite exists to prevent, each of them reachable from one line of code:
 

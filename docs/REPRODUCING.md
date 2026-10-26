@@ -82,8 +82,8 @@ than a reproduction of the deposited table.
 
 | stage | entry point | what is missing |
 |---|---|---|
-| determinants and structures | `src/sdp_scan.jl`, `build_labels.jl`, `pocket_geometry.jl`, `export_pockets.jl`, `ingest_pockets.jl`, `contrastive_potts.jl`, `plmdca_adapter.jl` | **no command-line driver ships in this release.** These are libraries with unit tests. The data set carries their label table, and the structures they read are public and listed by identifier, but there is no shipped program that puts the two together. You can call the modules on your own data; you cannot re-run the analysis they were written for |
-| phylogeny | `src/ModulePhyloTools.jl` | it parses, prunes and roots Newick trees built elsewhere. **No script in this repository builds a tree**, so a tree is not reproducible from this repository at all |
+| determinants and structures | not in this repository | the sequence-and-structure route that looks for what distinguishes the two classes beyond the active-site residue is not part of this release: neither its modules nor any driver for them. Its label table is not in the published archive either |
+| phylogeny | not in this repository | **no script here builds a tree**, and the Newick utilities that pruned and rooted the trees built elsewhere are not part of this release either, so a tree is not reproducible from this repository at all |
 
 ### Where the inputs come from
 

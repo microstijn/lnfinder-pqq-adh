@@ -99,7 +99,7 @@ as the `ln_ref_acc` and `ca_ref_acc` keywords of `validate` and `validate_from_a
 (`src/validate_classifier.jl`); `reorder_references!` then moves those two records to the
 top before calibrating, so record order cannot decide what the run calibrated on (§1.4).
 The background scan takes that same route with the pair fixed in its own source (`LN_REF`,
-`CA_REF`, §11). Either way a run states what it calibrated on.
+`CA_REF`, §9). Either way a run states what it calibrated on.
 
 This is a **calibrated parameter, not a constant**. Its value is a property of the profile
 and the two reference sequences used, it is computed at the start of every run, and it is
@@ -140,7 +140,7 @@ held out, and only those enter a held-out accuracy.
 
 The tiers exist so that rows of different evidential weight are scored apart instead of
 averaged together, and so that a downstream analysis that must not be told the answer by
-homology can exclude the homology tier explicitly (see §9.1).
+homology can exclude the homology tier explicitly.
 
 **The run.** `ValidateClassifier.validate` loads the table, fetches each sequence from its
 database of record (UniProtKB by default; a row's `source` column can route it to another,
@@ -880,153 +880,8 @@ advance of the estimates.
 
 ---
 
-## 9. Specificity determinants: sequence and structure
 
-This is the library half of the repository: it looks for what, beyond the active-site
-residue, distinguishes the two classes. It ships as modules with unit tests; the
-command-line drivers that ran it are not part of this release (see `README.md`).
-
-### 9.1 Non-circular labels (`src/build_labels.jl`)
-
-A scan for class-discriminating positions must not be told the answer by the feature it is
-scanning for. Labels therefore never come from the active-site residue. They come from the
-validated control set, from a structure-derived pocket table, or from both, merged in a
-declared precedence order (structure first by default). Disagreements between sources are
-**reported, not silently resolved**. `reconcile_with_alignment` then reports how many
-alignment sequences actually receive a label and which labels map to no sequence.
-
-Non-circularity has a second edge: when the control set carries evidence tiers, only the
-tiers in `DEFAULT_LABEL_TIERS` (`ref`, `A`, `B`) become labels. Rows whose cofactor was
-assigned by similarity to another protein, and rows whose call is contested, would otherwise
-feed the scan the very resemblance it is meant to discover.
-
-### 9.2 The determinant scan (`src/sdp_scan.jl`)
-
-For each model column, the reweighted residue distribution among calcium-class sequences is
-compared with the distribution among lanthanide-class sequences, and the column is scored on
-how strongly it separates them. Two scores are computed: Jensen-Shannon divergence (log base
-2, so it lands in [0, 1]) and mutual information in bits between residue identity and class.
-
-Three guards, each against a specific way this analysis lies:
-
-| guard | what it does |
-|---|---|
-| **circularity** | the active-site column is *masked* — excluded from the ranking — but still scored and reported, as a positive control. A correct run shows the masked column with a high raw score; the interesting output is the high-scoring columns that are not it |
-| **phylogeny** | near-identical over-represented sequences inflate apparent conservation, so sequences are reweighted by the standard scheme: weight = 1 / (number of neighbours within `theta` identity). `theta` is a parameter of the scan |
-| **variability is not discrimination** | a column can be hypervariable and yet identical across classes, so the null is a **label permutation**: the class labels are shuffled over the same sequences many times and the observed separation is expressed as a z-score and an empirical rate against that null |
-
-The module reports a first-order residual diagnostic beside the ranking, which asks whether a
-single-position model already accounts for the class separation or whether coupled positions
-must be modelled (§9.4). Its vocabulary is a property of the method; what any dataset makes it
-say is a result and is not stated here.
-
-### 9.3 Structure-derived labels (`src/pocket_geometry.jl`, `src/export_pockets.jl`, `src/ingest_pockets.jl`)
-
-The chemistry gives a structural criterion independent of sequence: a lanthanide ion is
-larger and takes a higher coordination number than calcium, and the enzymes that bind it
-donate more carboxylate oxygens to the metal. A pocket is therefore labelled by counting
-coordinating carboxylate oxygens (Asp OD1/OD2, Glu OE1/OE2) and the overall coordination
-number. Two regimes, and they are not equivalent:
-
-- **Holo** structures, with the metal present: the label is ground truth read from the metal
-  element itself, with no dependence on any sequence feature.
-- **Apo** structures and predicted models, with no metal: the label is *inferred* from pocket
-  geometry around a reference point, carries lower confidence and is flagged as
-  geometry-based.
-
-The coordination threshold is **calibrated** on structures whose metal is known —
-`calibrate_threshold` does this, the same philosophy as calibrating the sequence classifier
-on known-cofactor proteins, in structural space. The recipe is four things together, it
-depends on the origin, so the four travel together — but they do not all come from the same
-place:
-
-| element | where it comes from |
-|---|---|
-| the distance cutoff | an **input**, chosen for the origin: a metal site and a residue centroid are not the same neighbourhood |
-| which count is read (`n_carboxylate_O` at a metal origin, `n_acidic_res` at a residue origin) | an **input**, likewise chosen for the origin |
-| the threshold on that count | the **output** of `calibrate_threshold`, which `calibration_report` (metal origin) and `apo_calibration_report` (catalytic-residue origin, metal stripped) wrap. Ties break towards the lower threshold, so it is a function of the calibration table alone |
-| the width of the no-call band | the **caller's**, read off the class gap the reports print — nothing in this repository computes it |
-
-So each report produces exactly one of the four. It is *handed* the cutoff and the count,
-reads the known pockets at them, and echoes them back beside the threshold so a run's record
-carries all three together; it reports the class gap and the leave-one-out accuracy the call
-rests on, and the no-call width is then the reader's choice against that gap — 0 when the
-classes land on adjacent values, 1 when they separate by more. None of the four is a default
-or a hard-coded value anywhere in `src/`: every function in `pocket_geometry.jl` that reads a
-pocket or calibrates on one takes what it needs of the recipe as a **required** argument, and
-so do `label_pockets` and `ingest`. A directory of pockets cannot be labelled at a recipe
-nobody named, a calibration table cannot be built at a radius nobody stated, and two runs
-calibrated differently cannot be confused for each other. The two pocket suites do pass
-values, because a required argument has to be given something: each is that fixture's own
-arithmetic on structures the suite builds, and the test says how it follows (§13).
-
-Two caveats are documented in the code and repeated here because they bound what the labels
-are worth. First, the geometry signal *is* essentially the extra aspartate — the structural
-face of the sequence motif — so these labels are only non-circular for a downstream scan if
-the holo ground-truth subset is used and/or the catalytic column is masked in the scan; both
-are supported. Second, a predicted model's pocket is apo and may not be in the bound
-side-chain rotamer, so a geometry call is a hypothesis, not a measurement.
-
-`export_pockets.jl` reconstructs per-residue pocket PDBs from the alignment and the
-structures, using the identical definition of the catalytic residue — the residue aligned to
-the calibrated active-site column — and writing each pocket translated so that the centroid
-sits at the origin, which is the convention the labeller expects. It refuses a residue whose
-identity does not match the alignment rather than exporting a mismatched pocket. Note the
-origin caveat it carries: a holo threshold calibrated with the origin at the metal does not
-transfer unchanged to an origin at the catalytic residue centroid, so the threshold must be
-recalibrated there, at a cutoff and on a count chosen for that origin, before apo labels flow
-downstream.
-
-`ingest_pockets.jl` is the batch path: a directory of pocket structures becomes a label
-table, which `build_labels` turns into the label dictionary the scan consumes, reconciled
-against the alignment.
-
-A minimal fixed-column PDB parser (`ATOM`/`HETATM`) is built into the module rather than
-taken from a dependency, so the structural path stays self-contained and offline-testable.
-
-### 9.4 Coupled determinants (`src/contrastive_potts.jl`, `src/plmdca_adapter.jl`)
-
-A per-column scan sees first-order determinants only. It cannot see pairs or networks of
-positions that jointly determine specificity while no single position is individually
-predictive. A label-aware Potts model recovers those through its pairwise couplings.
-
-The scaffold is dependency-injected: the coupling fit arrives as a function argument, so the
-module itself stays installable and offline-testable, and the real backend is a thin separate
-adapter. What is implemented:
-
-| function | what it does |
-|---|---|
-| `class_meff` | per-class effective sequence count. It **gates** the coupling fit: couplings need many effective sequences, and one class is usually the limiting one. Do not fit couplings the data cannot support |
-| `field_contrast` | the single-site (field) comparison between classes, in log-odds units — the generative-model view of the per-column signal, computable without a coupling fit |
-| `export_class_msas` | per-class alignments, for an external tool |
-| `coupling_contrast` | gated on the effective counts: runs the injected fit per class and returns the ranked contrast between the two coupling matrices |
-
-`src/plmdca_adapter.jl` wraps `PlmDCA.jl` into that interface. It reconciles the conventions
-explicitly — sequence-major versus position-major matrix orientation, residue encoding with
-the gap as the last symbol, weights renormalised to sum to one, and the backend's
-APC-corrected pair ranking densified into a symmetric matrix — because a silent convention
-mismatch here produces a plausible-looking ranking that means nothing.
-
----
-
-## 10. Phylogenetic utilities (`src/ModulePhyloTools.jl`)
-
-Newick parsing, pruning, midpoint rooting and patristic distances, for trees built outside
-this repository (FastTree output). Two design decisions are method-relevant:
-
-- **Everything is iterative.** The trees involved are large and ladder-like: the tool that
-  builds them emits long unbalanced combs, so the nesting depth of a Newick string is a large
-  fraction of the leaf count rather than its logarithm. A recursive parser, writer, traversal
-  or prune overflows the stack on such a file, and the crash then looks like a corrupt input
-  rather than a code bug. Every walk carries its own explicit stack; no function calls itself,
-  and the test suite pins that with a deep caterpillar on a small stack.
-- **Internal node labels survive round trips.** The tree builder writes its local support
-  values in the internal-label slot, and a support value describes the branch below its node,
-  so it must survive parse → prune → root → write unchanged. It is kept verbatim as a string.
-
----
-
-## 11. Parameters, and how each one is set
+## 9. Parameters, and how each one is set
 
 Only parameters that shape the method are listed. Anything calibrated is named with its
 calibration procedure and the file its run records it in, never with a value.
@@ -1036,11 +891,7 @@ Where a library function carries a default, the default is the **chemistry or th
 data. Anything measured is calibrated by the run and written into that run's own output, and
 it is the run's record, not the library default, that says what a result was computed at. The
 active-site model column has no default anywhere: every entry point that reads a column takes
-it as a required argument, so no call can silently inherit one profile's calibration. The
-pocket coordination recipe of §9.3 is required the same way, and not only where a pocket is
-labelled: every function in `src/pocket_geometry.jl` that reads a pocket or calibrates on one
-takes what it needs of the recipe as a required argument, so no table, threshold or report is
-produced at a radius or on a count nobody named.
+it as a required argument, so no call can silently inherit one profile's calibration.
 
 | parameter | where | meaning | how it is set |
 |---|---|---|---|
@@ -1072,16 +923,12 @@ produced at a radius or on a count nobody named.
 | plan bounds (`--plan-*`) | step 3 | bounds the analysis plan set before this step ran — written from an earlier, approximate version of the same exclusion, so expectations for the run rather than bounds set blind | supplied on the command line, never defaulted; disclosed, never gating. `docs/DATA.md` §4 |
 | category selection (`--categories`) | steps 3 and 5 | which category each recorded outcome rule speaks for, which categories the grid counts cover, and which phylum's shares are quoted | the categories are **selected from the data**, not fixed in advance: chosen from this analysis's own earlier estimates, with those estimates in hand. The phylum is **determined, not chosen** — the heaviest standardisation stratum, with the figure step refusing to assert the weight identities unless the run's own heaviest stratum is still that phylum. Supplied per run in a criteria file with no default anywhere, refused by name when absent, and shipped with a required note per row recording where each selection came from. The summary-key families that carry a selected name are derived from it, so a run on other categories emits keys for those categories. `docs/DATA.md` §4 |
 | thinnest-stratum list length | step 5 | how many drawn rows the thinnest-background-stratum list names | fixed listing convention, and **outcome-independent by construction rather than by date**: the list is extended through a tie at its last place and the smallest count among the rows it leaves out is exported beside it, so the list plus that bound is a statement about every drawn row. It was written during figure construction, after the results were known |
-| coordination recipe: cutoff, feature, threshold, no-call margin | `call_cofactor`, `label_pockets`, `ingest`, and every calibration entry point of `pocket_geometry.jl` | the origin-dependent recipe a pocket's Ca/Ln call is read at (§9.3) | mixed, and §9.3's table says which is which: the cutoff and the feature are **inputs** chosen for the origin, the threshold is **calibrated** on structures whose metal is known, and the no-call margin is the caller's, read off the class gap the calibration reports print — nothing here computes it. No default anywhere: each function requires what it uses, so no call can silently inherit another run's calibration |
-| `theta` | `sdp_scan.jl` | identity radius of the sequence-reweighting scheme | parameter of the scan, reported with the run |
-| permutation count | `sdp_scan.jl` | size of the label-permutation null | parameter of the scan |
-| effective-count gate | `contrastive_potts.jl` | minimum per-class effective sequence count before couplings are fitted | fixed rule; a fit below it is refused, not attempted |
 
 ---
 
-## 12. External tools and services
+## 10. External tools and services
 
-### 12.1 Binaries
+### 10.1 Binaries
 
 | tool | version | how it is used | invoked by this repository? |
 |---|---|---|---|
@@ -1097,7 +944,7 @@ HMMER 3.x. No HMMER version is pinned by this repository, and no run manifest re
 the `--tblout` tables step 2 writes carry the version in their own trailer. Record the version
 you used.
 
-### 12.2 Web services
+### 10.2 Web services
 
 | service | endpoints | used for |
 |---|---|---|
@@ -1133,7 +980,7 @@ Four things follow, and all four are handled in code rather than left to the rea
 
 ---
 
-## 13. Tests
+## 11. Tests
 
 `julia --project=. test/runtests.jl` runs every suite in `test/`; the runner and the
 directory are kept as equal sets, because a suite that ships but is not run is a suite nobody

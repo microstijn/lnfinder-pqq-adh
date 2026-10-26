@@ -34,8 +34,7 @@ abstract: >-
   sets and calling the metal cofactor of each one — lanthanide or calcium — from the
   residue found at the calibrated active-site column of a profile HMM. The package
   also carries the control-set validation of that call, the taxonomy and habitat
-  tooling built around it, and a library for looking for further specificity
-  determinants in the alignment and in structures.
+  tooling built around it, and the environment analysis and figure that use them.
 # SPDX identifier of the licence that covers the software. One data file,
 # dat/models/methanol_dehydrogenase_pqq_xoxF_mxaF.hmm, is third-party and is excluded
 # from that grant; see the "Exceptions" section of LICENSE and dat/models/PROVENANCE.md.

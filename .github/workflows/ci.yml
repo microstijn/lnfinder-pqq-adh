@@ -117,12 +117,14 @@ jobs:
           # each operating system. It catches assertions that go missing rather than fail,
           # which is why it stands alongside the greps below and not instead of them.
           #
-          # A full run reports 6342. Nothing under test/ branches on the operating system and
-          # nothing skips on a missing binary, so that count is expected to be the same on
-          # both; the margin is there only because this workflow has not yet run on Linux.
-          # Once it has, set this to two below whichever count is LOWER of the two observed,
-          # never to a predicted one.
-          PASS_FLOOR: '6330'
+          # A full run of this repository's suite reports 6011. That is an observed count,
+          # not a predicted one: both runners reported it, on two separate commits. Nothing
+          # under test/ branches on the operating system and nothing skips on a missing
+          # binary, which is why the two agree. The floor is two below the lower observed
+          # count, and 6330 was wrong here — it was the count of a larger suite, which this
+          # repository does not carry, so every run failed this gate while passing 6011 of
+          # 6011 assertions.
+          PASS_FLOOR: '6009'
         run: |
           set -euo pipefail
           status=0

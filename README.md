@@ -137,11 +137,3 @@ Stijn Peeters wrote this software together with Claude Code (Anthropic), which d
 reviewed and tested a large part of it under his direction. Responsibility for what the code
 does, and for every result obtained with it, rests with the named author. The commit history
 records the model's contribution in `Co-Authored-By` trailers.
-
-The independent reimplementations the anchor targets are transcribed from (see
-[Reproducibility](#reproducibility)) were written by AI coding agents as well, from a written
-specification and without reading this code. Two of their output tables ship under
-`dat/criteria/`; their code does not.
-
-The author list of the accompanying publication is a separate matter and is not recorded in
-this repository; see "Citing this work" above.

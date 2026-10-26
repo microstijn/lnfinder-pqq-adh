@@ -21,7 +21,7 @@ a few sentences, the parameter values the recorded runs used, and the values the
 Every measured value in it is in a file this repository or the archived data set carries, is
 written by one of this repository's steps (the step is named), or is stated by the cited
 paper; every parameter of this repository's own steps is in its code, except the criteria
-supplied on the command line (see [Where the inputs come from](#where-the-inputs-come-from)).
+supplied on the command line (see [Where the inputs come from](REPRODUCING.md#where-the-inputs-come-from)).
 The procedure behind each subsection is set out in [`docs/TOOLING.md`](TOOLING.md),
 under the section title given at its end; the data set is described in
 [`docs/DATA.md`](DATA.md); the habitat and figure part of it is published, the rest is
@@ -154,7 +154,7 @@ rather than fetching again. **The data set carries the call table step 1 wrote, 
 responses it read.** Those responses are a third-party service's own output and are not
 redistributed with it, which is why a reader of the data set enters the habitat
 route at the call table rather than at step 1, whose inputs the data set does not carry
-(see [What is and is not reproducible here](#what-is-and-is-not-reproducible-here)). What is carried is the cache's manifest — one
+(see [What is and is not reproducible here](REPRODUCING.md#what-is-and-is-not-reproducible-here)). What is carried is the cache's manifest — one
 row per taxon, 13,133 taxa — recording how many relations each taxon had, by which route it
 was fetched and when, and none of the responses themselves. **What is recorded as the service
 releases:** every row of that manifest is stamped `OmniCrobe 1.7` and

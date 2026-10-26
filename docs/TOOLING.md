@@ -933,7 +933,7 @@ it as a required argument, so no call can silently inherit one profile's calibra
 | tool | version | how it is used | invoked by this repository? |
 |---|---|---|---|
 | HMMER `hmmalign` | HMMER 3 | aligns sequences to the profile in `afa` format; this is what makes the model coordinate well defined | **yes**, with a configurable binary name; a missing binary raises |
-| HMMER `hmmsearch` | HMMER 3 | the background carrier search, writing `--tblout` | **yes** — directly on Linux and macOS, through WSL on Windows; see the platform note in `README.md` |
+| HMMER `hmmsearch` | HMMER 3 | the background carrier search, writing `--tblout` | **yes** — directly on Linux and macOS, through WSL on Windows; §4.2 says how the invocation and the paths are translated |
 | HMMER `hmmsearch`, the census search | HMMER 3 | produced the hit set the census begins from (§2) | **no** — run outside this repository; the census starts from its archived output |
 | USEARCH | 11 | clusters the census sequences; the pipeline reads the `-uc` output | **no** — run outside this repository; the command is documented in `src/scriptLn.jl` (`USEARCH_CMD`) and in the run manifest |
 | FastTree | — | produces the Newick trees the phylogenetic module parses | **no** — output consumed |

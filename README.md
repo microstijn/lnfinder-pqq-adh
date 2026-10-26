@@ -17,7 +17,7 @@ homolog is searched anywhere here.
 The rule itself is published: the extra aspartate was proposed by Keltjens et al. 2014,
 [doi:10.1007/s00253-014-5766-8](https://doi.org/10.1007/s00253-014-5766-8), resolved in the
 crystal structures of Good et al. 2020 (cited in full under
-[The cofactor call](#the-cofactor-call)), and applied at scale by Voutsinos et al. 2025,
+[The cofactor call](docs/ANALYSIS.md#the-cofactor-call)), and applied at scale by Voutsinos et al. 2025,
 [doi:10.1093/ismejo/wraf057](https://doi.org/10.1093/ismejo/wraf057). What this repository
 adds is the machinery around it.
 
@@ -118,7 +118,7 @@ If you reuse the table, carry them with it.
 Nothing in this repository redistributes these; the code reads them, and some test fixtures
 are responses recorded from them (see "Run the tests"; one further fixture is a table recorded
 from a local `hmmsearch` run, and HMMER is a tool rather than a data source, so it appears under
-[External tools and services](#external-tools-and-services) instead of in the table below).
+[External tools and services](docs/TOOLING.md#10-external-tools-and-services) instead of in the table below).
 Citing LnFinder does not cite them.
 If you use the data, cite each in its own right — each maintains a current citation on its
 own site, which is why this list gives endpoints rather than a bibliography frozen at the

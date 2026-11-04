@@ -56,7 +56,7 @@ P16027. Both give column 319, in each the only column satisfying both patterns.
 Column 320 is read only for a gap; a sequence whose model coordinates end before 321 is
 `Truncated`.
 
-The rule rests on Good et al. 2020, *J. Biol. Chem.* 295:8272–8284,
+The rule rests on Good et al. 2020,
 [doi:10.1074/jbc.RA120.013227](https://doi.org/10.1074/jbc.RA120.013227). In their XoxF1
 structures from *M. extorquens* AM1 the lanthanide is coordinated by Glu192, Asn276, Asp318
 and Asp320, and they report that nearly all XoxF and ExaF sequences carry that extra

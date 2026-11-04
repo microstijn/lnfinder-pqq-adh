@@ -310,55 +310,35 @@ end
     resolve(primary, mentions, rule; share_threshold=SHARE_THRESHOLD)
         -> (label, weights, n_tied, resolved_by)
 
-Pick the winning category from a tally, with any tie made explicit instead of being left to
-`Dict` iteration order.
+Pick the winning category from a tally, with ties made explicit instead of left to `Dict`
+order. `primary` ranks the winner, distinct terms per category by default; `mentions` counts
+asserted statements and only breaks ties in `primary`. Either may be read back from a written
+call table, so a variant rule recomputes without refetching.
 
-`primary` is the tally the winner is ranked on (distinct terms per category by default);
-`mentions` is the number of asserted statements per category, used only to break a tie in
-`primary`. Either may equally be a tally read back from a written call table — that is how a
-variant rule is recomputed without refetching, and it is why the rules live here rather than
-being rewritten by each consumer. Returns the winning `label`, the `weights` each winner
-contributes downstream
-(`1/k` each for a `k`-way residual tie, so a split taxon is counted as split rather than
-rounded onto one pillar), how many categories were still tied when the rule had to step in
-(`n_tied`), and which clause settled it (`resolved_by`).
+`weights` is what one taxon contributes per winning category, and the sum is part of the rule.
+`n_tied` is the tie at the top of `primary`. `resolved_by` names the clause that settled it, or
+`:none` for an outright winner.
 
-Rules (`TIE_RULES`), each with what ONE taxon's `weights` sum to. That sum is part of the rule,
-not a detail of it: the estimators take Real weights and score every category in a table of
-its own, so a rule that quietly handed a taxon extra weight would read as extra hits with
-nothing downstream to notice.
-  • `:mentions_fractional` (the primary rule) — most distinct terms, then most statements,
-    then split `1/k`. Sums to 1.
-  • `:fractional` — most distinct terms, then split `1/k`; no mention tie-break. Sums to 1.
-  • `:alphabetical` — as `:mentions_fractional`, but a residual tie goes to the first label
-    in sort order instead of being split. `n_tied` still reports the tie. Sums to 1.
-  • `:unresolved` — as `:mentions_fractional`, but a tie that survives the mention step is
-    left uncalled: label `UNRESOLVED`, no weight anywhere. Sums to 1 for a decided call and
-    to 0 for a tied one — the taxon is still one taxon of its arm, scoring zero everywhere.
-  • `:share` — MULTI-LABEL: weight 1 to every category holding at least `share_threshold` of
-    `primary`. Sums to a whole number from 0 to `floor(1 / share_threshold)`. It is 0, and the
-    label `UNRESOLVED`, when the evidence is spread so thinly that no category reaches the
-    share (five categories of one term each, at the default share).
-  • `:any_type` — MULTI-LABEL: weight 1 to every category `primary` holds at all. Sums to the
-    number of categories present, at least 1. Not the tied set: a category trailing by any
-    margin still counts.
-  • `:legacy_dict` — REPLICATION ONLY. Computes
-    `first(sort(collect(t), by = kv -> -kv[2]))`: a stable sort over a `Dict`, so among equal
-    tallies the winner is whichever key the hash table happens to yield first. `n_tied > 1`
-    here means the answer was decided by hash order. Kept so the committed numbers can be
-    regenerated and diffed, never for new analysis. Sums to 1.
+`TIE_RULES`:
 
-Under every rule each single weight lies in (0, 1]. The multi-label rules give a taxon more
-than one category, never more than one unit OF a category, so a category's hit total can never
-exceed the number of taxa it is scored over. An empty tally returns `("", empty, 0, :none)`
-under every rule. An unknown rule raises, naming the valid ones.
+| rule | ranks on | residual tie | weights sum to |
+|---|---|---|---|
+| `:mentions_fractional` | terms, then mentions | split `1/k` | 1 |
+| `:fractional` | terms | split `1/k` | 1 |
+| `:alphabetical` | terms, then mentions | first in sort order | 1 |
+| `:unresolved` | terms, then mentions | `UNRESOLVED`, no weight | 1 decided, 0 tied |
+| `:share` | categories at or above `share_threshold` | multi-label | 0 to `floor(1/share_threshold)` |
+| `:any_type` | every category present | multi-label | number of categories |
+| `:legacy_dict` | stable sort over a `Dict` | hash order | 1 |
 
-A residual tie is labelled `join(sort(tied), "|")` — a value no single category can take, so
-downstream code cannot mistake a tie for a call. A multi-label call is labelled
-`join(sort(labelled), "+")`, the separator the chemistry axis already uses for conditions that
-hold together, so two categories held together cannot be read as a tie that was split. The
-multi-label rules report the tie at the top of `primary` in `n_tied`, and `resolved_by` is
-`:none` when they label exactly the one outright winner, their own name otherwise.
+`:mentions_fractional` is the primary rule. `:share` gives `UNRESOLVED` and weight 0 when no
+category reaches the share. `:legacy_dict` is replication only: `n_tied > 1` there means hash
+order decided the answer.
+
+Each weight is in (0, 1], so a category's hits cannot exceed the taxa scored. A residual tie is
+labelled `join(sort(tied), "|")`, a multi-label call `join(sort(labelled), "+")`; neither can be
+a single category, so a tie cannot be read as a call. An empty tally returns
+`("", empty, 0, :none)`. An unknown rule raises, naming the valid ones.
 """
 function resolve(primary::AbstractDict, mentions::AbstractDict, rule::Symbol;
                  share_threshold::Real = SHARE_THRESHOLD)

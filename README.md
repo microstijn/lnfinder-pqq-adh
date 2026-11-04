@@ -16,8 +16,9 @@ homolog is searched anywhere here.
 
 The rule itself is published: the extra aspartate was proposed by Keltjens et al. 2014,
 [doi:10.1007/s00253-014-5766-8](https://doi.org/10.1007/s00253-014-5766-8), resolved in the
-crystal structures of Good et al. 2020 (cited in full under
-[The cofactor call](docs/ANALYSIS.md#the-cofactor-call)), and applied at scale by Voutsinos et al. 2025,
+crystal structures of Good et al. 2020,
+[doi:10.1074/jbc.RA120.013227](https://doi.org/10.1074/jbc.RA120.013227), and applied at scale
+by Voutsinos et al. 2025,
 [doi:10.1093/ismejo/wraf057](https://doi.org/10.1093/ismejo/wraf057). What this repository
 adds is the machinery around it.
 

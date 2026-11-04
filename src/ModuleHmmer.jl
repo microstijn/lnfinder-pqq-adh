@@ -34,9 +34,8 @@ Assumes:
   Seq 1 = Lanthanide Reference (e.g. XoxF1) -> Expects D-x-D
   Seq 2 = Calcium Reference    (e.g. MxaF)  -> Expects D-x-[ATS]
 
-Source for that asymmetry: Good et al. 2020, "Lanthanide-dependent alcohol dehydrogenases
-require an essential aspartate residue for metal coordination and enzymatic function",
-J. Biol. Chem. 295:8272-8284, doi:10.1074/jbc.RA120.013227. It reports crystal structures of
+Source for that asymmetry: Good et al. 2020, doi:10.1074/jbc.RA120.013227. It reports crystal
+structures of
 XoxF1 from M. extorquens AM1 in which the lanthanide is coordinated by Glu192 (bidentate),
 Asn276 (monodentate), Asp318 (monodentate) and Asp320 (bidentate). Asp318 and Asp320 are the
 D-x-D pair this function looks for, and Good et al. report that nearly all XoxF and ExaF

@@ -1,28 +1,21 @@
 #=
-    ModuleDataInputs.jl — the one place this repository says where its inputs live.
+    ModuleDataInputs.jl — where this repository's inputs live.
 
-    THE CONTRACT. Every file the analysis code reads that this repository does not carry
-    lives under a single directory, the DATA ROOT: the directory named by the environment
-    variable LNFINDER_DATA, or `dat/` inside the clone when that is not set. Underneath
-    the root the layout is fixed and is declared in INPUTS below, so a reader who unpacks
-    the archived data set at the root has satisfied every path at once. Two inputs are not
-    in that archive because a reader makes or fetches them from a public source, the
-    alignment and the taxonomy dump; those two, and only those two, also answer to a
-    variable of their own, so a large file already on the machine need not be copied under
-    the root.
+    Every file the analysis reads and this repository does not carry sits under one DATA
+    ROOT: the directory named by LNFINDER_DATA, or `dat/` in the clone when that is unset.
+    The layout under the root is fixed and declared in INPUTS below, so unpacking the
+    archived data set at the root satisfies every path at once. Two inputs are not in that
+    archive because a reader makes or fetches them, the alignment and the taxonomy dump,
+    and those two alone also answer to a variable of their own, so a large file already on
+    the machine need not be copied under the root.
 
-    One root: every input here is a path under LNFINDER_DATA, so there is one thing to
-    set, one layout to document, and one place, this file, that a rename has to pass
-    through.
+    This opens no network connection. It resolves names to paths and refuses by name when
+    the file a name points at is not there. `scripts/verify_data.jl` checks a data root
+    against a checksum manifest; `docs/DATA.md` says what each entry is, how it was
+    produced and how to obtain it.
 
-    This is not a downloader and it opens no network connection. It resolves names to
-    paths, and it refuses by name when the file a name points at is not there.
-    `scripts/verify_data.jl` checks a data root against a checksum manifest;
-    `docs/DATA.md` says what each entry is, how it was produced and how to obtain it.
-
-    This module deliberately EXPORTS NOTHING. Several scripts include it, some into the
-    same namespace as each other, where a name arriving from two copies of one module
-    would be ambiguous. Everything is called qualified:
+    Exports nothing: several scripts include it into the same namespace as each other,
+    where a name arriving from two copies would be ambiguous. Call everything qualified,
     `DataInputs.input_path("census_habitat")`.
 
     Run:  julia --project=. test/test_data_inputs.jl

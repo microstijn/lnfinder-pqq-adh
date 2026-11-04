@@ -1,85 +1,74 @@
 #=
-    habitat_reaggregate.jl — one habitat call per taxon per rule variant, computed offline
+    habitat_reaggregate.jl: one habitat call per taxon per rule variant, computed offline
     from a replayable relation cache.
 
-    THE FAILURE THIS PREVENTS. A habitat number taken from a live re-fetch is not
-    reproducible. The call for a taxon then depends on what OmniCrobe answers that
-    afternoon, on whether the fetch succeeds at all (a failed fetch enters the analysis as
-    the ecological statement "this organism has no known habitat"), and — where two
-    categories tie — on Julia's Dict iteration order. Two runs of "the same" pipeline are
-    not comparable that way, so a change in the output cannot be attributed to the rule
-    change rather than to the refetch.
+    A habitat number from a live re-fetch is not reproducible: the call depends on what
+    OmniCrobe answers that afternoon, on whether the fetch succeeds at all (a failed fetch
+    enters the analysis as "this organism has no known habitat"), and, where two categories
+    tie, on Julia's Dict iteration order. A change in the output then cannot be attributed to
+    the rule change.
 
-    The remedy is to freeze the INPUTS, not the outputs: the raw response bodies live on disk
-    under habitat/omnicrobe_cache/relations in the data root, the ontology climb lives in
+    So the INPUTS are frozen, not the outputs: the raw response bodies live under
+    habitat/omnicrobe_cache/relations in the data root, the ontology climb in
     habitat/obt_path_cache.csv beside it, and every rule variant is computed from those same
-    bytes in one pass. A run that holds those bytes reproduces the table exactly with the
-    network unplugged.
+    bytes in one pass. A run holding those bytes reproduces the table exactly offline.
 
-    WHERE THAT CACHE COMES FROM. A run writes it; the data set does not carry it. The response
-    bodies arrive from the service and the ontology climb from the ontology endpoint, and both
-    stay on disk for every later run. What the data set carries is the derived call table this
-    step writes, so a reader holding only the data set enters the habitat route at that table.
-    To run this step itself, seed the cache from directories of already-fetched <taxid>.json
-    bodies, given as bare arguments or in $LNFINDER_RELATION_SEED. A run with neither cache nor
-    seed fetches, and the service is re-mined and unversioned, so it answers with a different
-    data set rather than with these bytes: such a run measures the habitat layer again rather
-    than replaying it.
+    Where that cache comes from: a run writes it, the data set does not carry it. The bodies
+    arrive from the service and the ontology climb from the ontology endpoint, and both stay
+    on disk for every later run. The data set carries the derived call table this step writes,
+    so a reader holding only the data set enters the habitat route at that table. To run this
+    step itself, seed the cache from already-fetched bodies (Seeding, below). A run with
+    neither cache nor seed fetches, and the service is re-mined and unversioned, so it answers
+    with a different data set: it measures the habitat layer again instead of replaying it.
 
-    WHAT IT WRITES. habitat/habitat_taxon_calls.csv, under the data root: one row per (config, taxid)
-    carrying the winner, the raw distinct-term and mention counts per type, the 1/k weights
-    a tie was split into, the non-exclusive chemistry flags and the isolation/generic
-    bookkeeping. Everything a downstream sensitivity rule needs is in that row, so no
-    variant of the rule costs a refetch.
+    It writes habitat/habitat_taxon_calls.csv, under the data root: one row per (config, taxid)
+    carrying the winner, the raw distinct-term and mention counts per type, the 1/k weights a
+    tie was split into, the non-exclusive chemistry flags and the isolation/generic
+    bookkeeping. Everything a downstream sensitivity rule needs is in that row, so no variant
+    of the rule costs a refetch.
 
-    CONFIGS. `primary` is the rule this release computes with. `legacy` reproduces the rule
+    Configs. `primary` is the rule this release computes with. `legacy` reproduces the rule
     the committed CSVs were computed under and exists only so those CSVs can be re-derived
-    and diffed field by field — never for new analysis. The other four move exactly one axis
+    and diffed field by field, never for new analysis. The other four move exactly one axis
     off `primary`.
 
-    REPLICATION GATES. The script ends by re-deriving the committed calls under `legacy` and
-    comparing them taxon by taxon, and by checking coverage and isolation-term recovery
-    under `primary`. Every gate is an assertion, not a print: this table feeds every
-    downstream estimate, so it must not be allowed to drift quietly. A gate that fails
-    prints the measured value next to the expected one and then aborts the script. The
-    four comparisons against the committed calls are made only when the targets file
-    declares, by its sha256, the census they were written for and the census this run
-    reads has that digest. Otherwise - `--no-gates`, a targets file that declares no
-    census, or a census with another digest - each of the four prints its measurement as
-    NOT APPLICABLE with the reason, and the closing line says so: those calls belong to
-    one census, and neither a default nor a path says which census a file holds.
+    Replication gates. The script ends by re-deriving the committed calls under `legacy` and
+    comparing them taxon by taxon, and by checking coverage and isolation-term recovery under
+    `primary`. Every gate is an assertion, because this table feeds every downstream estimate:
+    a failing gate prints the measured value next to the expected one and aborts. The four
+    comparisons against the committed calls are made only when the targets file declares, by
+    its sha256, the census they were written for and the census this run reads has that
+    digest. Otherwise - `--no-gates`, no census declared, or another digest - each of the four
+    prints its measurement as NOT APPLICABLE with the reason, and the closing line says so:
+    those calls belong to one census, and neither a default nor a path says which census a
+    file holds.
 
-    NOTHING IS PUBLISHED UNTIL THE GATES HAVE PASSED. The gates can only be computed from a
-    table that has been built, and building that table straight over the committed one and
-    gating it afterwards would mean a run whose gates FAILED had already replaced the input
-    of every estimate downstream of it, with a failure message about a number while the
-    damage was to a file. The outputs are therefore written
-    into a `_staging` directory beside their destinations and moved into place by `publish!`,
-    and only if every gate passed. A failed run leaves what it built in `_staging`, so the
+    Nothing is published until the gates have passed. The outputs are written into a
+    `_staging` directory beside their destinations and moved into place by `publish!` only if
+    every gate passed, so a run whose gates FAILED cannot already have replaced the input of
+    every estimate downstream of it. A failed run leaves what it built in `_staging`, so the
     failure is inspectable, and leaves the destination holding the last good run.
 
-    INCLUDING THIS FILE RUNS NOTHING. Everything above the two `PROGRAM_FILE` guards is
+    Including this file runs nothing. Everything above the two `PROGRAM_FILE` guards is
     definitions, so the self-test can call the option reader, the targets reader and the
     publish gate directly. The command line is read in the FIRST guard, before the packages
     are loaded, because a bad command line should cost nothing and must never fall through
     to a default.
 
-    NO MEASURED NUMBER IN THIS FILE. A gate's expected value is one of two things: a
-    requirement of the METHOD — zero, where zero means "nothing may be missing", or a count
-    this run computes for itself — or a quantity MEASURED on this dataset. This file carries
-    only the first kind. The second kind lives in the targets file `--gate-targets` names,
-    one row per gate, each with the note that says where its number came from. That split is
-    not a formality: a measured number typed in here is a result of this dataset published in
-    code, and it also goes stale the moment an input changes and then quietly contradicts the
-    table beside it. Every other script in this pipeline computes or reads its numbers at run
-    time, and so does this one.
+    No measured number in this file. A gate's expected value is either a requirement of the
+    METHOD - zero, meaning "nothing may be missing", or a count this run computes for itself -
+    or a quantity MEASURED on this dataset. Only the first kind is written here. The second
+    lives in the targets file `--gate-targets` names, one row per gate, each with the note
+    saying where its number came from; typed in here it would be a result of this dataset
+    published in code, and would go stale the moment an input changed. Every script in this
+    pipeline reads its numbers at run time.
 
     A run given no targets file is REFUSED. The gates are the only thing standing between a
-    silently drifted call table and every estimate downstream of it, so a gate set that is
+    silently drifted call table and every estimate downstream of it, and a gate set that is
     skipped by default is a gate set nobody runs: skipping it has to be typed as
     `--no-gates`, and is then said out loud in the report instead of looking like a pass.
 
-    SEEDING. The relation cache can be primed from directories of already-fetched
+    Seeding. The relation cache can be primed from directories of already-fetched
     <taxid>.json response bodies, given as bare arguments or in LNFINDER_RELATION_SEED (a
     semicolon-separated path list). Whatever is still missing is fetched over the network,
     one taxon at a time with a short pause after each fetch that succeeds; a transient
@@ -119,9 +108,8 @@ const MAX_DISTINCT = 50
 
 # ---- the command line, read before anything is loaded, fetched or written ---------
 # A bad command line costs nothing here and never falls through to a default: a run under
-# settings nobody asked for produces a table that looks exactly like the answer to the
-# command that was typed. What follows is the reader; the program guard below it is where a
-# run actually reads ARGS.
+# settings nobody asked for produces a table that looks like the answer to the command that
+# was typed. What follows is the reader; the program guard below it is where a run reads ARGS.
 
 const USAGE = """
 Usage: julia --project=. scripts/habitat_reaggregate.jl [options] [seed-dir ...]
@@ -247,11 +235,10 @@ are made; that is settled by the census's digest (`reproduction_scope`).
 function gate_options(options::AbstractDict, positional, default_out::AbstractString)
     targets  = option_string(options, "--gate-targets", "")
     no_gates = haskey(options, "--no-gates")
-    # A GATE SET THAT IS OPT-IN IS A GATE SET NOBODY RUNS. Given no targets file this script
-    # would write the whole call table and exit 0, and the table would be byte-for-byte what
-    # a fully gated run writes; the only difference would be a few lines of a report nobody
-    # diffs. So the default is refused, and declining the gates is a decision that has to be
-    # typed and is then recorded as one.
+    # A gate set that is opt-in is a gate set nobody runs: given no targets file this script
+    # would write a call table byte-for-byte what a fully gated run writes, differing only in
+    # a few lines of report. So the default is refused, and declining the gates has to be
+    # typed and is then recorded as a decision.
     isempty(targets) && !no_gates &&
         error("no --gate-targets were given, so the gates whose expected value is a " *
               "measurement of this dataset would not be checked at all, and this table is " *
@@ -269,10 +256,9 @@ function gate_options(options::AbstractDict, positional, default_out::AbstractSt
             seed_dirs = collect(String, positional))
 end
 
-# THE FIRST PROGRAM GUARD: the command line, and nothing else. A run's command line is read
-# here, before the packages below are loaded, because a bad one costs nothing at this point
-# and a run under settings nobody asked for produces a table that looks exactly like the
-# answer to the command that was typed. Including this file reads no command line at all.
+# The first program guard: the command line, and nothing else. It is read here, before the
+# packages below are loaded, because a bad one costs nothing at this point. Including this
+# file reads no command line at all.
 const IS_PROGRAM = abspath(PROGRAM_FILE) == @__FILE__
 
 if IS_PROGRAM
@@ -322,33 +308,29 @@ iso_date(t::Real) = Dates.format(Dates.unix2datetime(t), "yyyy-mm-dd")
 const GATE_COLUMNS = (:kind, :gate, :expected, :tol, :note)
 # Two kinds of row compare a measurement with an expected value and a third says how many of
 # those the file holds. `equal` is |measured - expected| <= tol. `at_least` is
-# measured >= expected - tol, which is how an ALLOWANCE for a known, named set of rows that
-# do not reproduce is written down — as a stated number of rows, rather than folded invisibly
-# into the expected value or hidden by widening a two-sided band. A fourth, `census`, names by
-# sha256 the census the REPRODUCTION_GATES were written for (see `reproduction_scope`).
+# measured >= expected - tol, which writes an ALLOWANCE for a known, named set of rows that do
+# not reproduce as a stated number of rows, not folded into the expected value and not hidden
+# by a wider two-sided band. A fourth, `census`, names by sha256 the census the
+# REPRODUCTION_GATES were written for (see `reproduction_scope`).
 const GATE_KINDS = ("equal", "at_least", "expect", "census")
-# What an `expect` row may count. Only the gate rows: the point of it is that the file cannot
-# lose rows without saying so.
+# What an `expect` row may count. Only the gate rows, so the file cannot lose rows without
+# saying so.
 const EXPECTED_COUNTS = ("gates",)
 
-# The gates whose expected value is a MEASUREMENT of this dataset rather than a requirement
-# of the method. A measurement of the data is never a constant of this code, so each of these
-# takes its expected value, tolerance and comparison from the targets file, by name. The
-# NAMES are here because a rule's name is not a quantity measured on anything, and because a
-# file naming a gate this run does not have — or a gate this run has and the file does not —
-# is then a refusal in both directions rather than a check that quietly did not happen.
+# The gates whose expected value is a MEASUREMENT of this dataset, not a requirement of the
+# method. A measurement of the data is never a constant of this code, so each takes its
+# expected value, tolerance and comparison from the targets file, by name. The NAMES are here
+# so that a file naming a gate this run does not have, or missing one it does, is a refusal in
+# both directions.
 #
 # `from_run` marks a gate measured against a number THIS RUN computes: the size of an arm it
-# has just built. Such a gate takes no expected value from the file, because a second
-# statement of a number the run computes is a number that can disagree with it silently. What
-# the file supplies for it is the tolerance — the allowance for rows a later, deliberate
-# change of the analysis is known to have moved.
+# has just built. It takes no expected value from the file, since a second statement of that
+# number could disagree with it silently. The file supplies its tolerance, the allowance for
+# rows a later, deliberate change of the analysis is known to have moved.
 #
-# `kind` is the SHAPE of the comparison, and it is declared here as well as in the file,
-# which must agree with it. The shape is not a quantity measured on anything, and leaving it
-# to the file alone would make it an input: one word changed from `equal` to `at_least` turns
-# a gate that catches drift in both directions into one that catches it in a single
-# direction, without touching a number and without failing anything.
+# `kind` is the SHAPE of the comparison, declared here as well as in the file, which must
+# agree with it. Left to the file alone, one word changed from `equal` to `at_least` would
+# narrow the gate to one direction of drift without moving a number or failing anything.
 const MEASURED_GATES = (
     (gate = "Ln chemistry reproduced",                from_run = true,  kind = "at_least"),
     (gate = "Ln taxa with a usable type term",        from_run = false, kind = "equal"),
@@ -357,14 +339,13 @@ const MEASURED_GATES = (
     (gate = "frame, at least one non-isolation term", from_run = false, kind = "equal"),
 )
 
-# THE FOUR GATES THAT COMPARE THIS RUN AGAINST THE COMMITTED CALLS: the `legacy` config's
+# The four gates that compare this run against the committed calls: the `legacy` config's
 # habitat type and chemistry against the calls the census and the background carry in their
 # own columns, taxon by taxon. Three take their expected value from the arm this run builds;
 # the fourth is also a measured gate above, because its allowance is a number measured on the
-# data. They are named here because whether they are made at all is decided per run
-# (`reproduction_scope`), and a gate that is declined still has to be reached: the accounting
-# guard at the end holds every name here, made or declined, so a deleted call site cannot hide
-# behind a decline.
+# data. They are named here because whether they are made is decided per run
+# (`reproduction_scope`), and the accounting guard at the end holds every name here, made or
+# declined, so a deleted call site cannot hide behind a decline.
 const REPRODUCTION_GATES = ("Ln habitat_type reproduced", "background habitat_type reproduced",
                             "Ln chemistry reproduced", "background chemistry reproduced")
 # Every gate the accounting guard holds a run to: the measured gates and the reproduction
@@ -578,10 +559,10 @@ end
 
 # ---- nothing is published until the gates have passed -----------------------------
 
-# ONE staging directory per destination directory, under a fixed name beside the file it
-# will become. Beside, because a move within one filesystem is atomic while a move across
-# two is a copy that can half-finish; under a fixed name, because a fresh name per run
-# accumulates one directory per run on any filesystem that will not let go of an empty one.
+# ONE staging directory per destination directory, under a fixed name beside the file it will
+# become. Beside, because a move within one filesystem is atomic while a move across two is a
+# copy that can half-finish; under a fixed name, because a fresh name per run accumulates a
+# directory per run on any filesystem that will not let go of an empty one.
 const STAGING_DIR = "_staging"
 
 """
@@ -643,10 +624,10 @@ function publish!(plan, failures)
         push!(written, p.dest)
     end
     # Everything is published by this point and the staging directories are now empty. A
-    # filesystem that will not remove one — a sync client still holding a handle, say —
-    # leaves an empty directory under a name that is reused and cleared next run, so nothing
-    # accumulates and nothing is lost. Refusing to return over that would report a complete,
-    # gated, published run as a failure.
+    # filesystem that will not remove one (a sync client still holding a handle, say) leaves
+    # an empty directory under a name that is reused and cleared next run, so nothing
+    # accumulates and nothing is lost. Raising there would report a complete, gated,
+    # published run as a failure.
     for dir in unique(String[dirname(p.staged) for p in plan])
         try; rm(dir; recursive = true); catch; end
     end
@@ -680,7 +661,7 @@ function accounting_failures(declared, reached)
 end
 
 # ---------------------------------------------------------------------------
-# THE SECOND PROGRAM GUARD. Everything above is definitions: including this file runs
+# The second program guard. Everything above is definitions: including this file runs
 # nothing. Everything below reads the inputs, builds the table, gates it and publishes it,
 # and runs only when this file is the program.
 # ---------------------------------------------------------------------------
@@ -703,15 +684,14 @@ else
                 TARGETS.census.sha256)
 end
 
-# Both files this run REPLACES are staged, and neither is touched again until the gates at
-# the bottom have passed. The relation bodies and the OBT path cache are not here: those are
-# accumulating caches whose entries a later run reuses, and a run that adds to them and then
-# fails a gate has cost nothing and destroyed nothing.
-# Both inputs are named before anything is staged: a missing one is a plain statement of
-# what is absent and which step writes it, not a CSV parse error and a stack trace, and no
-# _staging directory is created for a run that cannot start. A census named by --census is
-# not a registry input, so it is checked by the path that was typed, and the deposited one is
-# then not required: this run does not read it.
+# Both files this run REPLACES are staged, and neither is touched again until the gates at the
+# bottom have passed. The relation bodies and the OBT path cache are not staged: they are
+# accumulating caches a later run reuses, so a run that adds to them and then fails a gate has
+# destroyed nothing.
+# Both inputs are named before anything is staged, so a missing one says what is absent and
+# which step writes it, and no _staging directory is created for a run that cannot start. A
+# census named by --census is not a registry input, so it is checked by the path that was
+# typed, and the deposited one is then not required: this run does not read it.
 OPT.census_given ? DataInputs.require_or_exit("pool_taxa", "pool_background") :
                    DataInputs.require_or_exit("census_habitat", "pool_taxa", "pool_background")
 if OPT.census_given && !isfile(OPT.census)
@@ -720,10 +700,10 @@ if OPT.census_given && !isfile(OPT.census)
     exit(1)
 end
 
-# WHICH CENSUS THIS RUN READS, BY CONTENT. Read once, here, before anything is staged or
+# Which census this run reads, by content. Read once, here, before anything is staged or
 # fetched: its digest decides whether the four comparisons against the committed calls are
-# made (`reproduction_scope`), so a run that will decline them says so now rather than after
-# the whole pass, and the census is parsed below from these same bytes.
+# made (`reproduction_scope`), so a run that will decline them says so now and not after the
+# whole pass, and the census is parsed below from these same bytes.
 const CENSUS_BYTES  = read(OPT.census)
 const CENSUS_SHA256 = census_digest(CENSUS_BYTES)
 const SCOPE         = reproduction_scope(TARGETS, CENSUS_SHA256)
@@ -743,15 +723,13 @@ append!(seed_dirs, OPT.seed_dirs)
 haskey(ENV, "LNFINDER_RELATION_SEED") &&
     append!(seed_dirs, filter(!isempty, strip.(split(ENV["LNFINDER_RELATION_SEED"], ";"))))
 
-# THE TWO CACHES ARE REQUIRED TOO, AND THIS IS THE CHECK THAT KEEPS THE RUN OFFLINE. A cache
+# The two caches are required too, and this is the check that keeps the run offline. A cache
 # MISS in this step is a LIVE FETCH, and a missing ontology cache sends the ontology climb
-# back to the network as well. Without this check a cache put in place one level wrong would
-# pass and then issue one request per taxon — on a run this repository documents as
-# offline, with nothing in the output saying the bodies came from the service rather than
-# from disk. `relation_bodies` names the BODIES, not the directory holding them, because
-# `omnicrobe_cache/` existing with nothing underneath it is exactly the shape of that
-# mistake. A run that was given seed directories is left alone: it is bootstrapping the
-# cache on purpose, which is the one case where not having it yet is the point.
+# back to the network as well. Without this check a cache put one level wrong would pass and
+# then issue one request per taxon, with nothing in the output saying the bodies came from the
+# service. `relation_bodies` names the BODIES, not the directory holding them, because
+# `omnicrobe_cache/` existing with nothing underneath it is exactly that mistake. A run given
+# seed directories is left alone: it is bootstrapping the cache on purpose.
 if isempty(seed_dirs)
     for n in ("relation_bodies", "relation_manifest", "obt_path_cache")
         try
@@ -839,10 +817,10 @@ fetch_failed = Int[]
 n_live = 0
 @showprogress desc = "Reading relations " for t in universe
     was_cached = isfile(joinpath(REL_DIR, "$t.json"))
-    # THIS is the run the retry exists for: one transient 502 among thousands of GETs
-    # otherwise lands its taxon in fetch_failed, which a tolerance-zero gate reads as a
-    # changed dataset -- after the whole fetch has been paid for. The pause keeps a long
-    # serial run polite to a public academic service.
+    # The retry exists for this run: one transient 502 among thousands of GETs otherwise
+    # lands its taxon in fetch_failed, which a tolerance-zero gate reads as a changed
+    # dataset, after the whole fetch has been paid for. The pause keeps a long serial run
+    # polite to a public academic service.
     r = EnvironmentTools.fetch_relations(t; cache_dir = REL_DIR, retries = 3,
                                          retry_delay = 2.0, backoff = 2.0, pause = 0.2)
     # `nothing` is a FAILED fetch. It is recorded as such and kept out of the aggregation:
@@ -877,7 +855,7 @@ CSV.write(STAGE.manifest, DataFrame(mrows))
 # Only the terms the walk actually REACHES need a path, and which terms those are depends on
 # the paths already known: a term that resolves to a generic node or to a culture medium is
 # dropped, which lets the next term into the max_distinct budget. So the discovery pass is
-# repeated until it reaches nothing new - a fixpoint, not a single sweep.
+# repeated to a fixpoint: until it reaches nothing new.
 n_before = EnvironmentTools.load_obt_cache!(OBT_CSV)
 @printf("Primed OBT path cache with %d entries\n", n_before)
 
@@ -983,8 +961,8 @@ CSV.write(STAGE.calls, DataFrame(rows))
 @printf("Staged the call table for %s (%d rows = %d configs x %d taxa)\n", OPT.out,
         length(rows), length(CONFIGS), length(universe))
 # A verification re-run writes somewhere else on purpose, and the gates below still run
-# against the table this run just built. Saying which file that is keeps a report from being
-# read as a statement about the committed table when it is not one.
+# against the table this run just built. Naming that file keeps the report from reading as a
+# statement about the committed table.
 OPT.out == OUT ||
     @printf("  (--out was given: the committed table at %s is not this run's destination)\n",
             OUT)
@@ -1015,7 +993,7 @@ has_type(cfg, t) = !ismissing(calls[cfg][t].habitat_type)
 failures = String[]
 # Which of the declared measured gates this run actually reached. A call site deleted or
 # renamed in an edit would otherwise leave its gate declared in the targets file, never
-# evaluated, and unmentioned — and the report would still end with "All replication gates
+# evaluated and unmentioned, and the report would still end with "All replication gates
 # passed" over a check that no longer exists.
 gates_reached = String[]
 
@@ -1084,20 +1062,17 @@ declined_gate(label, measured, reason) = decline_gate!(gates_reached, label, mea
 println("\n", "="^78)
 println("REPLICATION REPORT")
 println("="^78)
-# REPRODUCING THE COMMITTED CALLS IS A QUESTION ABOUT ONE CENSUS. Asked of a run that reads a
-# different census it is not a weaker test but a different test: `ln_used` and the background
-# frame are different sets of taxa, and any disagreement says only "these are two datasets",
-# which is already known. Asked anyway it would fail an honest re-annotation run, or - worse -
-# pass one and be read as evidence that the census this run reads reproduces the one the
-# committed calls belong to. So the four gates below are made only when SCOPE says the targets
-# file declares this run's census by digest; otherwise each is declined explicitly and said
-# out loud with its reason, and what the run replicates is left to the gates that measure THIS
-# dataset: the coverage and recovery gates after them, whose expected values the targets file
+# Reproducing the committed calls is a question about one census: asked of a run that reads
+# another, `ln_used` and the background frame are different sets of taxa, so a disagreement
+# says only that these are two datasets and a pass would read as evidence that they agree. So
+# the four gates below are made only when SCOPE says the targets file declares this run's
+# census by digest; otherwise each is declined with its reason, and what the run replicates is
+# left to the coverage and recovery gates after them, whose expected values the targets file
 # must then carry as measurements of the census the run reads. The targets file is read the
 # same way either way, so it still declares "Ln chemistry reproduced" with its tolerance; a
-# run that declines that gate prints its measurement and applies no tolerance to it.
-# A reproduction gate the run makes registers as reached exactly as a declined one does, so
-# the accounting guard holds all four whichever way SCOPE went.
+# run that declines that gate prints its measurement and applies no tolerance to it. A gate
+# the run makes registers as reached exactly as a declined one does, so the accounting guard
+# holds all four whichever way SCOPE went.
 function reproduction_gate(label, measured, expected; kw...)
     SCOPE.evaluated || return declined_gate(label, measured, SCOPE.reason)
     reach_gate!(gates_reached, label)
@@ -1136,9 +1111,9 @@ measured_gate("frame taxa with a usable type term", count(t -> has_type("primary
 
 # A taxon is RECOVERED at term level when it holds at least one term that is not an isolation
 # source: the taxon-level filter threw that evidence away wholesale, the term-level one keeps
-# it. Whether the taxon then ends with a usable type is a second, stricter question - the
-# generic-term filter can still blank it - so that count is printed beside the gate rather
-# than folded into it.
+# it. Whether the taxon then ends with a usable type is a second, stricter question, since the
+# generic-term filter can still blank it, so that count is printed beside the gate and not
+# folded into it.
 println("\nisolation-source taxa recovered at term level")
 recovered(t) = !calls["primary"][t].isolation_only
 @printf("  %-46s %6d\n", "Ln taxa typed as an isolation source", length(ln_iso))
@@ -1153,12 +1128,11 @@ measured_gate("frame, at least one non-isolation term", count(recovered, bg_iso)
 # The analysed arms are the taxa a usable type term survives for; a taxon with no habitat at
 # all never reaches the contrast, so a missing phylum there cannot bias it.
 #
-# A MISSING PHYLUM IS REPORTED HERE, NOT GATED, AND THE RULE IT BEARS ON IS ENFORCED WHERE IT
-# CAN BE: where the contrast is built. This table is the record of what OmniCrobe says and
-# must keep every taxon it answered for; whether a taxon may enter a contrast is a question
-# about the CONTRAST, so habitat_enrichment.jl excludes phylum-less taxa at arm assembly and
-# holds that as an error on every assembled arm. A gate here would refuse to publish an
-# honest call table over a downstream policy. Reported, not gated.
+# A missing phylum is reported here, not gated. This table is the record of what OmniCrobe
+# says and must keep every taxon it answered for, so the rule is enforced where the contrast
+# is built: habitat_enrichment.jl excludes phylum-less taxa at arm assembly and holds that as
+# an error on every assembled arm. A gate here would refuse to publish an honest call table
+# over a downstream policy.
 ln_arm = filter(t -> has_type("primary", t), ln_all)
 bg_arm = filter(t -> has_type("primary", t), frame)
 
@@ -1182,8 +1156,8 @@ nrec_all = sum(v -> count(r -> is_record(r.source), v), values(relations); init 
 @printf("  %-46s %6d\n", "distinct OBT terms the walk reached", length(reached))
 @printf("  %-46s %5.1f%% text-mined / %.1f%% strain record\n", "relation source split",
         100(ntot - nrec_all) / max(ntot, 1), 100nrec_all / max(ntot, 1))
-# Where each primary arm came from, so its size reads as an accounting identity rather than
-# as a claim: kept + regained - blanked has to land on the arm size printed above.
+# Where each primary arm came from, so its size reads as an accounting identity: kept +
+# regained - blanked has to land on the arm size printed above.
 for (lab, used, iso) in (("Ln", ln_used, ln_iso), ("frame", bg_used, bg_iso))
     keep = count(t -> has_type("primary", t), used)
     @printf("  %-6s arm: %5d of %5d committed-usable kept, %4d blanked generic, %4d from isolation\n",
@@ -1204,8 +1178,8 @@ append!(failures, accounting_failures(ACCOUNTED_GATES, gates_reached))
 println("\n", "="^78)
 if isempty(failures)
     # A run that declined half the gates must not sign off in the words of one that made them
-    # all. The closing sentence is the only part of this report most readers keep, so it is
-    # the part that has to say which run this was.
+    # all: the closing sentence is the part of this report most readers keep, so it says which
+    # run this was.
     println(GATES === nothing ?
             "Every gate this run MADE passed. The gates whose expected value is a " *
             "measurement of this dataset were NOT made (--no-gates)." :
@@ -1221,7 +1195,7 @@ else
     end
 end
 
-# THE PUBLISH GATE. Nothing this run built has reached its destination yet; `publish!` moves
+# The publish gate. Nothing this run built has reached its destination yet; `publish!` moves
 # the staged files only when `failures` is empty and raises otherwise, so the gates and the
 # writing cannot come apart in a later edit. This is the last statement of the run.
 for p in publish!(PLAN, failures)

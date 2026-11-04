@@ -1,106 +1,89 @@
 #=
-    habitat_enrichment.jl — where do lanthanide-dependent PQQ-ADH carriers live,
-    RELATIVE TO EXPECTATION?
+    habitat_enrichment.jl — where do lanthanide-dependent PQQ-ADH carriers live, relative
+    to expectation?
 
-    Raw habitat counts measure research effort, not ecology. The habitat layer is
-    text-mined from published work, so a single well-studied model organism can dominate a
-    category on its own. Every number here is therefore a comparison against a denominator,
-    and every denominator is computed by the run.
+    Raw habitat counts measure research effort, not ecology: the habitat layer is text-mined
+    from published work, so one well-studied model organism can dominate a category on its
+    own. Every number here is a comparison against a denominator the run computes.
 
-    NO DATA LITERALS IN THIS FILE. Counts, shares, coverages, thresholds, releases and
-    p-values are computed or read at run time, written to habitat_arm_summary.csv, and the
-    closing report reads them back out of that table. A number typed into a comment goes
-    stale the moment an input changes and then quietly contradicts the output, so this file
-    contains none. The summary table is the single place a reported number may come from.
-    The one class of number this file accepts from outside is a bound the analysis plan
-    fixed BEFORE the run: those arrive on the command line, are never defaulted, and are
-    disclosed beside the quantity they bound (see THE RECORDED CRITERIA below).
+    No data literals. Counts, shares, coverages, thresholds, releases and p-values are
+    computed or read at run time, written to habitat_arm_summary.csv, and the closing report
+    reads them back out of that table, the single place a reported number may come from. The
+    one class of number accepted from outside is a bound the analysis plan fixed BEFORE the
+    run: those arrive on the command line, are never defaulted, and are disclosed beside the
+    quantity they bound (see THE RECORDED CRITERIA below).
 
-    NO ESTIMATOR OF ITS OWN. crude(), standardised(), the Benjamini-Hochberg correction,
-    the genus collapse and the row builder live in src/ModuleHabitatStats.jl, where they
-    are unit-tested. This script only selects arms, builds weight vectors and reports. The
-    one resampling loop it does run (the sharing ratio below) calls the module's
-    standardised() on resampled indices rather than re-deriving anything.
+    No estimator of its own. crude(), standardised(), the Benjamini-Hochberg correction, the
+    genus collapse and the row builder live in src/ModuleHabitatStats.jl, where they are
+    unit-tested. This script selects arms, builds weight vectors and reports; its one
+    resampling loop (the sharing ratio below) calls the module's standardised() on resampled
+    indices.
 
-    NO OUTCOME RULE OF ITS OWN EITHER. Every code this script emits — the robustness tier,
-    the sharing grade, the host-plant codes, the category partition, the background licence
-    — is decided by src/ModuleOutcomeRules.jl, where the predicates are unit-tested. A
-    one-line predicate sitting here, next to the code that prints its answer, is reachable by
-    no test — and an unreachable predicate that cannot fail, or was never implemented at all,
-    looks exactly like one that works. That holds for the pair of ternaries that turn an
-    interval into a host-plant code too: one tested mapper answers "what does this interval
-    decide?" for every rule of that shape, and its third value is not this script's to
-    rename, so an estimate that was never computed reports as undecidable instead of being
-    folded into "includes zero".
+    No outcome rule of its own. Every code this script emits — robustness tier, sharing
+    grade, host-plant codes, category partition, background licence — is decided by
+    src/ModuleOutcomeRules.jl, where the predicates are unit-tested; a predicate here, beside
+    the code that prints its answer, is reachable by no test. That includes the pair of
+    ternaries mapping an interval to a host-plant code, whose third value is not this
+    script's to rename: an estimate never computed reports as undecidable, not as "includes
+    zero".
 
     NO RECORD PARSER OF ITS OWN. The background scan persists three records beside its
     table, and their format belongs to the script that writes them: this one includes
     scripts/background_pqq_scan.jl behind its program-file guard (which keeps that script's
-    driver from running) and calls its readers. A consumer that re-implements a producer's
-    format eventually disagrees with it, and the disagreement shows up as a missing field,
-    which is exactly the input every guard below has to treat as unknown.
+    driver from running) and calls its readers. A re-implementation drifts, and the drift
+    shows up as a missing field, which is the input every guard below treats as unknown.
 
-    NO AGGREGATION OF ITS OWN EITHER. The habitat calls come pre-computed, one row per
+    No aggregation of its own. The habitat calls come pre-computed, one row per
     (configuration, taxon), from scripts/habitat_reaggregate.jl; the background carrier scan
     comes from scripts/background_pqq_scan.jl. Switching --config switches the whole tie /
-    isolation / generic / chemistry-text rule set in one place, which is what makes the
-    sensitivity grid downstream cheap and this script short.
+    isolation / generic / chemistry-text rule set in one place, which makes the sensitivity
+    grid downstream cheap and this script short.
 
-    THE FRAME. Most census taxa are themselves reference proteomes, so the background is
-    not an external comparator — it is the SAMPLING FRAME MINUS THE CENSUS: reference-
-    proteome prokaryotes that do not carry the enzyme family. Both arms are drawn from one
-    frame, so its cultivation and sequencing bias largely cancels. Reference proteomes are
-    deduplicated to about one per species group, so a heavily sequenced species counts once
-    — that is precisely the sampling-frequency correction wanted.
+    The frame is the SAMPLING FRAME MINUS THE CENSUS: reference-proteome prokaryotes that do
+    not carry the enzyme family. Most census taxa are themselves reference proteomes, so both
+    arms come from one frame and its cultivation and sequencing bias largely cancels.
+    Reference proteomes are deduplicated to about one per species group, so a heavily
+    sequenced species counts once: the sampling-frequency correction wanted.
 
-    AND MINUS THE CARRIERS IT MISSED. A background built by set subtraction still contains
-    taxa that carry the enzyme but were never in the census, and those taxa carry the
-    habitat signal being tested, so leaving them in biases every contrast toward the null.
-    They are removed here, not argued away, on the targeted hmmsearch of the frame
-    (--bg-exclusion hmmsearch, the default and the registered primary — "registered" in the
-    exact sense docs/TOOLING.md §5.1 defines, and nothing stronger). That is the
-    broad exclusion: it removes every frame taxon with ANY hit of the family, whatever metal
-    class the hit reads, and it is the producer's own tested exclusion predicate that
-    removes them, not a second copy of it. The narrower questions — which background taxa
-    carry a LANTHANIDE-type enzyme specifically, or a hit whose active site reads as either
-    metal — are different questions, and the modes that answer them (lntype, lnca) are
-    reported as sensitivity lines, never as the headline. Which mode ran is recorded in the
-    output, together with whether it was typed or inherited and whether it is the registered
-    primary.
+    And minus the carriers it missed. A background built by set subtraction still contains
+    taxa that carry the enzyme but were never in the census; they carry the habitat signal
+    being tested, which biases every contrast toward the null. They are removed on the
+    targeted hmmsearch of the frame (--bg-exclusion hmmsearch, the default and the registered
+    primary — "registered" in the exact sense docs/TOOLING.md §5.1 defines, and nothing
+    stronger), by the producer's own tested exclusion predicate. That is the broad exclusion:
+    every frame taxon with ANY hit of the family, whatever metal class the hit reads. Which
+    background taxa carry a LANTHANIDE-type enzyme specifically, or a hit whose active site
+    reads as either metal, are different questions; the modes that answer them (lntype, lnca)
+    are sensitivity lines, never the headline. The output records which mode ran, whether it
+    was typed or inherited, and whether it is the registered primary.
 
-    AND ONE LEVEL THAT ADDS INSTEAD OF REMOVING. Every mode above only ever takes taxa OUT
-    of the background. The recorded sensitivity grid also names a level that removes the
-    carriers AND gives the lanthanide-type ones to the foreground, and that is the level
-    which can break a result rather than merely move it: it asks whether the contrast is
-    driven by where the carriers live or by the census's own membership, since a frame taxon
-    the census never registered is a carrier by every criterion except having been counted.
-    It is --bg-exclusion hmmsearch_movein, and it is a sensitivity level, never the headline.
-    Which taxa it moves is not this script's opinion either: the pool arrives as a rule that
-    is named in the output, with its size counted at run time, and the rule the record names
-    reads the CENSUS'S OWN class for a sequence, out of the census's pre-deduplication hit
-    table, which is not a repository input and so has to be supplied (--movein-pool). The
-    rule this repository can answer alone — the scan's own lanthanide-class call — is a
-    DIFFERENT measurement, so a run that falls back to it says so in a key and in a warning
-    rather than presenting its pool size as the recorded one.
+    And one level that adds instead of removing. Every mode above only takes taxa OUT of the
+    background. The recorded sensitivity grid also names a level that removes the carriers
+    AND gives the lanthanide-type ones to the foreground, which asks whether the contrast is
+    driven by where the carriers live or by the census's own membership: a frame taxon the
+    census never registered is a carrier by every criterion except having been counted. It is
+    --bg-exclusion hmmsearch_movein, a sensitivity level, never the headline. The pool it
+    moves arrives as a rule that is named in the output, with its size counted at run time,
+    and the rule the record names reads the CENSUS'S OWN class for a sequence, out of the
+    census's pre-deduplication hit table, which is not a repository input and so has to be
+    supplied (--movein-pool). The rule this repository can answer alone — the scan's own
+    lanthanide-class call — is a DIFFERENT measurement, so a run that falls back to it says
+    so in a key and in a warning instead of presenting its pool size as the recorded one.
 
-    A MOVED TAXON IS IN EXACTLY ONE ARM. It joins the foreground and leaves the frame in the
+    A moved taxon is in exactly one arm. It joins the foreground and leaves the frame in the
     same expression, so the background it was drawn from no longer holds it and n1 cannot
-    count it twice; both properties are asserted where the arms are assembled, because a
-    variant that quietly counted a taxon on both sides would report a contrast between an arm
-    and part of itself. The moved taxa have NO census sequences — that is what made them
-    background — so the per-sequence unit gains nothing from them and says so, and the
-    comparator arms, whose membership rules are census-class rules, are left exactly as they
-    were.
+    count it twice; both properties are asserted where the arms are assembled. The moved taxa
+    have NO census sequences — that is what made them background — so the per-sequence unit
+    gains nothing from them and says so, and the comparator arms, whose membership rules are
+    census-class rules, are left as they were.
 
-    WHAT CAN STILL GO WRONG WITH THAT EXCLUSION, AND WHICH HALF OF IT IS DEFINITIONAL. Two
-    criteria are measured SEPARATELY, and over the arm that is ACTUALLY ANALYSED: HMM hits
-    on one side, whole-frame family membership at the length cut-off — a property of the
-    taxon, computed without the sequence prefilter — on the other. Under the any-hit mode
-    the first of the two IS THE EXCLUSION PREDICATE, so its leftover count is zero by
-    definition and can never fail, whatever the data say; it is emitted as a statement of
-    that identity, not as evidence, and a key records it as definitional. The count carries
-    real information only under the narrower modes and under "none". Five inputs decide the
-    licence, and these four CAN fail:
+    What can still go wrong with that exclusion, and which half of it is definitional. Two
+    criteria are measured SEPARATELY, over the arm that is ACTUALLY ANALYSED: HMM hits on one
+    side, whole-frame family membership at the length cut-off — a property of the taxon,
+    computed without the sequence prefilter — on the other. Under the any-hit mode the first
+    IS THE EXCLUSION PREDICATE, so its leftover count is zero by definition and can never
+    fail; a key records it as definitional, and the count carries real information only under
+    the narrower modes and under "none". Five inputs decide the licence, and four CAN fail:
 
       * whole-frame family membership left in the analysed arm — a full-length family
         member the model scores below the cutoff leaves its taxon unflagged while the
@@ -112,73 +95,63 @@
         carrier whose row is missing from the table reads as a non-carrier;
       * whether the scan's own persisted records vouch for the table that was read at all.
 
-    A RATE AT THE BAR IS NOT A RECALL AT THE BAR. The recall check samples frame taxa, scans
-    their whole proteomes, and asks what share of the carriers found there the prefilter
-    also found. A sample that recovered every carrier it flagged has a rate of one at any
-    size, so the rate clears the bar on three flagged taxa as readily as on three thousand.
-    What the statement "the background holds no carrier the prefilter missed" needs is what
-    the sample can vouch for: the exact one-sided 95 % Clopper-Pearson lower bound of the
-    recovered share, held to the same bar. The scan records that bound beside the rate and
-    gates its own publication on the rate, because a bound below the bar does not make its
-    exclusion list wrong; the stronger statement is decided here, on the bound, and a clean
-    sample too small for its bound to reach the bar leaves the licence withheld. Both the
-    rate and the bound the counts give are emitted beside the record's copies of them.
+    A rate at the bar is not a recall at the bar. The recall check samples frame taxa, scans
+    their whole proteomes, and asks what share of the carriers found there the prefilter also
+    found; a rate of one clears the bar on three flagged taxa as readily as on three
+    thousand. So "the background holds no carrier the prefilter missed" rests on the exact
+    one-sided 95 % Clopper-Pearson lower bound of the recovered share, held to the same bar.
+    The scan gates its own publication on the rate and records that bound beside it; the
+    stronger statement is decided here, on the bound, so a clean sample too small for its
+    bound to reach the bar leaves the licence withheld. Both the rate and the bound the
+    counts give are emitted beside the record's copies of them.
 
-    THE FIFTH INPUT EXISTS BECAUSE THREE OF THE OTHERS COME OUT OF ONE FILE. A scan table
-    that covers the frame but reports no carrier anywhere satisfies every count a consumer
-    can compute from it: nothing is left because nothing was ever found, and the taxon set
-    still matches. Only evidence from outside the table separates "measured clean" from
-    "measured nothing", and that evidence is the producer's own acceptance table, tied to
-    the table by the digest of its bytes. So the module is handed the digests; the
-    acceptance checks and verdicts together with the names of the gated checks the scan
-    writes on every run; two counts taken from the parsed table, to hold against the
-    acceptance table's; and every field of the recall record together with the same fields
-    as the other records carry them. It refuses the licence when a record describes another
-    table, when a check missed, when a gated check is absent or doubled, when the acceptance
-    table does not count the table read, when the recall record disagrees with its own
-    counts or with the other records, or when the recall verdict does not hold. Here, beside
-    it, every acceptance row's verdict is re-derived from that row's own numbers by the
-    producer's rule, and the recall row is held against the recall record, because a
-    record whose verdict words say PASS beside numbers that fail is not evidence of
-    anything. A record that is absent, unreadable or of an older shape is unknown, and
-    unknown withholds the licence instead of erroring or passing.
+    The fifth input exists because three of the others come out of one file: a scan table that
+    covers the frame but reports no carrier anywhere satisfies every count a consumer can
+    compute from it, and only evidence from outside separates "measured clean" from "measured
+    nothing". That evidence is the producer's own acceptance table, tied to the table by the
+    digest of its bytes. So the module is handed the digests; the acceptance checks and
+    verdicts together with the names of the gated checks the scan writes on every run; two
+    counts taken from the parsed table, to hold against the acceptance table's; and every
+    field of the recall record together with the same fields as the other records carry them.
+    It refuses the licence when a record describes another table, when a check missed, when a
+    gated check is absent or doubled, when the acceptance table does not count the table
+    read, when the recall record disagrees with its own counts or with the other records, or
+    when the recall verdict does not hold. Here, beside it, every acceptance row's verdict is
+    re-derived from that row's own numbers by the producer's rule, and the recall row is held
+    against the recall record, because verdict words can disagree with the numbers under
+    them. A record that is absent, unreadable or of an older shape is unknown, and unknown
+    withholds the licence instead of erroring or passing.
 
-    ONE READ OF EVERY FILE THE LICENCE RESTS ON. The digest is taken from the very bytes
-    that are parsed, in one read, and each record is read from disk once. A table hashed
-    from a second read, taken seconds after the first, vouches for whatever a scan run
-    promoted in between, and the run then analyses one table under the records of another
-    while every digest agrees. With one read, a promotion that lands between the table and
-    its records shows up as a digest that does not match, which withholds the licence.
+    ONE READ OF EVERY FILE THE LICENCE RESTS ON. The digest is taken from the very bytes that
+    are parsed, in one read, and each record is read from disk once. A table hashed from a
+    second read vouches for whatever a scan run promoted in between. With one read, a
+    promotion that lands between the table and its records shows up as a digest that does not
+    match, which withholds the licence.
 
-    AND A TABLE NOBODY PROMOTED IS NOT A RESULT. The producer publishes its table and its
+    And a table nobody promoted is not a result. The producer publishes its table and its
     records together or not at all: a failing run leaves its own files as .pending and
-    renames the last published set to .stale. Those names are therefore load-bearing, and
-    they are checked here, because a .stale set is internally consistent — it was a passing
-    run once — and would otherwise license the strong code after a later run had refused
-    the frame.
+    renames the last published set to .stale. Those names are load-bearing and are checked
+    here, because a .stale set was a passing run once and so passes every content check.
 
-    ONE ARM BUILDER, CALLED TWICE. analyse() turns a configuration, a chemistry column and
-    an exclusion set into every arm, its weight vectors and the result rows, and nothing
-    else in this file builds an arm. The run calls it for its own configuration, and again
-    for the ANCHOR: the older configuration, winner chemistry, no background exclusion,
-    which is what reproduces the earlier reference run. The anchor is what makes "this
-    category excludes zero for the first time" a measurable statement rather than an
-    impression — the question can only be asked against the earlier result a category would
-    be new relative to. Calling one function twice is what stops the anchor from drifting
-    away from the path the primary took; a second copy of the arm logic would eventually
-    disagree with the first. For the same reason ONE function reads a category set off a row
-    panel, and it is the one used for the primary, for the anchor and for the reference
-    table the anchor is checked against.
+    One arm builder, called twice. analyse() turns a configuration, a chemistry column and an
+    exclusion set into every arm, its weight vectors and the result rows, and nothing else in
+    this file builds an arm. The run calls it for its own configuration, and again for the
+    ANCHOR: the older configuration, winner chemistry, no background exclusion, which
+    reproduces the earlier reference run. The anchor is what makes "this category excludes
+    zero for the first time" measurable, and calling one function twice is what stops it from
+    drifting away from the path the primary took. For the same reason ONE function reads a
+    category set off a row panel, and it is the one used for the primary, for the anchor and
+    for the reference table the anchor is checked against.
 
-    THE ANCHOR IS ONLY VERIFIED WHEN IT IS COMPARED. Its rows are written to their own CSV
+    The anchor is only verified when it is compared. Its rows are written to their own CSV
     (--anchor-out) so the partition can be re-decided at row level without a re-run, and
     --anchor-reference compares them, row by row and set against set, with an earlier run's
     rows. Without that option the anchor is computed but unverified, and the output says so
-    in a key rather than in a comment.
+    in a key.
 
-    THE CONFOUND, AND WHY STANDARDISATION IS NOT OPTIONAL. The two arms differ sharply in
-    phylum composition (the run prints both shares). Habitat annotation tracks phylum, so
-    an unadjusted ratio will report "enrichment" that is nothing but the protein family's
+    The confound: standardisation is not optional. The two arms differ sharply in phylum
+    composition (the run prints both shares), and habitat annotation tracks phylum, so an
+    unadjusted ratio reports "enrichment" that is nothing but the protein family's
     phylogenetic range. Two estimates are reported for every habitat:
 
       CRUDE         a/n1 ÷ b/n2 — unadjusted.
@@ -187,42 +160,39 @@
                     "Phylum-matched" by reweighting rather than by discarding background,
                     so it costs no data.
 
-    The GAP between the two is the phylogenetic contribution, made legible instead of
-    argued about. Trust only what survives standardisation.
+    The GAP between the two is the phylogenetic contribution. Trust only what survives
+    standardisation.
 
-    AND THE STANDARDISED BOUNDS ARE THE ONES THAT DECIDE. Where the recorded rules name an
+    And the standardised bounds are the ones that decide. Where the recorded rules name an
     interval at all, they name the standardised one, so every code below is decided on the
-    standardised bounds, as recorded. The crude-reading counterpart of each code is emitted
-    beside it as a DESCRIPTIVE line only: it says how much of a code rests on the phylum
-    adjustment, and it licenses nothing. The two readings do not always agree, which is the
-    disclosure.
+    standardised bounds, as recorded. Each crude-reading counterpart is emitted beside its
+    code as a DESCRIPTIVE line that licenses nothing: it says how much of a code rests on the
+    phylum adjustment. The two readings do not always agree, which is the disclosure.
 
-    AND A HEALTHY ROW CAN STILL REST ON AN EMPTY STRATUM. The standardised interval is a sum
+    And a healthy row can still rest on an empty stratum. The standardised interval is a sum
     over phylum strata, and a stratum whose background cell is empty contributes nothing to
-    the variance — so a row whose arm totals are comfortable can carry an interval decided
-    by one thin cell. Each rule row therefore also carries the stratum disclosures the
-    estimator returns, the run counts how many rows have an empty stratum cell, and every
-    category in the partition carries the smallest background cell behind it, so a category
-    resting on one thin cell cannot enter a list silently.
+    the variance, so a row whose arm totals are comfortable can carry an interval decided by
+    one thin cell. Each rule row therefore also carries the stratum disclosures the estimator
+    returns, the run counts how many rows have an empty stratum cell, and every category in
+    the partition carries the smallest background cell behind it.
 
     UNIT = UNIQUE TAXON. Counting sequences counts how often an organism was sequenced, not
     how many organisms carry the enzyme, and a per-sequence signal can be nothing but
     sampling structure (a within-subfamily permutation test is the control for that). The
     per-sequence and per-genus series are computed as secondary so the size of that bias
-    stays visible. The genus series collapses BOTH arms
-    to genus, so n1 and n2 are in the same currency; putting foreground genus-by-habitat
-    PAIRS against background TAXA is not a like-for-like comparison and cannot be read as a
-    conservative bound either.
+    stays visible. The genus series collapses BOTH arms to genus, so n1 and n2 are in the
+    same currency; foreground genus-by-habitat PAIRS against background TAXA is not
+    like-for-like and is no conservative bound either.
 
-    THE COMPARATOR ARMS. The registered comparator for the sharing ratio is the non-Ln
-    carrier arm, whose membership rule is the ABSENCE of a lanthanide-type census sequence
-    — which is not the same thing as the PRESENCE of a calcium-type one. Redefining it would
-    need a recorded decision, so it is not redefined: its class composition is disclosed,
-    and a second arm restricted to taxa with a calcium-class census sequence and no
-    lanthanide-class one is reported BESIDE it, with its own ratio, its own resampled
-    interval from the same routine and seed, and its own code. Those keys are disclosures;
-    they never replace the registered comparator's, and the row counters that feed the
-    re-check list come in a second form counted over the registered contrasts alone.
+    The comparator arms. The registered comparator for the sharing ratio is the non-Ln
+    carrier arm, whose membership rule is the ABSENCE of a lanthanide-type census sequence,
+    which is not the PRESENCE of a calcium-type one. Redefining it would need a recorded
+    decision, so it is not redefined: its class composition is disclosed, and a second arm
+    restricted to taxa with a calcium-class census sequence and no lanthanide-class one is
+    reported BESIDE it, with its own ratio, its own resampled interval from the same routine
+    and seed, and its own code. Those keys are disclosures and never replace the registered
+    comparator's, and the row counters that feed the re-check list come in a second form
+    counted over the registered contrasts alone.
 
     PROKARYOTES ONLY. The census's eukaryotic candidates are excluded here; whether any of
     them is a genuine carrier is decided outside this pipeline, by an intron/transcript
@@ -239,40 +209,37 @@
     whether it was met, as DISCLOSED rows that gate no code and warn when they are not met.
     Omitting them omits the rows; nothing silently passes because a bound was not supplied.
 
-    THE SELECTED CATEGORIES ARE NOT CONSTANTS OF THIS SOFTWARE, AND THIS SCRIPT SHIPS NONE.
+    THE SELECTED CATEGORIES are not constants of this software, and this script ships none.
     Three of the recorded outcome rules speak for one habitat category each, and the
     standardisation shares are quoted for one phylum. WHICH categories those are was chosen
-    from this data set's own estimates, with the estimates in hand, AFTER those estimates
-    existed. The classification scheme they are drawn from (src/ModuleEnvironmentTools.jl) is
-    an external ontology's mapping and was fixed before any estimate existed; picking four
-    names out of it was not, and this file must not present the second as if it were the
-    first. The phylum is the one entry that is DETERMINED rather than chosen — it is the
-    heaviest standardisation stratum of the arms, which this script computes and records
-    beside the shares, and the figure step withholds the weight identities unless the run's
-    own heaviest stratum is still that phylum — so it is supplied for a different reason: the
-    share keys are named after it and a reader has to be able to derive that name. A default
-    here would publish
-    that choice as though this software had made it, and a script-supplied default cannot be
-    told apart from a selection somebody checked. So they arrive in ONE criteria file
+    from this data set's own estimates, AFTER those estimates existed; the classification
+    scheme they are drawn from (src/ModuleEnvironmentTools.jl) is an external ontology's
+    mapping fixed before any estimate existed, but picking four names out of it was not. The
+    phylum is the one entry that is DETERMINED rather than chosen: it is the heaviest
+    standardisation stratum of the arms, which this script computes and records beside the
+    shares, and the figure step withholds the weight identities unless the run's own heaviest
+    stratum is still that phylum. It is supplied because the share keys are named after it
+    and a reader has to be able to derive that name. A default would publish a choice as
+    though this software had made it, so the selections arrive in ONE criteria file
     (--categories), with no default anywhere, and a run that does not supply it REFUSES by
     name and says which option supplies it.
 
-    AND THE EMITTED KEYS FOLLOW THE SELECTION. The summary's rule-keyed families are named
+    And the emitted keys follow the selection. The summary's rule-keyed families are named
     after the categories they are about, so a run given other categories emits keys for THOSE
     categories rather than filing other numbers under the shipped names. The prefix is derived
     from the supplied name by one documented rule (`key_slug`); the criteria file's own digest
     and every selected name are emitted as data beside them, so the table says which selection
     produced it and two selections can be told apart before any number is compared.
 
-    A FILE A TEST CAN INCLUDE. Every function sits above the program-file guard near the end
+    A file a test can include. Every function sits above the program-file guard near the end
     of this file, and the driver sits below it; the command line is parsed under the same
     guard, before any package loads, so --help and a mistyped option still cost nothing.
-    Including the file therefore defines the functions and runs nothing, which is how
+    Including the file defines the functions and runs nothing, which is how
     test/test_habitat_enrichment.jl pins the wiring of the licence guards — the single read
     of the table, the records, the file state, the assembly of the evidence, the leftovers,
     the frame comparison, the undecidable set and the anchor-status ladder — on tiny
-    fixtures. As top-level code that wiring is reachable by no test, and a one-line change to it
-    licenses the strong code on a refused table with every suite still green.
+    fixtures. As top-level code that wiring would be reachable by no test, and a one-line
+    change to it would license the strong code on a refused table with every suite green.
 
     Run:  julia --project=. scripts/habitat_enrichment.jl
           julia --project=. scripts/habitat_enrichment.jl --config legacy \
@@ -284,36 +251,33 @@ const REPO = normpath(joinpath(@__DIR__, ".."))
 
 # ---------------------------------------------------------------------------
 # Command line. Parsed before any package is loaded and before any file is touched, so
-# --help and a mistyped option cost nothing. Both would otherwise cost a run: an ignored
-# unknown option means `--bg-exlusion lntype` analyses the DEFAULT exclusion and writes its
-# numbers under the name of the run that was asked for, and a `--help` read after the work
-# starts runs the whole analysis and overwrites the output tables on the way. The shape of
-# the parser is the producer's (scripts/background_pqq_scan.jl), for the same reason it has
-# one.
+# --help and a mistyped option cost nothing: an ignored unknown option would make
+# `--bg-exlusion lntype` analyse the DEFAULT exclusion under the name of the run that was
+# asked for, and a `--help` read after the work starts would run the whole analysis and
+# overwrite the output tables on the way. The parser's shape is the producer's
+# (scripts/background_pqq_scan.jl).
 # ---------------------------------------------------------------------------
 
 # The background exclusions this script can apply. The first is the registered primary; the
-# rest are descriptive, and the run records which of them was in force. The move-in level is
-# LAST because it is the only one that also changes the FOREGROUND: every mode before it
-# answers "which frame taxa leave the background", which is the question the sensitivity
-# tally below asks of the modes that are not in force, and that tally cannot describe a level
-# which hands taxa to the other arm.
+# rest are descriptive, and the run records which was in force. The move-in level is LAST
+# because it alone also changes the FOREGROUND: every mode before it answers "which frame
+# taxa leave the background", the question the sensitivity tally below asks of the modes not
+# in force, and that tally cannot describe a level which hands taxa to the other arm.
 const EXCLUSION_MODES = ("hmmsearch", "lnca", "lntype", "ipr017512", "none",
                          "hmmsearch_movein")
 const PRIMARY_MODE    = first(EXCLUSION_MODES)
 const MOVEIN_MODE     = last(EXCLUSION_MODES)
 
-# The active-site class that names a lanthanide-type enzyme. Both the scan table and the
-# census hit table spell it, and the move-in pool, the lntype exclusion and the inventory all
-# turn on it, so it is written once: three spellings of one class name is three places for a
-# rename to be applied twice.
+# The active-site class that names a lanthanide-type enzyme. The scan table and the census
+# hit table both spell it, and the move-in pool, the lntype exclusion and the inventory all
+# turn on it, so it is written once: three spellings would be three places to rename.
 const LANTHANIDE_CLASS = "Lanthanide"
 # How the move-in level decides WHICH taxa are lanthanide-type. The first is the rule the
-# record names — the class the CENSUS itself gave a sequence, out of its own
-# pre-deduplication hit table — and it arrives by option because that table is not an input
-# of this repository. The second is the only rule the committed inputs can answer alone, and
-# it is a different measurement: this run's model call on the family members it fetched. A
-# run states which rule it used, and whether that rule is the recorded one.
+# record names, the class the CENSUS itself gave a sequence out of its own pre-deduplication
+# hit table; it arrives by option because that table is not an input of this repository. The
+# second is the only rule the committed inputs can answer alone, and a different
+# measurement: this run's model call on the family members it fetched. A run states which
+# rule it used, and whether that rule is the recorded one.
 const MOVEIN_POOL_RULES      = ("census_lanthanide_hits", "scan_lanthanide_hits")
 const REGISTERED_MOVEIN_POOL = first(MOVEIN_POOL_RULES)
 
@@ -469,8 +433,8 @@ so the result records whether the choice was typed or inherited, and whether the
 names is the registered primary at all, and the driver prints both before it works.
 """
 function options_from(cli::AbstractDict)
-    # FIRST, because it is the one option with no default at all, and a run that is going to
-    # be refused should be refused before anything else about the command line is judged.
+    # FIRST, because it is the one option with no default at all: a run that is going to be
+    # refused should be refused before the rest of the command line is judged.
     categories = option_string(cli, "--categories", "")
     isempty(categories) &&
         error("no --categories file was given, and this step has no default for what is in " *
@@ -486,9 +450,9 @@ function options_from(cli::AbstractDict)
     bg_exclusion in EXCLUSION_MODES ||
         error("--bg-exclusion must be one of " * join(EXCLUSION_MODES, ", ") *
               ", got '$bg_exclusion'")
-    # The pool only exists for the level that moves it. A pool handed to any other mode would
-    # be read by nothing and change nothing, so the run would be a different one from the
-    # command that was typed — the failure this parser exists to stop.
+    # The pool only exists for the level that moves it. Handed to any other mode it would be
+    # read by nothing, so the run would differ from the command that was typed, which is the
+    # failure this parser exists to stop.
     movein_pool = option_string(cli, "--movein-pool", "")
     isempty(movein_pool) || bg_exclusion == MOVEIN_MODE ||
         error("--movein-pool is read only by --bg-exclusion $MOVEIN_MODE, and " *
@@ -523,8 +487,8 @@ function options_from(cli::AbstractDict)
     # redirects --out cannot leave its anchor in the repository by accident.
     anchor_out = option_string(cli, "--anchor-out",
                                (b = splitext(out); b[1] * "_anchor" * (isempty(b[2]) ? ".csv" : b[2])))
-    # The plan's own bounds. No default: a bound this script invented would be this script's
-    # opinion, and a bound it defaulted to would be indistinguishable from one that was checked.
+    # The plan's own bounds. No default: a bound this script defaulted to could not be told
+    # apart from one somebody checked.
     plan_bg_size_below = option_number(cli, "--plan-bg-size-below", Int, nothing;
                                        what = "a whole number of taxa", min_value = 1)
     plan_bg_phylum_pct_max =
@@ -571,7 +535,7 @@ include(joinpath(REPO, "src", "ModuleOutcomeRules.jl"));     using .OutcomeRules
 # keeps its driver — the downloads, HMMER and every write — from running on include, so what
 # this brings in is the record readers, the published/pending/stale file-name convention, the
 # rule an acceptance row's verdict follows, and the exclusion predicate itself, which the
-# any-hit mode calls rather than restating. See NO RECORD PARSER OF ITS OWN in the header.
+# any-hit mode calls. See NO RECORD PARSER OF ITS OWN in the header.
 module ScanRecords end
 Base.include(ScanRecords, joinpath(REPO, "scripts", "background_pqq_scan.jl"))
 
@@ -581,28 +545,27 @@ const MANIFEST = DataInputs.input_path("relation_manifest")
 const UPRELF   = DataInputs.input_path("uniprot_release")
 
 # The background frame's own provenance. The taxon pool is a SEEDED subsample of the fetched
-# reference-proteome taxa, and the seed is the one value that makes the frame reproducible. It
-# is read from the generator's own source, where the constant is located and cited by line -
-# never typed here. The pool and the frame source are the two tables that generator writes,
-# named in the registry like every other input.
+# reference-proteome taxa, and the seed is the one value that makes the frame reproducible.
+# It is read from the generator's own source, where the constant is located and cited by
+# line, never typed here. The pool and the frame source are the two tables that generator
+# writes, named in the registry like every other input.
 const POOL_FILE  = DataInputs.input_path("pool_taxa")
 const FRAME_FILE = DataInputs.input_path("pool_background")
 const POOL_GEN   = joinpath(REPO, "scripts", "prokaryote_background.jl")
 
-# The anchor's specification. It is not a free choice: these are the levels that reproduce
-# the earlier reference run, and an anchor built any other way answers a different question.
+# The anchor's specification, not a free choice: these are the levels that reproduce the
+# earlier reference run, and an anchor built any other way answers a different question.
 const ANCHOR_CONFIG   = "legacy"
 const ANCHOR_CHEM_COL = :chemistry
 # ---------------------------------------------------------------- the category selection
-# THE FOUR SELECTIONS THIS SCRIPT DOES NOT MAKE. Each of these roles is filled by a category
-# name — by one or more for the grid counts, and by a phylum name for the last. Every one of
-# them was chosen with this data set's estimates already in hand, so none of them is a
-# constant here: the criteria file fills them, this script declares only the ROLES, and it
-# refuses a file that does not fill exactly these.
+# THE FOUR SELECTIONS THIS SCRIPT DOES NOT MAKE. Each role is filled by a category name — by
+# one or more for the grid counts, and by a phylum name for the last. All were chosen with
+# this data set's estimates already in hand, so none is a constant here: the criteria file
+# fills them, this script declares only the ROLES, and it refuses a file that does not fill
+# exactly these.
 #
-# `repeatable` is the one role that may name more than one category. `keyed` says whether the
-# role's name reaches the summary as a key prefix, which is what makes the emitted families
-# follow the selection rather than the other way round.
+# role's name reaches the summary as a key prefix, which makes the emitted families follow
+# the selection.
 const SELECTION_ROLES = (
     (role = "depletion_tier", repeatable = false, keyed = true,
      what = "the category whose depletion the recorded robustness-tier rule decides"),
@@ -617,10 +580,10 @@ const SELECTION_ROLES = (
      what = "the phylum whose foreground and background shares are quoted beside the " *
             "standardisation"),
 )
-# The roles whose categories the recorded rules speak for BY NAME, so that they need no
-# standing of their own in the category partition. The governed set is exactly the categories
-# the supplied rules are about — which is the only definition of it a reader can check against
-# the file in front of them, and it is not a set this script may hold an opinion about.
+# The roles whose categories the recorded rules speak for BY NAME, so they need no standing
+# of their own in the category partition. The governed set is exactly the categories the
+# supplied rules are about: the only definition a reader can check against the file in front
+# of them, and not a set this script may hold an opinion about.
 const GOVERNING_ROLES   = ("depletion_tier", "genus_clause", "sharing")
 const SELECTION_COLUMNS = (:kind, :role, :value, :note)
 const SELECTION_KINDS   = ("select", "expect")
@@ -759,14 +722,14 @@ end
 const SELECTION = OPT === nothing ? nothing :
     cli_or_exit(() -> read_category_selection(OPT.categories))
 # The columns scripts/background_pqq_scan.jl appends for the whole-frame family membership.
-# An older scan table has none of them, which is a fact about the input worth emitting.
+# An older scan table has none of them, and the run emits which of them are absent.
 const SCAN_APPENDED_COLS = (:n_ipr017512_entries, :n_ipr017512_ge500, :in_ipr017512_ge500,
                             :ipr017512_outside_prefilter, :hit_ipr017512, :n_hits_ln_or_ca)
 # A disclosure list long enough to act on and short enough to read.
 const MAX_LISTED_TAXA = 25
 # The columns an anchor row is compared with the reference run's row on, and the tolerance.
-# The comparison is of two computations of the same quantity, not of two measurements, so the
-# tolerance is float-summation noise and nothing more.
+# The comparison is of two computations of the same quantity, so the tolerance is
+# float-summation noise.
 const REF_COMPARE_COLS = (:a, :b, :n1, :n2, :log2_rr, :ci_lo, :ci_hi,
                           :log2_rr_std, :ci_lo_std, :ci_hi_std)
 const REF_ROW_TOL = 1e-9
@@ -774,7 +737,7 @@ const REF_ROW_TOL = 1e-9
 sv(x) = ismissing(x) ? "" : String(strip(string(x)))
 hascol(df::AbstractDataFrame, name::Symbol) = name in propertynames(df)
 # A cell of a table that may or may not hold a number. Anything that is not one reads as
-# NaN, which every rule in the module treats as "not computed" rather than as a value.
+# NaN, which every rule in the module treats as "not computed".
 fnum(x) = x === missing || x === nothing ? NaN :
           x isa Real ? float(x) : something(tryparse(Float64, sv(x)), NaN)
 
@@ -803,11 +766,10 @@ listed(xs) = isempty(xs) ? "" :
 read_kv(path) = ScanRecords.read_keyvals(path)
 
 # ---------------------------------------------------------------- the background pool
-# The background pool: a SEEDED subsample of the fetched reference-proteome taxa, so the seed is
-# part of this step's provenance and not an implementation detail of a sibling script. It is
-# read from the generator's own constant, located in its source and cited by line. Nothing is
-# typed here, and a value that cannot be read is recorded as absent with the state saying why,
-# because a default would be this script inventing the seed of a subsample it did not take.
+# The seed of the pool subsample is part of this step's provenance, not an implementation
+# detail of a sibling script: it is read from the generator's own constant, located in its
+# source and cited by line, and never typed here. A value that cannot be read is recorded as
+# absent with the state saying why, rather than defaulted.
 """
     pool_constant(src, name) -> Union{Nothing,NamedTuple}
 
@@ -912,10 +874,10 @@ end
 expand(v::AbstractVector, idx) = v[idx]
 
 # The census arm carries a genus from the taxonomic lineage; the reference-proteome pool
-# carries only an organism name, so the genus unit would otherwise exist on one side only —
-# which is the very asymmetry the symmetric collapse was introduced to remove. The name is
-# therefore parsed when no lineage genus is present, and the run reports how many labels
-# came from each route so the weaker provenance of the background genera stays visible.
+# carries only an organism name, so the genus unit would otherwise exist on one side only,
+# the asymmetry the symmetric collapse was introduced to remove. The name is therefore
+# parsed when no lineage genus is present, and the run reports how many labels came from
+# each route so the weaker provenance of the background genera stays visible.
 const NOT_A_GENUS = ("uncultured", "unclassified", "unidentified", "candidate",
                      "endosymbiont", "symbiont")
 """
@@ -998,32 +960,29 @@ function analyse(calls::DataFrame, config::AbstractString, chem_col::Symbol,
     in_cen  = coalesce.(df.in_census, false)
     in_pool = coalesce.(df.in_pool, false)
 
-    # THE FRAME AS THE SCAN SAW IT, before any taxon is reassigned. Everything the scan was
-    # asked about is here, which is what the scan's own coverage is compared against; the
-    # move-in level reassigns part of this set rather than changing which taxa were scanned.
+    # THE FRAME AS THE SCAN SAW IT, before any taxon is reassigned: everything the scan was
+    # asked about, which the scan's own coverage is compared against. The move-in level
+    # reassigns part of this set without changing which taxa were scanned.
     frame_scanned = in_pool .& .!in_cen
 
     # THE MOVE-IN LEVEL, AND THE COLUMN THAT MAKES IT LOOK INERT. Frame taxa carry their
-    # domain in `domain`; `kingdom` is populated from the census lineage and is EMPTY for
-    # every taxon the census never registered. A prokaryote test read off `kingdom` alone
-    # therefore drops every moved taxon at the mask, leaves n1 where it was, and reports
-    # "this level moves nothing" — a variant that cannot break a result and so tests nothing.
-    # The moved taxa are tested on either column, and the guard below refuses a run in which
-    # the pool named frame taxa and none of them survived that test.
+    # domain in `domain`; `kingdom` comes from the census lineage and is EMPTY for every
+    # taxon the census never registered. A prokaryote test read off `kingdom` alone drops
+    # every moved taxon at the mask, leaves n1 where it was, and reports "this level moves
+    # nothing". The moved taxa are tested on either column, and the guard below refuses a run
+    # in which the pool named frame taxa and none of them survived that test.
     dom        = hascol(df, :domain) ? sv.(df.domain) : fill("", nrow(df))
     named_in_pool = frame_scanned .& in.(df.taxid, Ref(moved_in))
 
     # PHYLUM IS THE STRATUM, so a taxon without one cannot enter the standardised contrast:
-    # it belongs to no stratum, and bucketing it under "Other phyla" would state a lineage
-    # where there is none. NCBI's catch-all placeholders - `bacterium` (1869227), `uncultured
-    # bacterium` (77133), `uncultured archaeon` (115547) - are such taxa: they carry no phylum,
-    # and their habitat relations are an aggregate over every unrelated deposit filed under
-    # that label, not one organism's ecology. A taxonomy that cannot resolve those taxids
-    # drops them by accident and one that resolves every taxid admits them, so the exclusion
-    # is a rule here rather than a side effect of how complete the taxonomy is. It is applied
-    # at the assembly point rather than in a caller, so every arm this builder returns is
-    # subject to it, and the guard below stops the run, with a count per arm, if a phylum-less
-    # taxon gets past.
+    # bucketing it under "Other phyla" would state a lineage where there is none. NCBI's
+    # catch-all placeholders - `bacterium` (1869227), `uncultured bacterium` (77133),
+    # `uncultured archaeon` (115547) - are such taxa: no phylum, and habitat relations that
+    # aggregate every unrelated deposit filed under the label. A taxonomy that cannot resolve
+    # those taxids drops them by accident and one that resolves every taxid admits them, so
+    # the exclusion is a rule here, not a side effect of how complete the taxonomy is. It is
+    # applied at the assembly point, so every arm this builder returns is subject to it, and
+    # the guard below stops the run, with a count per arm, if a phylum-less taxon gets past.
     placed     = sv.(df.phylum) .!= ""
 
     moved      = named_in_pool .& (prok .| in.(dom, Ref(PROKARYOTE_NAMES))) .& placed
@@ -1037,18 +996,17 @@ function analyse(calls::DataFrame, config::AbstractString, chem_col::Symbol,
     # A moved taxon leaves the frame in the same expression that gives it to the foreground,
     # so the background it was drawn from cannot still hold it whatever the exclusion mode
     # does. The comparator arms are deliberately NOT rebuilt: their membership rules are
-    # rules about a taxon's CENSUS sequences (which lanthanide or calcium class it carries),
-    # and a taxon with no census sequence has no standing in them. They still lose the moved
-    # taxa from their shared background, which is the level's doing and is measured as such.
+    # about a taxon's CENSUS sequences (which lanthanide or calcium class it carries), and a
+    # taxon with no census sequence has no standing in them. They do lose the moved taxa from
+    # their shared background, which is the level's doing and is measured as such.
     frame      = frame_scanned .& .!moved
     bg_keep    = frame .& .!in.(df.taxid, Ref(excluded)) .& placed
 
     # THE TWO INVARIANTS OF A MOVED TAXON, HELD HERE RATHER THAN ONLY IN A TEST, because this
-    # is where the arms are assembled and a later copy of the logic would be the one that
-    # drifts. A taxon on both sides would put an arm against a background containing itself,
-    # and a taxon entering the foreground twice would inflate n1 while every arm total still
-    # looked ordinary. Both are stated as errors, not as assertions that a future build flag
-    # could strip out of the one place they are checked.
+    # is where the arms are assembled. A taxon on both sides would put an arm against a
+    # background containing itself; a taxon entering the foreground twice would inflate n1
+    # while every arm total still looked ordinary. Both are errors, not assertions a build
+    # flag could strip out of the one place they are checked.
     !any(ln_cand .& frame) ||
         error("the move-in level left $(count(ln_cand .& frame)) taxa in the foreground AND " *
               "in the background frame; a contrast against a background that still holds " *
@@ -1091,13 +1049,11 @@ function analyse(calls::DataFrame, config::AbstractString, chem_col::Symbol,
     # per-sequence unit: repeat each taxon once per lanthanide-type census sequence it carries
     #
     # A MOVED TAXON HAS NONE, AND IS NOT GIVEN ONE. Not being in the census is what put it in
-    # the background to begin with, so it carries no census sequence and contributes NO
-    # per-sequence unit: under the move-in level the sequences row is the census foreground
-    # against the post-move background, and the run emits the count of moved taxa this leaves
-    # out rather than leaving it to be inferred from an n1 that grew and an n_sequences that
-    # did not. Giving each moved taxon a flat one, or the hit count its pool names, would put
-    # a family hit found in a frame proteome and a census sequence into one denominator, and
-    # a denominator made of two different measurements measures neither.
+    # the background, so it carries no census sequence and contributes NO per-sequence unit:
+    # under the move-in level the sequences row is the census foreground against the
+    # post-move background, and the run emits the count of moved taxa this leaves out. A flat
+    # one each, or the hit count its pool names, would put a family hit found in a frame
+    # proteome and a census sequence into one denominator, which measures neither.
     seq_idx = reduce(vcat, [fill(i, coalesce(fg.n_ln_seqs[i], 0)) for i in 1:nrow(fg)];
                      init = Int[])
     sq_phy  = fg_phy[seq_idx]
@@ -1127,17 +1083,17 @@ function analyse(calls::DataFrame, config::AbstractString, chem_col::Symbol,
     add!(ac_phy, acc, bg_phy, bgc;        contrast = ALL_VS_BG, unit = "taxa (chemistry)")
     add!(nl_phy, nlc, bg_phy, bgc;        contrast = NON_VS_BG, unit = "taxa (chemistry)")
     # The disclosed arm goes LAST, so adding it cannot move a row of the registered panels.
-    # An empty arm is left out rather than emitted as a panel of zeros: a contrast with no
-    # units on one side is not a measurement of anything.
+    # An empty arm is left out instead of emitted as a panel of zeros: a contrast with no
+    # units on one side measures nothing.
     if nrow(ca) > 0
         add!(ca_phy, caw, bg_phy, bgw;    contrast = CA_VS_BG,  unit = "taxa")
         add!(ca_phy, cac, bg_phy, bgc;    contrast = CA_VS_BG,  unit = "taxa (chemistry)")
     end
 
-    # n1 IS THE CENSUS ARM PLUS THE MOVED ANNOTATED TAXA, AND NOTHING ELSE. Stated as a check
-    # rather than as a comment: a level whose arms are right but whose n1 does not grow by the
-    # taxa it moved has silently dropped them somewhere between the mask and the arm, and the
-    # rows it writes would be the unmoved specification wearing this level's name.
+    # n1 IS THE CENSUS ARM PLUS THE MOVED ANNOTATED TAXA, AND NOTHING ELSE, checked rather
+    # than commented: a level whose n1 does not grow by the taxa it moved has dropped them
+    # between the mask and the arm, and the rows it writes would be the unmoved specification
+    # wearing this level's name.
     nrow(fg) == count(ln_census .& usable) + count(moved .& usable) ||
         error("n1 is $(nrow(fg)), which is not the $(count(ln_census .& usable)) annotated " *
               "census carriers plus the $(count(moved .& usable)) annotated taxa this level " *
@@ -1167,9 +1123,9 @@ primary_rows(rows) = [r for r in rows
                       if r.contrast == LN_VS_BG && r.unit in PRIMARY_UNITS]
 registered_rows(rows) = [r for r in rows if r.contrast in REGISTERED_CONTRASTS]
 
-# The two readings a row carries, as a bound pair. A row that does not exist has no bounds
-# at all, and NaN is how the module is told that: it answers :undecidable for a pair that is
-# not an interval over the reals, which is the same answer an uncomputed estimate deserves.
+# The two readings a row carries, as a bound pair. A row that does not exist has no bounds,
+# and NaN is how the module is told that: it answers :undecidable for a pair that is not an
+# interval over the reals.
 row_bounds(r, reading::Symbol) =
     r === nothing ? (NaN, NaN) :
     reading === :std ? (r.ci_lo_std, r.ci_hi_std) :
@@ -1236,9 +1192,9 @@ drift apart, and the one that analysis ran would not be the one the scan's suite
 function exclusion_taxids(scan, mode::AbstractString)
     mode == "none" && return Set{Int}()
     scan === nothing && return nothing
-    # The move-in level REMOVES exactly what the registered primary removes — it is that
-    # exclusion plus a reassignment, so it shares the predicate rather than restating it, and
-    # the taxa it moves leave the background through the arm builder, not through this set.
+    # The move-in level REMOVES exactly what the registered primary removes: it is that
+    # exclusion plus a reassignment, so it shares the predicate, and the taxa it moves leave
+    # the background through the arm builder rather than through this set.
     (mode == "hmmsearch" || mode == MOVEIN_MODE) &&
         return Set(Int.(ScanRecords.exclude_carriers(DataFrame(taxid = scan.taxid),
                                                      scan).removed.taxid))
@@ -1256,10 +1212,9 @@ function exclusion_taxids(scan, mode::AbstractString)
 end
 
 # What each mode actually does, in the same words the emitted key carries. No mode claims a
-# relationship to another mode's set: whether one mode's set contains another's is a
-# property of a scan table, measured per run in the sensitivity keys, not something a note
-# can assert. An unknown mode is an error and not a fallback to the most permissive note,
-# which would describe a run that did not happen.
+# relationship to another mode's set: whether one contains another is a property of a scan
+# table, measured per run in the sensitivity keys, not something a note can assert. An
+# unknown mode is an error, never a fallback to the most permissive note.
 function exclusion_note(mode::AbstractString)
     mode == "hmmsearch" && return "hmmsearch: every frame taxon with at least one family " *
         "hit at the calibrated threshold"
@@ -1276,11 +1231,11 @@ function exclusion_note(mode::AbstractString)
 end
 
 # The modes the run tallies for comparison while another one is in force. Every one of them
-# answers "how large would the background be under this rule", which is a count over the
-# frame of the run that is executing. The move-in level is not one of them: it moves taxa to
-# the other arm, so its n2 is not a property of this run's frame and its n1 is not this run's
-# n1 either. Reporting it in that tally would put a number under a key whose every sibling
-# means something else; it is a run of its own, and the keys it emits say so.
+# answers "how large would the background be under this rule", a count over the frame of the
+# run that is executing. The move-in level is not one of them: it moves taxa to the other
+# arm, so neither its n2 nor its n1 is a property of this run's frame, and a number under one
+# of those keys would not mean what its siblings mean. It is a run of its own, and the keys
+# it emits say so.
 const SENSITIVITY_MODES = Tuple(m for m in EXCLUSION_MODES if m != MOVEIN_MODE)
 
 """
@@ -1299,9 +1254,8 @@ function scan_inventory!(scan::AbstractDataFrame)
     rec!("scan_taxa_with_any_hit", count(nh_scan .> 0))
     rec!("scan_taxa_with_lanthanide_hit", count(occursin.("Lanthanide", hc_scan)))
     # in_ipr017512 is family membership of the TAXON, from a whole-frame query;
-    # hit_ipr017512 is the narrower reading, an annotation on one of the taxon's hits. Both
-    # are emitted under their own names, because one key that can carry either reading is
-    # worse than two keys that each carry one.
+    # hit_ipr017512 is the narrower reading, an annotation on one of the taxon's hits. Each
+    # is emitted under its own name, so no one key can carry either reading.
     rec!("scan_taxa_in_ipr017512", optcount(:in_ipr017512, x -> coalesce(x, false)))
     rec!("scan_taxa_in_ipr017512_ge500", optcount(:in_ipr017512_ge500, x -> coalesce(x, false)))
     rec!("scan_taxa_with_hit_annotated_ipr017512",
@@ -1309,9 +1263,9 @@ function scan_inventory!(scan::AbstractDataFrame)
     rec!("scan_taxa_with_ln_or_ca_hit", optcount(:n_hits_ln_or_ca, x -> coalesce(x, 0) > 0))
     rec!("scan_taxa_ipr017512_outside_prefilter",
          optcount(:ipr017512_outside_prefilter, x -> coalesce(x, false)))
-    # A zero-hit row is not the same statement as "searched and nothing found": a taxon with
-    # no candidate entry was never searched at all, and that is most of what a leftover
-    # count read off the hit table alone cannot see.
+    # A zero-hit row is not "searched and nothing found": a taxon with no candidate entry was
+    # never searched at all, which is most of what a leftover count read off the hit table
+    # alone cannot see.
     rec!("scan_taxa_never_searched", optcount(:n_candidates, x -> coalesce(x, 0) == 0))
     rec!("scan_columns_missing", joined(absent))
     return nothing
@@ -1419,7 +1373,7 @@ end
 
 # What each pool rule means, in the words the emitted key carries. As with the exclusion
 # notes, no rule describes its relationship to the other: whether the two pools overlap is a
-# property of a pair of tables, measured per run, not something a note may assert.
+# property of a pair of tables, measured per run.
 function movein_pool_note(rule::AbstractString)
     rule == MOVEIN_POOL_RULES[1] && return "$(MOVEIN_POOL_RULES[1]): frame taxa carrying at " *
         "least one sequence the census itself classified lanthanide-type, read from the " *
@@ -1553,18 +1507,18 @@ function emit_row!(prefix, r)
     rec!("$(prefix)_q_bh", r.q_bh)
     rec!("$(prefix)_interval_excludes_zero_std", zero_std(r))
     rec!("$(prefix)_interval_excludes_zero_crude", zero_crude(r))
-    # Whether the row was tested at all, and what the standardised interval rests on. A row
-    # whose arm totals are healthy can still be carried by one empty stratum cell, and a
-    # rule that consults the interval should not have to take that on trust.
+    # Whether the row was tested at all, and what the standardised interval rests on: a row
+    # whose arm totals are healthy can still be carried by one empty stratum cell, and a rule
+    # that consults the interval should not take that on trust.
     rec!("$(prefix)_tested", r.tested)
     rec!("$(prefix)_n_zero_stratum_cells", r.n_zero_stratum_cells)
     rec!("$(prefix)_min_bg_stratum_cell", r.min_bg_stratum_cell)
 end
 
-# The host-plant decisions: two rules keyed on one interval each, and the mapping from
-# interval to code is the module's: the genus clause is on when the genus interval includes
-# zero, the category is dropped when the taxa interval includes zero, and an interval that
-# was never computed is undecidable — a third value this script may not rename.
+# The host-plant decisions: two rules keyed on one interval each, with the interval-to-code
+# mapping the module's. The genus clause is on when the genus interval includes zero, the
+# category is dropped when the taxa interval includes zero, and an interval that was never
+# computed is undecidable, a third value this script may not rename.
 genus_clause_code(r, reading) =
     interval_code(row_bounds(r, reading)...; excludes = :off, includes = :on)
 category_code(r, reading) =
@@ -1740,17 +1694,17 @@ end
 
 # The acceptance rows the scan gates on in EVERY run, by the check text its own rows carry.
 # That wording belongs to scripts/background_pqq_scan.jl: the family row and the positive
-# controls are spelled here from that script's own constants, and the other four are spelled
-# out and must match its rows word for word — test/test_habitat_enrichment.jl holds each
-# against the producer's source, so a reworded row fails a test rather than every licence.
-# They are named here, from the producer, and never read off the acceptance table itself: a
-# list taken from the table that was read cannot notice a row that was cut from it.
+# controls are spelled here from that script's own constants, the other four must match its
+# rows word for word, and test/test_habitat_enrichment.jl holds each against the producer's
+# source, so a reworded row fails a test rather than every licence. They are never read off
+# the acceptance table itself: a list taken from the table that was read cannot notice a row
+# that was cut from it.
 #
 # Two of the producer's rows are gated only when there is something to gate — an earlier
 # sample for the recall sample to extend, a download whose release was recorded — and are
-# disclosures otherwise. They are not required, because a first scan run would then license
-# nothing on a table nobody faults; they are still refused on a MISS, and their verdicts are
-# still re-derived from their own numbers.
+# disclosures otherwise, since a first scan run would license nothing on a table nobody
+# faults. They are still refused on a MISS, and their verdicts are still re-derived from
+# their own numbers.
 const FAMILY_CHECK  = "$(ScanRecords.IPR_FAMILY) frame taxa flagged " *
                       "(>= $(ScanRecords.MIN_FAMILY_LEN) aa, whole-frame membership)"
 const RECALL_CHECK  = "prefilter recall"
@@ -1919,11 +1873,11 @@ function scan_evidence_and_licence(arms; table_read, table_state, records,
                                    required_checks = REQUIRED_GATED_CHECKS,
                                    pre_registered_bar = ScanRecords.MIN_RECALL)
     table = table_read.table
-    # The frame the scan was ASKED ABOUT, which is the frame before the move-in level hands
-    # any of it to the foreground: those taxa were scanned, and counting them as "scan taxa
-    # outside the analysed frame" would report that level's own definition as a gap in the
-    # scan's coverage and withhold the licence on every run of it. The leftovers stay over
-    # the analysed background arm, which is what they are a statement about.
+    # The frame the scan was ASKED ABOUT, before the move-in level hands any of it to the
+    # foreground: those taxa were scanned, and counting them as "scan taxa outside the
+    # analysed frame" would report that level's own definition as a gap in the scan's
+    # coverage and withhold the licence on every run of it. The leftovers are counted over
+    # the analysed background arm, which is what they describe.
     frame = frame_comparison(arms.df.taxid[arms.frame_scanned], table)
     left = leftover_counts(table, arms.bgm.taxid)
     counts = scan_table_counts(table)
@@ -1949,10 +1903,10 @@ function scan_evidence_and_licence(arms; table_read, table_state, records,
         recall_pass_field = rec.pass,
         recall_threshold_bits = rec.threshold_bits,
         recall_uniprot_release = rec.uniprot_release,
-        # The bar itself is evidence. Every other input is checked against a second copy, so a
-        # bar that only ever comes out of the records would be the one number a two-cell edit
-        # could move — and it is the number the stronger background statement turns on. The
-        # scan's own constant is the second copy.
+        # The bar itself is evidence. Every other input is checked against a second copy, so
+        # a bar that only ever came out of the records would be the one number a two-cell
+        # edit could move, and it is the number the stronger background statement turns on.
+        # The scan's own constant is the second copy.
         bar_in_other_records =
             ["acceptance record, \"$RECALL_CHECK\" row" => acceptance_cell(acc, RECALL_CHECK, :bar),
              "the scan's recorded recall bar" => pre_registered_bar],
@@ -1964,10 +1918,10 @@ function scan_evidence_and_licence(arms; table_read, table_state, records,
                  ["acceptance record: " * records.acceptance_error]
     ok = evidence.ok && isempty(table_state.reasons) && isempty(row_reasons) && isempty(read_error)
     reasons = vcat(table_state.reasons, evidence.reasons, row_reasons, read_error)
-    # Two different failures land in the same `ok`, and saying so matters: a record that does not
-    # describe this table is a broken provenance chain, while a recall whose interval is too wide
-    # is an honest measurement that simply does not reach the bar. Only the first means the
-    # records cannot be trusted, so it is reported separately from the licence.
+    # Two different failures land in the same `ok`: a record that does not describe this
+    # table is a broken provenance chain, while a recall whose interval is too wide is an
+    # honest measurement that does not reach the bar. Only the first means the records cannot
+    # be trusted, so it is reported separately from the licence.
     records_ok = isempty(filter(r -> !startswith(r, "recall_n_recovered:") &&
                                      !startswith(r, "recall_n_full_flagged:"), reasons))
     removal = background_removal_complete(; left_hmm_hit = left.hmm_hit,
@@ -2119,8 +2073,8 @@ end
 
 # A hit total is a sum of weights, so the column is Float64 as soon as ANY unit is
 # fractional (the genus collapse always is). Writing an integral total back as an integer
-# keeps whole-unit rows readable and keeps the legacy anchor textually identical to the
-# run it has to reproduce; a reader still parses the column as floating point.
+# keeps whole-unit rows readable and the legacy anchor textually identical to the run it has
+# to reproduce; a reader still parses the column as floating point.
 compact(x::Real) = isinteger(x) ? Int(round(x)) : float(x)
 
 fmt(k) = (v = look(k); v === missing ? "n/a" : v isa AbstractFloat ? @sprintf("%.3g", v) :
@@ -2176,12 +2130,12 @@ const GOVERNED  = SEL.governed
 # ---------------------------------------------------------------- the inputs, by name
 # Before the banner, because a refusal about a file somebody has to go and fetch should be
 # the first and only thing this run says. Only the inputs still at their REGISTRY DEFAULT
-# are named here: a path the reader typed is theirs, and the plain messages further down
-# report it as given rather than pretending the layout is at fault.
+# are named here; a path the reader typed is theirs, and the plain messages further down
+# report it as given.
 #
-# The scan RECORDS are deliberately not in this list. Their absence is not a refusal in this
-# step by design — it withholds the background licence and says so in the output — and
-# turning that into a refusal here would delete the distinction the step is built around.
+# The scan RECORDS are deliberately not in this list. Their absence withholds the background
+# licence and says so in the output, by design, and turning it into a refusal here would
+# delete the distinction the step is built around.
 haskey(CLI, "--calls") ||
     DataInputs.require_or_exit("habitat_calls")
 (haskey(CLI, "--scan") || BG_EXCL == "none") ||
@@ -2225,8 +2179,7 @@ records = read_scan_records(THRESHF, RECALLF, ACCEPTF, UPRELF)
 
 if scan === nothing && BG_EXCL != "none"
     # A displaced copy is named in the message and NOT read: the producer moved it aside
-    # because a later run refused the frame, and falling back to it here would hand this
-    # run exactly the table no run vouches for.
+    # because a later run refused the frame, so it is the table no run vouches for.
     stale_copy = SCAN * ScanRecords.STALE_EXT
     hint = isfile(stale_copy) ?
         "A displaced copy is on disk: " * basename(stale_copy) * ". The last scan run " *
@@ -2257,10 +2210,10 @@ rec!("bg_exclusion_rule", exclusion_note(BG_EXCL))
 rec!("chemistry_column", String(CHEM_COL))
 
 # ---------------------------------------------------------------- the move-in pool
-# Only the level that moves taxa reads a pool, and only that level emits these keys: a run of
-# any other mode moves nobody, so a movein_ key in its table would describe something the run
-# did not do. The pool is read BEFORE the arms are built, so a pool that cannot be answered
-# stops the run rather than turning it into the mode it falls back on.
+# Only the level that moves taxa reads a pool, and only that level emits these keys: a
+# movein_ key in any other mode's table would describe something the run did not do. The
+# pool is read BEFORE the arms are built, so a pool that cannot be answered stops the run
+# instead of turning it into the mode it falls back on.
 moved_in = Set{Int}()
 if BG_EXCL == MOVEIN_MODE
     pool = movein_pool(; scan = scan, path = MOVEIN_POOL_PATH)
@@ -2283,10 +2236,10 @@ if BG_EXCL == MOVEIN_MODE
     rec!("movein_pool_columns", joined(pool.columns))
     rec!("movein_pool_taxa", length(moved_in))
     # The OTHER rule's size and its overlap with the pool that ran, whenever this run can
-    # compute them. Two rules that name a lanthanide-type carrier differently will disagree
-    # about which taxa those are, and how far apart they sit is the only comparison a single
-    # run can make; under the scan rule the two are the same set, which is what the overlap
-    # then says. An unanswerable count is missing, never zero.
+    # compute them. Two rules that name a lanthanide-type carrier differently disagree about
+    # which taxa those are, and how far apart they sit is the only comparison a single run
+    # can make; under the scan rule the two are the same set, which is what the overlap then
+    # says. An unanswerable count is missing, never zero.
     let alt = exclusion_taxids(scan, "lntype")
         rec!("movein_pool_taxa_under_the_scan_rule", alt === nothing ? missing : length(alt))
         rec!("movein_pool_taxa_in_both_rules",
@@ -2303,7 +2256,7 @@ end
 # The census table is opened once, here, because the arms need it: the disclosed calcium
 # comparator is defined by the classes of a taxon's census sequences. The two disclosure
 # keys it also answers — how many eukaryotic candidates were left out — are emitted further
-# down, with the other provenance, so this read does not move them.
+# down with the other provenance, so this read does not move them.
 census = read_census_classes(CENSUS)
 census_classes = census.classes
 ca_class_taxids = census.ca_class_taxids
@@ -2342,9 +2295,9 @@ rec!("fg_genus_labels_from_organism_name",
 rec!("bg_genus_labels_from_lineage", count(sv.(bgm.genus) .!= ""))
 rec!("bg_genus_labels_from_organism_name",
      count((sv.(bgm.genus) .== "") .& (A.bg_gen .!= "")))
-# The two routes are not the same route, so the agreement between them where BOTH exist is
-# reported: it is the only offline measure of how much the background genus labels can be
-# trusted, and the genus unit's caveat has to be quantified rather than asserted.
+# The two routes are not the same route, so their agreement where BOTH exist is reported: it
+# is the only offline measure of how far the background genus labels can be trusted, and the
+# genus unit's caveat has to be quantified.
 let have = sv.(fg.genus) .!= "", alt = genus_of.(missing, fg.organism)
     both = have .& (alt .!= "")
     rec!("genus_route_agreement_pct",
@@ -2356,8 +2309,8 @@ rec!("n_bacteria_fg", count(sv.(fg.kingdom) .== "Bacteria"))
 
 # ---------------------------------------------------------------- what the move moved
 # The level's own arithmetic, so n1 and n2 can be taken apart from this table alone: the arm
-# it started from, what it added, and what the addition cost the background. Every one of
-# these is counted over the arms that were actually built.
+# it started from, what it added, and what the addition cost the background. Each is counted
+# over the arms that were actually built.
 if BG_EXCL == MOVEIN_MODE
     rec!("movein_pool_taxa_in_frame", count(A.named_in_pool))
     rec!("movein_pool_taxa_outside_frame", length(moved_in) - count(A.named_in_pool))
@@ -2376,8 +2329,8 @@ if BG_EXCL == MOVEIN_MODE
     # The census-derived columns, and what this level does with taxa that have none of them.
     # The per-sequence unit counts census sequences and the moved taxa carry none, so they
     # enter the taxa and genus units and not the sequence unit; their domain is read off
-    # `domain`, because `kingdom` is a census lineage column and is empty for them, which is
-    # why n_archaea_fg and n_bacteria_fg above do not add up to n1 in a run of this level.
+    # `domain`, since `kingdom` is a census lineage column and empty for them, which is why
+    # n_archaea_fg and n_bacteria_fg above do not add up to n1 in a run of this level.
     rec!("movein_moved_census_sequences", A.n_moved_census_sequences)
     rec!("movein_sequence_units_from_moved_taxa",
          sum(coalesce.(df.n_ln_seqs[A.moved .& usable], 0); init = 0))
@@ -2403,18 +2356,18 @@ rec!("pct_$(K_PHYLUM)_bg_before_scan",
      pseudo(sv.(df.phylum[A.frame .& usable]), PHYLUM))
 rec!("pct_$(K_PHYLUM)_allcarriers", pseudo(ac_phy, PHYLUM))
 rec!("pct_$(K_PHYLUM)_nonln", pseudo(nl_phy, PHYLUM))
-# The stratum count is a property of the UNIT, not of the category, so any drawn taxa-unit row
-# carries it; the sharing category's row is the one this run is guaranteed to have asked for,
-# which is why it is read there rather than at a category name of its own.
+# The stratum count is a property of the UNIT, not of the category, so any drawn taxa-unit
+# row carries it; the sharing category's row is the one this run is guaranteed to have asked
+# for, which is why it is read there and not at a category name of its own.
 rec!("phylum_strata_used_fg_vs_bg",
      something(pick(rows, LN_VS_BG, "taxa", SHARE_CAT), (n_strata = missing,)).n_strata)
 
 # How much of the standardised estimate rides on how little background. Removing carriers
-# takes most of one phylum out of the background while leaving the foreground untouched,
-# so the stratum carrying the largest foreground weight can end up matched against a small
-# background cell. The estimator's variance already pays for that, but the size of the bet
-# should be visible rather than buried in an interval width. The collapse rule is the
-# estimator's own (its two thresholds are read from the module, not restated here).
+# takes most of one phylum out of the background while leaving the foreground untouched, so
+# the stratum carrying the largest foreground weight can end up matched against a small
+# background cell. The estimator's variance already pays for that; the size of the bet is
+# reported beside it. The collapse rule is the estimator's own (its two thresholds are read
+# from the module, not restated here).
 let cf_ = tally(fg_phy), cb_ = tally(bg_phy)
     keep(p) = get(cf_, p, 0) >= HabitatStats.MIN_FG_K && get(cb_, p, 0) >= HabitatStats.MIN_BG_K
     lab(p) = keep(p) ? p : "Other phyla"
@@ -2502,9 +2455,9 @@ rec!("run_at", Dates.format(now(), dateformat"yyyy-mm-ddTHH:MM:SS"))
 
 # ---------------------------------------------------------------- sensitivity on the arm
 # Every mode that is NOT in force is reported here and only here, so the choice of exclusion
-# can be audited without a non-primary number ever reaching a headline key. The narrow modes
+# can be audited without a non-primary number reaching a headline key. The narrow modes
 # answer "which background taxa carry a lanthanide-type enzyme", or one whose active site
-# reads either metal, which are different questions from "which background taxa carry this
+# reads either metal; both are different questions from "which background taxa carry this
 # enzyme family at all".
 let unavailable = String[]
     for mode in SENSITIVITY_MODES
@@ -2555,9 +2508,9 @@ rec!("categories_governing_roles", joined(GOVERNING_ROLES))
 
 # ---------------------------------------------------------------- rule-keyed quantities
 # The recorded outcome rules turn these into wording elsewhere. They are emitted so each
-# rule is decidable from this table alone, as NEUTRAL CODES rather than phrases: a code is
-# diffable across runs and carries no prose into this repository. Nothing below adjusts a
-# threshold to suit the number that came out, and every code is accompanied by its inputs.
+# rule is decidable from this table alone, as NEUTRAL CODES: a code is diffable across runs
+# and carries no prose into this repository. Nothing below adjusts a threshold to suit the
+# number that came out, and every code is accompanied by its inputs.
 rec!("rules_interval_reading",
      "standardised bounds decide every code below, as the recorded rules specify for the " *
      "intervals they name; each crude-reading counterpart is emitted beside its code as a " *
@@ -2571,10 +2524,10 @@ emit_row!("$(K_TIER)_primary", rth)
 emit_row!("$(K_TIER)_allcarriers", pick(rows, ALL_VS_BG, "taxa (chemistry)", TIER_CAT))
 emit_row!("$(K_TIER)_nonln", pick(rows, NON_VS_BG, "taxa (chemistry)", TIER_CAT))
 # This script computes no sensitivity grid, so it has no variants to offer. Handing the rule
-# what it has — nothing — is what makes it withhold the two strong tiers instead of reading
-# them off the primary row, and the number of variants goes into the table so the withholding
-# is visible rather than looking like a missing result. The reason is keyed on the tier the
-# rule returned, so it cannot describe a tier the rule did not decide.
+# nothing is what makes it withhold the two strong tiers instead of reading them off the
+# primary row, and the number of variants goes into the table so the withholding is visible
+# rather than looking like a missing result. The reason is keyed on the tier the rule
+# returned, so it cannot describe a tier the rule did not decide.
 let variants = nothing,
     (tier, breakers) = rth === nothing ? (:undecidable, String[]) :
                        depletion_tier(rth.ci_lo_std, rth.ci_hi_std, variants),
@@ -2655,10 +2608,10 @@ rec!("sharing_ratio_allcarriers_ci",
      "not computed — the two arms overlap, so resampling them independently would " *
      "understate their correlation and return an interval that is too narrow")
 
-# The disclosed calcium-class comparator: the same ratio, the same resampling routine and
-# seed, the same grading function, on an arm whose membership is the PRESENCE of a
-# calcium-class census sequence rather than the absence of a lanthanide-class one. It is
-# emitted beside the registered comparator's keys and never instead of them.
+# The disclosed calcium-class comparator: the same ratio, resampling routine, seed and
+# grading function, on an arm whose membership is the PRESENCE of a calcium-class census
+# sequence rather than the absence of a lanthanide-class one. It is emitted beside the
+# registered comparator's keys, never instead of them.
 let r_ca = ratio_of(rte_ca, rte_ln; standardised_scale = true),
     (calo, cahi, cank) = ratio_interval(ca_phy, A.caw, fg_phy, A.fgw, bg_phy, A.bgw,
                                         SHARE_CAT; nboot = NBOOT, seed = SEED),
@@ -2687,10 +2640,10 @@ let r_ca = ratio_of(rte_ca, rte_ln; standardised_scale = true),
 end
 
 # What the comparator arms are made of. The registered arm's membership rule is the ABSENCE
-# of a lanthanide-type census sequence, which is not the same thing as the presence of a
-# calcium-type one, and a code above depends on the arm being what its name says. Redefining
-# that arm would need a recorded decision, so the composition is disclosed instead of
-# changed, and the calcium-class arm is reported separately above.
+# of a lanthanide-type census sequence, which is not the presence of a calcium-type one, and
+# a code above depends on the arm being what its name says. Redefining that arm would need a
+# recorded decision, so the composition is disclosed instead, and the calcium-class arm is
+# reported separately above.
 let ids = [taxid_of(t) for t in nl.taxid]
     classes = [i === nothing ? Set{String}() : get(census_classes, i, Set{String}())
                for i in ids]
@@ -2726,22 +2679,19 @@ let fc = L.frame, left = L.leftovers, ev = L.evidence,
     rec!("background_carriers_left_hmm_hit",
          left.hmm_hit === nothing ? missing : left.hmm_hit)
     # Under the any-hit mode the exclusion predicate and this count read the same column, so
-    # the count is an identity and not a check. Saying so in the table is the difference
-    # between a guard that cannot fail and a guard that is known not to be one. The move-in
-    # level removes by the same predicate, so the identity holds there too — and saying so
-    # matters more in a level whose arms moved, where a zero could be read as evidence that
-    # the move cleaned the background.
+    # the count is an identity and not a check, and the table says so. The move-in level
+    # removes by the same predicate, so the identity holds there too, where a zero could
+    # otherwise be read as evidence that the move cleaned the background.
     rec!("background_carriers_left_hmm_hit_definitional",
          BG_EXCL == PRIMARY_MODE || BG_EXCL == MOVEIN_MODE)
     rec!("background_carriers_left_ipr017512_ge500",
          left.ipr017512_ge500 === nothing ? missing : left.ipr017512_ge500)
     rec!("background_carriers_left_union", left.union === nothing ? missing : left.union)
 
-    # The persisted records, and what they vouch for. A recall that is only printed cannot
-    # be checked by anything downstream; one that is read but believed is no better, so the
-    # verdict the licence uses is the module's RE-DERIVATION from the record's own counts, on
-    # their lower confidence bound, and the record's own fields are emitted as written beside
-    # the rate and bound those counts give, as claims to be compared.
+    # The persisted records, and what they vouch for. The verdict the licence uses is the
+    # module's RE-DERIVATION from the record's own counts, on their lower confidence bound;
+    # the record's own fields are emitted as written beside the rate and bound those counts
+    # give, as claims to be compared.
     rec!("background_prefilter_recall_record_present", !isempty(rk))
     rec!("background_prefilter_recall_pass",
          rec_rec.pass === nothing ? missing : rec_rec.pass)
@@ -2809,7 +2759,7 @@ let fc = L.frame, left = L.leftovers, ev = L.evidence,
     # One identifier per run is the producer's contract, and three records that agree on the
     # digest but not on the run_id describe one table written by two invocations. The module
     # is not asked about it, because tying a record to the TABLE is what licenses the code;
-    # the disagreement is disclosed so it cannot pass unnoticed either.
+    # the disagreement is disclosed so it cannot pass unnoticed.
     rec!("background_scan_record_run_ids_agree",
          let ids = filter(!isempty,
                           vcat(something(thr_rec.run_id, ""), something(rec_rec.run_id, ""),
@@ -2842,9 +2792,9 @@ end
 # -- categories whose primary interval excludes zero, and which of them are new. "New" is
 #    measurable only against the earlier result a category would be new relative to, so the
 #    ANCHOR is computed in this same run — same builder, earlier settings, no exclusion —
-#    and the partition is taken against it. An expression comparing the run against a
-#    hard-coded list of names nominates a category even on the anchor itself, where by
-#    construction nothing can be new.
+#    and the partition is taken against it. Comparing the run against a hard-coded list of
+#    names instead would nominate a category even on the anchor itself, where by construction
+#    nothing can be new.
 primary_std   = interval_sets(rows, :std)
 primary_crude = interval_sets(rows, :crude)
 sig_std_primary   = primary_std.excludes
@@ -2868,13 +2818,13 @@ if anchor_present
     anchor_sig_seen  = anchor_std.excludes
     anchor_sig_crude = anchor_crude.excludes
     anchor_labels = anchor_std.labels
-    # An anchor is only an anchor if it is the same measurement on the same frame. If the
-    # frame moved, or if a row of the anchor panel has no interval, its category set is not
-    # the earlier result and must not be treated as one.
-    # The frame the two runs drew from, not the arm each of them kept: the anchor applies no
-    # exclusion and moves nobody, so comparing it with the run's ANALYSED frame would call
-    # every move-in run a frame mismatch and withhold its partition for doing exactly what
-    # the level says it does. What must still agree is the pool both specifications sampled.
+    # An anchor is only an anchor if it is the same measurement on the same frame: a moved
+    # frame, or a row of the anchor panel with no interval, means its category set is not the
+    # earlier result. The frame compared is the one the two runs drew from, not the arm each
+    # of them kept; the anchor applies no exclusion and moves nobody, so comparing it with
+    # the run's ANALYSED frame would call every move-in run a frame mismatch and withhold its
+    # partition for doing exactly what the level says it does. What must agree is the pool
+    # both specifications sampled.
     frames_match = Set(Int.(B.df.taxid[B.frame_scanned])) ==
                    Set(Int.(df.taxid[A.frame_scanned]))
     ref_supplied = !isempty(ANCHORREF)
@@ -2886,7 +2836,7 @@ if anchor_present
             ref_readable = false
         else
             # The reference's rows in the shape a row panel has, so ONE function reads its
-            # category set — the same one that read the run's and the anchor's.
+            # category set, the same one that read the run's and the anchor's.
             ref_rows = [(contrast = sv(ref.contrast[i]), unit = sv(ref.unit[i]),
                          habitat = sv(ref.habitat[i]),
                          ci_lo_std = ref.ci_lo_std[i], ci_hi_std = ref.ci_hi_std[i],
@@ -2979,8 +2929,8 @@ rec!("rows_continuity_corrected", count(r -> r.continuity_corrected, rows))
 rec!("rows_continuity_corrected_registered", count(r -> r.continuity_corrected, reg_rows))
 rec!("rows_rounded_for_fisher", count(r -> r.rounded_for_fisher, rows))
 # Two different quantities, named so they cannot be confused: an empty WHOLE-ARM hit total,
-# which is what the continuity correction reacts to, and an empty BACKGROUND STRATUM cell
-# inside a standardised estimate, which the arm totals cannot reveal.
+# which the continuity correction reacts to, and an empty BACKGROUND STRATUM cell inside a
+# standardised estimate, which the arm totals cannot reveal.
 rec!("rows_with_a_zero_arm_total", count(r -> r.a == 0 || r.b == 0, rows))
 rec!("rows_with_a_zero_arm_total_registered", count(r -> r.a == 0 || r.b == 0, reg_rows))
 rec!("rows_with_a_zero_stratum_cell", count(r -> r.n_zero_stratum_cells > 0, rows))
@@ -3038,9 +2988,9 @@ outdf = DataFrame(rows)
 outdf.a = compact.(outdf.a); outdf.b = compact.(outdf.b)
 CSV.write(OUT, outdf)
 # The anchor's own rows, so the partition can be re-decided at row level without a re-run.
-# When there is no anchor the file is written EMPTY rather than left alone: a rows table from
-# an earlier run, sitting beside a summary that says the anchor was unavailable, is exactly
-# the kind of mismatched pair the scan records now guard against.
+# With no anchor the file is written EMPTY rather than left alone: a rows table from an
+# earlier run, sitting beside a summary that says the anchor was unavailable, is the kind of
+# mismatched pair the scan records now guard against.
 anchordf = isempty(anchor_rows) ? similar(outdf, 0) : DataFrame(anchor_rows)
 if nrow(anchordf) > 0
     anchordf.a = compact.(anchordf.a); anchordf.b = compact.(anchordf.b)

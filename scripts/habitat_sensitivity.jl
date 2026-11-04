@@ -1,87 +1,72 @@
 #=
-    habitat_sensitivity.jl — the one-at-a-time sensitivity grid around the registered
-    habitat specification, the robustness flag it decides, and the rendered panel.
+    habitat_sensitivity.jl: the one-at-a-time sensitivity grid around the registered habitat
+    specification, the robustness flag it decides, and the rendered panel.
 
-    WHY THIS STEP EXISTS. Every estimate the enrichment step reports rests on rule choices a
-    reader cannot see: which habitat wins when a taxon's terms tie, whether a chemistry flag
-    needs a share of the evidence or a single mention, which text a keyword fallback reads,
-    and which background counts as "carries no such enzyme". None of those choices is
-    visible in an interval, and each of them can move one. A result that holds only under its
-    own tie rule is not a result. This step varies each choice ONE AT A TIME off the
-    registered specification, reports what survives, and names — as data, per category — the
-    variants that break what does not.
+    Every estimate the enrichment step reports rests on rule choices a reader cannot see:
+    which habitat wins when a taxon's terms tie, whether a chemistry flag needs a share of the
+    evidence or a single mention, which text a keyword fallback reads, and which background
+    counts as "carries no such enzyme". None is visible in an interval and each can move one.
+    This step varies each choice ONE AT A TIME off the registered specification, reports what
+    survives, and names, as data and per category, the variants that break what does not.
 
-    THE GRID IS NOT COMPUTED HERE. Every level reaches the estimators through code that
-    already exists and is already tested: the aggregation rules through
-    `EnvironmentTools.resolve` / `resolve_chemistry`, the arms and the rows through
-    `analyse` and `contrast_rows` in scripts/habitat_enrichment.jl and
-    src/ModuleHabitatStats.jl, the interval predicates and the tier through
-    src/ModuleOutcomeRules.jl. A second implementation of any of those would be the one that
-    drifts, and a grid computed by drifted code measures the drift rather than the rule.
+    The grid is not computed here. Every level reaches the estimators through existing, tested
+    code: the aggregation rules through `EnvironmentTools.resolve` / `resolve_chemistry`, the
+    arms and the rows through `analyse` and `contrast_rows` in scripts/habitat_enrichment.jl
+    and src/ModuleHabitatStats.jl, the interval predicates and the tier through
+    src/ModuleOutcomeRules.jl. A second implementation of any of them would be the one that
+    drifts.
 
-    THE TWO SEAMS THAT ARE NOT ARGUMENTS OF `analyse`, and how they are crossed.
+    Two seams are not arguments of `analyse`:
 
-      TYPE RULE.  `analyse` reads the taxon-call table's `type_weights` column verbatim; it
-      has no tie-rule argument. A type variant is therefore computed by rewriting that column
-      from the same table's own `type_counts` and `type_mentions` tallies through
-      `resolve`, and calling `analyse` unchanged. The reconstruction is checked before it is
-      used: recomputing the REGISTERED rule from those tallies must reproduce the committed
-      column exactly, or the rewrite is not reading the tallies the table was built from.
+      TYPE RULE. `analyse` reads the taxon-call table's `type_weights` column verbatim and has
+      no tie-rule argument, so a type variant rewrites that column from the same table's own
+      `type_counts` and `type_mentions` tallies through `resolve` and calls `analyse`
+      unchanged. Checked before it is used: recomputing the REGISTERED rule from those tallies
+      must reproduce the committed column exactly.
 
       CHEMISTRY RULE. `analyse` reads a chemistry LABEL column through `flag_weights`, which
-      cannot express a fractional weight — and silently mis-parses a weight string, since
-      "Flag:0.5" is a label to it. A chemistry variant is therefore carried by the weight
-      column instead, which `weight_map` parses, and the chemistry rows of that run are the
-      run's `taxa` rows read under their flag names. The route is checked against the one it
-      replaces: under the registered chemistry rule the two must agree cell for cell.
+      cannot express a fractional weight and reads "Flag:0.5" as a label. A chemistry variant
+      is carried by the weight column instead, which `weight_map` parses, and the chemistry
+      rows of that run are its `taxa` rows read under their flag names. Under the registered
+      chemistry rule the two routes must agree cell for cell.
 
-    WEIGHTS ARE NOT ROUNDED ON THE WAY IN. The published call table rounds its weight column
-    for reading; this grid compares hit totals, and a three-decimal round trip changes one.
-    A rewritten column is therefore written at full precision, and only the CHECK against the
-    published column uses the published format. The registered specification itself is run on
-    the committed column verbatim, so the primary rows of this grid are the enrichment step's
-    own rows and not a recomputation of them.
+    Weights are not rounded on the way in. The published call table rounds its weight column
+    for reading, and a three-decimal round trip changes a hit total, which is what this grid
+    compares. A rewritten column is written at full precision; only the CHECK against the
+    published column uses the published format. The registered specification runs on the
+    committed column verbatim, so the primary rows of this grid are the enrichment step's own.
 
-    WHAT DECIDES A FLAG, AND WHAT ONLY DESCRIBES. The flag reads the primary interval and the
-    one-at-a-time variants, on the Ln arm against the background, on the two units whose
-    denominator is a taxon. The unit checks — the symmetric genus unit, the per-sequence
-    unit, and the subset of taxa whose call rests on several distinct terms — are reported
-    for the same grid and marked as NOT feeding the flag, because a unit check answers a
-    different question from a rule variant: it changes what is being counted, not which rule
-    counted it. The anchors and the disclosed background lines sit outside the variant set
-    for the same reason and are marked the same way.
+    The flag reads the primary interval and the one-at-a-time variants, on the Ln arm against
+    the background, on the two units whose denominator is a taxon. The three unit checks (the
+    symmetric genus unit, the per-sequence unit, and the subset of taxa whose call rests on
+    several distinct terms) are reported for the registered specification and for every
+    variant, under the variant's own name, and marked as NOT feeding the flag: a unit check
+    changes what is being counted, not which rule counted it. The unit a row carries is what
+    separates them. The genus and per-sequence units come free from the arm builder; the
+    thin-evidence subset is a second run over fewer units, and its rows say so in the name of
+    the unit whose n1 and n2 they report. The anchors and the disclosed background lines sit
+    outside the variant set and are marked the same way.
 
-    A UNIT CHECK IS A UNIT, NOT A FIFTEENTH RULE. All three are reported for the registered
-    specification AND for every one-at-a-time variant, under the variant's own name, and what
-    separates their rows is the unit they carry. The genus and per-sequence units cost nothing
-    — the arm builder emits them beside the taxon unit — while the thin-evidence subset is a
-    second run of the same specification over fewer units, and its rows say so in the only
-    place that cannot be lost: the name of the unit whose n1 and n2 they report.
+    The anchors are the wiring check. Two specifications outside the grid reproduce earlier
+    runs: the all-legacy specification, compared row by row against an earlier run's rows
+    table, and an earlier sensitivity run's own chemistry rules on the legacy arms, compared
+    against transcribed targets. Targets are also taken on the REGISTERED specification's own
+    rows, because the anchors run a different configuration, a different chemistry column and
+    no background exclusion, so a wiring error confined to the registered specification's own
+    inputs would meet every one of them. Neither target is written in this file: both arrive
+    by option, and a run given neither says so in its own output.
 
-    THE ANCHORS ARE THE WIRING CHECK. Two specifications outside the grid reproduce earlier
-    runs of this analysis: the all-legacy specification, compared row by row against an
-    earlier run's rows table, and an earlier sensitivity run's own chemistry rules on the
-    legacy arms, compared against transcribed targets. Targets are also taken on the REGISTERED
-    specification's own rows, because an anchor that only reproduces the earlier pipeline says
-    nothing about the rows that become colours: the anchors run a different configuration, a
-    different chemistry column and no background exclusion, so a wiring error confined to the
-    registered specification's own inputs would meet every one of them. Neither target is
-    written in this file — a target typed into a script is a number about this dataset, and
-    the script must carry none — so both arrive by option, and a run given neither says so in
-    its own output rather than passing quietly.
+    Whether the anchors are built is set by ANCHOR_LEVELS_RETIRED. Both reproduce rows of a
+    census other than the one a run reads, so while that constant holds they are not built:
+    the row-by-row comparison covers zero rows and records itself as not applicable,
+    --anchor-reference is not required and not opened, and the targets on the registered
+    specification and its levels are the wiring check that remains.
 
-    WHETHER THE ANCHORS ARE BUILT is set by ANCHOR_LEVELS_RETIRED. Both anchors reproduce
-    rows of a census other than the one a run reads, so while that constant holds they are
-    not built: the row-by-row comparison covers zero rows and records itself as not
-    applicable, --anchor-reference is not required and not opened, and the targets on the
-    registered specification and its levels are the wiring check that remains.
-
-    AND THE SAME FILE SAYS WHAT THE SET IS. Everything in this script that could contradict a
-    deleted or substituted level is enumerated from the tuples the level would be deleted
-    from, so an edit there moves the wiring and the vocabulary together and nothing is left to
-    disagree. The fourteen level NAMES — rule names, not measurements — therefore arrive with
-    the targets, and a run whose enumerated set differs from the declared one in either
-    direction stops before it computes.
+    Everything here that could contradict a deleted or substituted level is enumerated from
+    the tuples the level would be deleted from, so an edit there moves the wiring and the
+    vocabulary together. The fourteen level NAMES therefore arrive with the targets, and a run
+    whose enumerated set differs from the declared one in either direction stops before it
+    computes.
 
     Run:  julia --project=. scripts/habitat_sensitivity.jl [options]
           LNFINDER_FIGDIR points every output at the figure directory; see --figdir.
@@ -135,9 +120,9 @@ using DataFrames, CSV, Printf, Dates, SHA, Statistics
 include(joinpath(REPO, "src", "ModuleDataInputs.jl"))
 
 # The enrichment step goes into a module of its own, behind its own program-file guard, so
-# including it defines its functions and runs nothing. It is the ONLY arm builder in this
-# pipeline, and it brings its libraries with it: a second copy of `analyse`, of the
-# estimators or of the exclusion rules would be the copy that drifts.
+# including it defines its functions and runs nothing. It is the ONLY arm builder here and
+# brings its libraries with it; a second copy of `analyse`, of the estimators or of the
+# exclusion rules would drift.
 module Enrichment end
 Base.include(Enrichment, joinpath(REPO, "scripts", "habitat_enrichment.jl"))
 const HE = Enrichment
@@ -149,11 +134,10 @@ sv(x) = ismissing(x) ? "" : String(strip(string(x)))
 hascol(df::AbstractDataFrame, name::Symbol) = name in propertynames(df)
 fnum(x) = x === missing || x === nothing ? NaN :
           x isa Real ? float(x) : something(tryparse(Float64, sv(x)), NaN)
-# WHAT A DIGEST LOOKS LIKE, asked in one place. Every provenance row that carries a sha256 is
-# a claim about which bytes an input was, and the empty string satisfies "a digest was
-# recorded" while saying nothing at all — which is exactly what a run over a file that was not
-# there writes. A digest field is therefore checked for being a digest wherever one is
-# required, rather than only for being present.
+# What a digest looks like, asked in one place. A provenance sha256 claims which bytes an
+# input was, and the empty string a run over an absent file writes satisfies "a digest was
+# recorded" while saying nothing. A digest field is therefore checked for being a digest
+# wherever one is required, not only for being present.
 is_sha256(s::AbstractString) = length(s) == 64 && all(isxdigit, s)
 
 # ---------------------------------------------------------------------------
@@ -161,9 +145,9 @@ is_sha256(s::AbstractString) = length(s) == 64 && all(isxdigit, s)
 # names, configuration names and the names of the columns each level reaches through.
 # ---------------------------------------------------------------------------
 
-# The configuration column of the taxon-call table that carries the registered levels of the
-# text, generic-term and isolation axes. The other five configurations ARE the variants of
-# those three axes, which is why those axes need no rule argument here.
+# The configuration of the taxon-call table carrying the registered levels of the text,
+# generic-term and isolation axes. The other five configurations ARE the variants of those
+# three axes, so those axes need no rule argument here.
 const PRIMARY_CONFIG = "primary"
 
 # The type-axis levels, in the order the registered set names them. Each is a rule of
@@ -185,49 +169,45 @@ const DISCLOSED_BACKGROUND_LEVELS = ("lnca", "lntype")
 
 # An earlier sensitivity run's own chemistry rules on the legacy arms. Three are rules of
 # `resolve_chemistry`; the fourth settles the tie among chemistry COMBINATIONS
-# alphabetically, which is `resolve`'s alphabetical rule applied to the combination tally —
+# alphabetically, which is `resolve`'s alphabetical rule applied to the combination tally;
 # see `chemistry_weights`.
 const AUDIT_CHEMISTRY_RULES = (:alphabetical_combination, :winner_fractional, :any_term, :share)
 const COMBINATION_ALPHABETICAL = :alphabetical_combination
 
-# THE ANCHOR LEVELS ARE NOT EVALUATED AGAINST THE CENSUS THIS RUN READS.
+# The anchor levels are not evaluated against the census this run reads.
 #
-# `anchor:all_legacy` reproduces an earlier run's rows, and the four `audit:*` levels reproduce
-# an earlier sensitivity run's chemistry rules on the earlier arms. Both reproduce rows of a
-# census other than the one this run reads. Asked of a run reading a different census they are
-# a DIFFERENT test, and a pass would be misread as evidence that the two censuses give the same
-# rows - so they are not evaluated.
+# `anchor:all_legacy` reproduces an earlier run's rows and the four `audit:*` levels reproduce
+# an earlier sensitivity run's chemistry rules on the earlier arms, both on a census other than
+# the one this run reads. Here they are a DIFFERENT test, and a pass would be misread as
+# evidence that the two censuses give the same rows.
 #
-# The definitions below are KEPT, not deleted, so that a run against the census they describe
-# can still produce them by flipping this one constant. Retiring them empties `anchor_rows`, so
-# the `--anchor-reference` comparison covers zero rows; the targets file states that as
-# `reference_rows,0` rather than leaving it to be inferred, and the run records the retirement
-# in its provenance (`anchor_levels_retired`, and an `anchor_reference_status` that says why)
-# so a reader of the output sees a decision rather than an absence.
+# The definitions below are KEPT, so a run against the census they describe can produce them by
+# flipping this one constant. Retiring them empties `anchor_rows`, so the `--anchor-reference`
+# comparison covers zero rows; the targets file states that as `reference_rows,0`, and the run
+# records the retirement in its provenance (`anchor_levels_retired`, and an
+# `anchor_reference_status` that says why).
 const ANCHOR_LEVELS_RETIRED = true
 
 # How many distinct usable terms a call must rest on for the thinly-annotated-tail unit
-# check. A parameter of that check, named here and passed to the library's own mask so the
-# label and the mask cannot drift apart.
+# check. Named here and passed to the library's own mask, so the label and the mask cannot
+# drift apart.
 const MIN_DISTINCT_TERMS = 3
-# The subset is reported as a UNIT of every specification rather than as a specification of
-# its own, because that is what it is: the same rule counted over fewer units. Suffixing the
-# unit name keeps it in the same row key as its parent, so the grid carries one series per
-# specification and a reader cannot line a subset row up against a whole-arm row by accident.
+# The subset is reported as a UNIT of every specification: it is the same rule counted over
+# fewer units. The suffix on the unit name keeps it in its parent's row key, so the grid
+# carries one series per specification and a subset row cannot be read against a whole-arm row.
 const MIN_DISTINCT_SUFFIX = " [>=$MIN_DISTINCT_TERMS terms]"
 
-# The two chemistry routes are two computations of ONE quantity, not two measurements, so
-# what may separate them is the order the floats were summed and nothing else.
+# The two chemistry routes are two computations of ONE quantity, so the only thing that may
+# separate them is the order the floats were summed.
 const CHEMISTRY_ROUTE_TOL = 1e-9
 
 # The names of the two derived units, built from the unit the arm builder emits so a rename
 # there cannot leave this file describing a unit that no longer exists.
 chemistry_unit(unit::AbstractString) = unit * " (chemistry)"
 is_chemistry_unit(unit::AbstractString) = endswith(unit, " (chemistry)")
-# The unit a written row carries may wear the subset suffix, so anything that asks WHICH KIND
-# of unit a row is on reads the stem rather than the whole name: "taxa (chemistry) [>=3
-# terms]" is a chemistry unit, and a test that only looked at the end of the name would say
-# it is not.
+# The unit a written row carries may wear the subset suffix, so anything asking WHICH KIND of
+# unit a row is on reads the stem: "taxa (chemistry) [>=3 terms]" is a chemistry unit, and a
+# test looking only at the end of the name would miss it.
 unit_stem(unit::AbstractString) = replace(String(unit), MIN_DISTINCT_SUFFIX => "")
 
 const ROLE_PRIMARY   = "primary"      # the registered specification itself
@@ -236,10 +216,9 @@ const ROLE_UNIT      = "unit_check"   # a change of what is counted, not of the 
 const ROLE_ANCHOR    = "anchor"       # an earlier specification, reproduced
 const ROLE_AUDIT     = "audit"        # an earlier sensitivity run, reproduced
 const ROLE_DISCLOSED = "disclosed"    # reported beside the grid, outside it
-# ROLE_AUDIT's value and the `audit:` prefix of the specification names it labels are the
-# names the recorded target file spells in its own `anchor` column, so they are an interface:
-# renaming either invalidates every target written against them. What the role means is its
-# comment above, not the word.
+# ROLE_AUDIT's value and the `audit:` prefix of the names it labels are what the recorded
+# target file spells in its own `anchor` column, so they are an interface: renaming either
+# invalidates every target written against them. The comment above says what the role means.
 
 """
 One specification of the whole analysis: which configuration of the call table, which rule
@@ -266,9 +245,9 @@ struct Spec
     note::String
 end
 
-# A specification's identity in the run cache: the name alone is not unique, because the
-# thin-evidence subset of a specification carries the SAME name (it is the same rule) and
-# differs only in which units it was counted over.
+# A specification's identity in the run cache. The name alone is not unique: the
+# thin-evidence subset carries the SAME name, being the same rule, and differs only in which
+# units it was counted over.
 run_key(spec::Spec) = (spec.name, spec.unit_suffix)
 
 primary_spec() = Spec("primary", "primary", "registered", PRIMARY_CONFIG, nothing,
@@ -404,8 +383,8 @@ registered_type_rule_configurations(specs) =
                        if s.role in (ROLE_PRIMARY, ROLE_VARIANT, ROLE_UNIT)]))
 
 # The two units the flag reads, split by the family of rules that can move them. Both names
-# are taken from the library's own list rather than written again here, so a rename there
-# cannot leave this file declaring a unit that no longer exists.
+# are taken from the library's own list, so a rename there cannot leave this file declaring a
+# unit that no longer exists.
 const FLAG_UNITS_TYPE = Tuple(u for u in HE.PRIMARY_UNITS if !is_chemistry_unit(u))
 const FLAG_UNITS_CHEM = Tuple(u for u in HE.PRIMARY_UNITS if is_chemistry_unit(u))
 const FLAG_UNITS_BOTH = Tuple(u for u in HE.PRIMARY_UNITS)
@@ -456,17 +435,16 @@ function axis_declaration(axis::AbstractString)
     return nothing
 end
 
-# THE SIX FIELDS THAT DECIDE WHAT A SPECIFICATION COMPUTES. The configuration of the call
+# The six fields that decide what a specification computes: the configuration of the call
 # table, the two aggregation rules, the column the chemistry arm is read off, the background
-# rule and the subset of taxa: change any one of them and a different computation runs.
-# `chem_col` and `subset` are in the list because they are part of what a specification IS by
-# this file's own definition of one — a variant quietly measured on the thin-evidence subset,
-# or quietly reading the earlier pipeline's exclusive-winner chemistry column, is a different
-# measurement published under a registered name, and a tuple that omitted them could not say so.
+# rule and the subset of taxa. Change any one and a different computation runs. `chem_col` and
+# `subset` are in the list because a variant quietly measured on the thin-evidence subset, or
+# quietly reading the earlier pipeline's exclusive-winner chemistry column, is a different
+# measurement published under a registered name.
 const DEFINING_FIELDS = (:config, :tie_rule, :chem_col, :chem_rule, :bg_mode, :subset)
 
-# One field of a specification as text. `nothing` — "the level the call table already carries"
-# — is the empty string, which no named rule can collide with.
+# One field of a specification as text. `nothing`, "the level the call table already carries",
+# is the empty string, which no named rule can collide with.
 field_level(s::Spec, field::Symbol) = (v = getfield(s, field); v === nothing ? "" : String(v))
 
 """
@@ -631,8 +609,7 @@ function assert_variant_names_describe_what_they_run(specs)
 end
 
 # What two rows have to agree on to be the same estimate. Every one is a column of the
-# long-format table, so "this variant moved nothing" is a statement about the published
-# numbers rather than about an intermediate nobody can see.
+# long-format table, so "this variant moved nothing" is a statement about published numbers.
 const COMPARED_QUANTITIES = (:a, :b, :n1, :n2, :crude, :crude_lo, :crude_hi, :std, :lo, :hi)
 
 estimates_agree(x::Real, y::Real) = (isnan(x) && isnan(y)) || x == y
@@ -825,8 +802,8 @@ function assert_no_two_variants_are_one_measurement(rows, expected_variants,
         differences = variant_pair_differences(rows, expected_variants))
     names = sort(unique(String[String(v) for v in expected_variants]))
     # Each level's representative: the earliest level it is indistinguishable from. Exact
-    # agreement over the same cells is transitive, so scanning the pairs in order is enough
-    # and no second pass is needed.
+    # agreement over the same cells is transitive, so one ordered pass over the pairs is
+    # enough.
     group = Dict{String,String}(v => v for v in names)
     same = String[]
     for pr in differences.pairs
@@ -1511,13 +1488,13 @@ function assert_grid_complete(rows, expected)
     return length(seen)
 end
 
-# THE CATEGORY VOCABULARY, READ OFF THE LIBRARY THAT ASSIGNS IT. Not a list written here: a
-# list written here is a second declaration of the same thing, and the copy is what drifts.
-# `COARSE`'s keys are every fine habitat type the library can assign — the ontology branches
-# plus the fallback pillar — and `OBT_CHEMISTRY` names every condition flag. A chemistry
-# COMBINATION is deliberately not in the second set: the arm builder splits combinations into
-# their flags before it counts them, so a combination reaching a written row means the column
-# being read is not the column that was asked for.
+# The category vocabulary, read off the library that assigns it rather than listed here,
+# because a second declaration of the same thing is the copy that drifts. `COARSE`'s keys are
+# every fine habitat type the library can assign (the ontology branches plus the fallback
+# pillar) and `OBT_CHEMISTRY` names every condition flag. A chemistry COMBINATION is
+# deliberately not in the second set: the arm builder splits combinations into their flags
+# before counting them, so a combination reaching a written row means the wrong column is
+# being read.
 const REGISTERED_TYPE_CATEGORIES =
     Set(String[String(c) for c in
                vcat(String[first(x) for x in ET.OBT_TYPE], String.(collect(keys(ET.COARSE))))])
@@ -1563,15 +1540,13 @@ function assert_categories_are_registered(rows;
     return length(rows)
 end
 
-# THE CONTRASTS THIS GRID MEASURES, read off the library that registers them plus the one
-# disclosed comparator beside them. Every specification in this grid is run through the same
-# arm builder, so every specification measures all of them; a contrast that reaches no row is
-# therefore a contrast this run did not compute, not one it had nothing to say about.
+# The contrasts this grid measures, read off the library that registers them plus the one
+# disclosed comparator beside them. Every specification runs through the same arm builder and
+# so measures all of them; a contrast that reaches no row is one this run did not compute.
 const DECLARED_CONTRASTS = (HE.REGISTERED_CONTRASTS..., HE.CA_VS_BG)
 # The unit series the arm builder emits, before the chemistry twin and the subset suffix are
-# put on them. The taxon unit is taken from the library's own list so a rename there moves
-# with it; the other two are the per-sequence and symmetric-genus series this file already
-# names wherever it reports them.
+# put on them. The taxon unit is taken from the library's own list so a rename moves with it;
+# the other two are the per-sequence and symmetric-genus series this file already names.
 const DECLARED_UNIT_SERIES = (FLAG_UNITS_TYPE..., "sequences", "genera")
 
 """
@@ -1613,9 +1588,9 @@ function assert_the_published_shape_is_the_declared_one(rows, specs;
               "number in it correct, every anchor met and nothing in the file saying which " *
               "comparison is missing")
 
-    # The two derived unit kinds, and the subset suffix, are what the arm builder's series
-    # become on the way into this table; the stems are compared so a suffixed row counts as
-    # its own series rather than as a series of its own.
+    # The two derived unit kinds and the subset suffix are what the arm builder's series
+    # become on the way into this table; the stems are compared, so a suffixed row counts as
+    # its own series.
     declared_stems = String[]
     for u in series
         push!(declared_stems, String(u))
@@ -1630,10 +1605,9 @@ function assert_the_published_shape_is_the_declared_one(rows, specs;
               "written table and out of the panel while every series that remains still " *
               "agrees with itself")
 
-    # PER SPECIFICATION, because that is the difference between an input that did not arrive
-    # and a specification that did not run. The subset twin carries the same name as its
-    # parent and is a different run, so the key is the name and the suffix — the same key the
-    # run cache is built on.
+    # Per specification, which is the difference between an input that did not arrive and a
+    # specification that did not run. The subset twin carries its parent's name and is a
+    # different run, so the key is the name and the suffix: the run cache's own key.
     by_spec = Dict{Tuple{String,String},Set{String}}()
     for r in rows
         u = String(r.unit)
@@ -1655,10 +1629,9 @@ function assert_the_published_shape_is_the_declared_one(rows, specs;
               "specification whose rows describe less than its name in the written table " *
               "says it does")
 
-    # AND THE CATEGORY VOCABULARY IN THE OTHER DIRECTION. `assert_categories_are_registered`
+    # And the category vocabulary in the other direction. `assert_categories_are_registered`
     # refuses a published name the library does not declare; this refuses a declared name the
-    # grid published nowhere, which is the same defect read from the other end and the one a
-    # shrinking table produces.
+    # grid published nowhere, which is what a shrinking table produces.
     published_cats = Dict("type" => Set{String}(), "chemistry" => Set{String}())
     for r in rows
         kind = is_chemistry_unit(unit_stem(String(r.unit))) ? "chemistry" : "type"
@@ -1756,11 +1729,10 @@ function classify_category(primary_lo, primary_hi, variants)
     computed = String[label(p) for p in variants
                       if OR.interval_excludes_zero(last(p)...) !== :undecidable]
     status = OR.interval_excludes_zero(primary_lo, primary_hi)
-    # NO PRIMARY INTERVAL, SO NOTHING TO BE ROBUST AGAINST. This is how a category that only
-    # SOME level of the grid creates arrives here: the registered specification has no row for
-    # it, so it has no sign to reproduce or break. Naming the variants that do measure it says
-    # which levels create it; naming all fourteen as "breakers" would report the twelve that
-    # never saw the category as having disagreed about it.
+    # No primary interval, so nothing to be robust against. A category only SOME level of the
+    # grid creates arrives here: the registered specification has no row for it and so no sign
+    # to reproduce or break. Only the variants that measure it are named, since naming all
+    # fourteen as "breakers" would credit the twelve that never saw it with disagreeing.
     status === :undecidable &&
         return (flag = "undecidable", breakers = sort(computed),
                 meaning = "the registered specification has no interval for this category; " *
@@ -1781,10 +1753,9 @@ function classify_category(primary_lo, primary_hi, variants)
                 meaning = "variants that do not reproduce the primary sign",
                 primary_excludes_zero = true)
     end
-    # THE PRIMARY INCLUDES ZERO, so the row is neutral whatever the variants say. The names
-    # are kept because they are the informative part of a neutral row; the word is not
-    # changed by them, because the recorded rule reserves the fragile shape for a claim the
-    # registered specification actually makes.
+    # The primary includes zero, so the row is neutral whatever the variants say. The names
+    # are kept as the informative part of a neutral row; they do not change the word, because
+    # the recorded rule reserves the fragile shape for a claim the primary actually makes.
     exc = String[label(p) for p in variants
                  if OR.interval_excludes_zero(last(p)...) === :excludes_zero]
     isempty(exc) && return (flag = "null", breakers = String[], meaning = "",
@@ -1835,8 +1806,8 @@ function robustness(rows, expected_variants;
             r = get(byname, (v, unit, cat), nothing)
             if r === nothing
                 # No row means no hit on either side under that variant, so there is no
-                # interval — which is a variant that did not reproduce anything, not one
-                # that agreed. It is carried as an uncomputed interval on purpose.
+                # interval: the variant reproduced nothing, it did not agree. Carried as an
+                # uncomputed interval on purpose.
                 push!(pairs, v => (NaN, NaN))
             else
                 measured += 1
@@ -1870,32 +1841,29 @@ end
 
 const TARGET_COLUMNS = (:kind, :anchor, :unit, :category, :quantity, :value, :tol, :note,
                         :digest)
-# What a target may be taken on. Every one of them is a column of the long-format table, so a
-# target names a quantity this run actually wrote rather than one it could compute on request.
+# What a target may be taken on. Every one is a column of the long-format table, so a target
+# names a quantity this run actually wrote.
 const TARGET_QUANTITIES = (:a, :b, :n1, :n2, :crude, :std, :lo, :hi)
 
-# The five kinds of row a targets file carries. Two of them are measurements of this dataset
-# and three are not: a `variant` row names one level of the registered set, an `expect` row
-# records a count the file makes about itself, and a `source` row names the file the targets
-# were transcribed FROM together with its digest. Names, counts and digests could be written in
-# this script — but the whole reason the set is declared elsewhere is that a declaration living
-# beside what it describes moves with it, and the targets file is the one input the run already
-# refuses to start without.
+# The five kinds of row a targets file carries. Two are measurements of this dataset and three
+# are not: a `variant` row names one level of the registered set, an `expect` row records a
+# count the file makes about itself, and a `source` row names the file the targets were
+# transcribed FROM together with its digest. The set is declared outside this script because a
+# declaration living beside what it describes moves with it, and the targets file is the input
+# the run already refuses to start without.
 const TARGET_KINDS = ("target", "exception", "variant", "expect", "source")
 # What an `expect` row must count.
 #
 #   targets         how many `target` rows the file holds.
 #   variants        how many levels the declared set holds. NOT redundant with counting the
-#                   `variant` rows: comparing the enumerated set with the declared one name for
-#                   name is satisfied by ANY two lists that agree, so an edit that shortens the
-#                   script's own tuples and strikes the matching names from this file is
-#                   self-consistent and publishes a smaller grid under the registered set's
-#                   name. A size is the one statement that edit cannot also keep consistent,
-#                   because it is not a list and shortening a list does not change it.
-#   reference_rows  how many rows the row-by-row comparison against the earlier run is supposed
-#                   to cover. Without it a reference file regenerated at a different scope
-#                   reports "N of N rows agree" for whatever N it happens to carry, and the
-#                   count reads better than the honest run's rather than different from it.
+#                   `variant` rows: two name lists agree whenever both were shortened, so an
+#                   edit to the script's own tuples that strikes the matching names from this
+#                   file is self-consistent and publishes a smaller grid under the registered
+#                   set's name. A size is the one statement that edit cannot keep consistent.
+#   reference_rows  how many rows the row-by-row comparison against the earlier run is
+#                   supposed to cover. Without it a reference file regenerated at a different
+#                   scope reports "N of N rows agree" for whatever N it carries, which reads
+#                   better than the honest run's count.
 const EXPECTED_COUNTS = (:targets, :variants, :reference_rows)
 
 """
@@ -1989,8 +1957,8 @@ function read_anchor_targets(path::AbstractString)
             expected[Symbol(row.quantity)] = Int(row.value)
         elseif kind == "source"
             # The file the targets were transcribed FROM, by name and by digest. The name is a
-            # bare file name resolved beside this file: a path would let the declaration point
-            # at something the person reading the declaration cannot see.
+            # bare file name resolved beside this file; a path would let the declaration point
+            # at something its reader cannot see.
             isempty(row.anchor) &&
                 error("a 'source' row names the file the targets were transcribed from, in " *
                       "the anchor column, and this one names none")
@@ -2038,11 +2006,9 @@ function read_anchor_targets(path::AbstractString)
               "$(length(targets)): the file has been thinned, extended or merged since the " *
               "count beside it was written, and how much of the wiring is checked is not " *
               "something a run may discover from the file that was handed to it")
-    # THE SIZE OF THE SET, AGAINST THE SET ITSELF. `assert_the_set_is_the_declared_one`
-    # compares two lists and is satisfied by any two that agree — including two that were
-    # shortened together, which is the one edit that still changes a published colour. The
-    # size is not a list: shortening the names does not change it, so the three statements
-    # cannot be made consistent by the same stroke.
+    # The size of the set, against the set itself. `assert_the_set_is_the_declared_one` is
+    # satisfied by any two lists that agree, including two shortened together, which is the one
+    # edit that still changes a published colour. Shortening a list does not change a size.
     expected[:variants] == length(variants) ||
         error("$path declares a registered set of $(expected[:variants]) level(s) and names " *
               "$(length(variants)) of them. A set compared name for name agrees with any " *
@@ -2193,9 +2159,9 @@ function scoped_reference(ref::AbstractDataFrame, exceptions; units)
                                               for x in out_of_scope])))
 end
 
-# THE SCOPE OF THE ROW-BY-ROW COMPARISON, as a declaration rather than as an argument written
-# at the call site. The genus unit is deliberately not in it, and the reason travels with the
-# list so that a later widening has to delete a stated reason rather than edit a tuple.
+# The scope of the row-by-row comparison, declared here instead of at the call site. The genus
+# unit is deliberately not in it, and the reason travels with the list, so a later widening
+# has to delete a stated reason.
 const REFERENCE_SCOPE_UNITS = ("taxa", "sequences", "taxa (chemistry)")
 const REFERENCE_OUT_OF_SCOPE_REASON =
     "these rows sit on a unit the two tables do not define the same way: a reference file " *
@@ -2269,15 +2235,15 @@ fmt_est(v, lo, hi) = (isnan(v) || isnan(lo) || isnan(hi)) ? "n/a" :
                      @sprintf("%+.2f [%+.2f, %+.2f]", v, lo, hi)
 
 # A cell whose variant's axis cannot reach the unit it is in. It is NOT an agreement: the
-# number there would be the registered specification's own, printed again under another
-# name, and a column of those read as a column of independent checks is exactly how a grid
-# of fourteen becomes a claim of fourteen perturbations that were never applied.
+# number there is the registered specification's own under another name, and a column of those
+# read as independent checks turns a grid of fourteen into a claim of fourteen perturbations
+# that were never applied.
 #
-# The mark is placed from the MEASURED movement, and it says something the measurement alone
-# cannot support — that the rule family does not touch the unit at all. What licenses it is
-# `assert_axes_reach_the_units_they_declare`, which the run applies before this table is
-# written: measured reach and declared reach are equal there or the run stops, so a variant
-# that lost its wiring to one unit cannot arrive here wearing this mark.
+# The mark is placed from the MEASURED movement and says more than the measurement supports,
+# that the rule family does not touch the unit at all.
+# `assert_axes_reach_the_units_they_declare` licenses it before this table is written: measured
+# reach and declared reach are equal there or the run stops, so a variant that lost its wiring
+# to one unit cannot arrive here wearing this mark.
 const NOT_REACHED = "n.r."
 
 """
@@ -2363,8 +2329,8 @@ function sensitivity_table(rows, variant_order; movement = nothing)
         println(io, "## unit: ", unit)
         println(io)
         # The honest denominator of "every variant agrees", printed where the columns are
-        # read: the remaining columns are the primary's own numbers under another name, and a
-        # reader who counts columns instead would count perturbations that never happened.
+        # read: the rest are the primary's own numbers under another name, so counting columns
+        # instead would count perturbations that never happened.
         println(io, "Variants whose axis reaches this unit: ", length(reached), " of ",
                     length(variants), "; the other ", length(variants) - length(reached),
                     " are marked `", NOT_REACHED, "`.")
@@ -2511,8 +2477,8 @@ function panel_note(flags, panel)
 end
 
 # How wide a note line may be, in characters, before it runs off a panel of this width. The
-# renderer does not wrap, and a line that overruns is not clipped visibly — it simply ends
-# mid-sentence at the edge of the page, which is worse than no sentence at all.
+# renderer does not wrap, and an overrun is not clipped visibly: the line ends mid-sentence at
+# the edge of the page.
 const NOTE_WRAP = 105
 
 """
@@ -2537,10 +2503,9 @@ function wrap_text(s::AbstractString, width::Integer)
 end
 
 # Okabe-Ito, the house pair: colour encodes direction and nothing else, and only a row the
-# registered rule flags as robust carries any. Everything else is neutral — a row that a
-# variant breaks and a row that was never distinguishable from the background are both rows
-# the figure may not colour, and inventing a third mark for the first would reintroduce the
-# tier the rule does not have.
+# registered rule flags as robust carries any. A row a variant breaks and a row never
+# distinguishable from the background are both left uncoloured; a third mark for the first
+# would reintroduce the tier the rule does not have.
 const COL_ENRICHED = "#D55E00"
 const COL_DEPLETED = "#0072B2"
 const COL_NEUTRAL  = "#7F7F7F"
@@ -2557,13 +2522,11 @@ const PT_PER_MM = 72 / 25.4
 const ROW_MM    = 7.0
 const FS        = 7
 
-# The two unit series, as an offset below the row's own estimate and a marker size. They sit
-# at DIFFERENT offsets because the two estimates agree closely on some rows, and two marks at
-# one offset then print as a single glyph — the figure would show one measurement where it
-# made two. The gap between the two offsets must therefore exceed the two markers' radii
-# together, at this row height, or they touch and are separable only by looking for the
-# corner of one behind the other. They are constants so that the separation is a property the
-# suite can check rather than two numbers inside the renderer.
+# The two unit series, as an offset below the row's own estimate and a marker size. They sit at
+# DIFFERENT offsets because the two estimates agree closely on some rows, where two marks at one
+# offset print as a single glyph and the figure would show one measurement where it made two.
+# The gap between the offsets must therefore exceed the two markers' radii together, at this row
+# height, or the marks touch. They are constants so the suite can check the separation.
 const GENUS_DY    = -0.20
 const GENUS_MS    = 4.0
 const SEQUENCE_DY = -0.41
@@ -2573,10 +2536,9 @@ const SEQUENCE_MS = 3.4
 unit_mark_separation_pt() = abs(GENUS_DY - SEQUENCE_DY) * ROW_MM * PT_PER_MM
 unit_marks_touch_pt() = (GENUS_MS + SEQUENCE_MS) / 2
 
-# The base name of the rendered panel. Descriptive of what the panel shows: a file name in a
-# public script is read by people who have no access to whatever numbering a document gives
-# its figures, and a name that is only a position in that numbering tells them nothing and
-# goes stale the moment the order changes.
+# The base name of the rendered panel, descriptive of what the panel shows. A file name in a
+# public script is read by people with no access to whatever numbering a document gives its
+# figures, and a position in that numbering goes stale when the order changes.
 const PANEL_BASE = "habitat_sensitivity_panel"
 
 """
@@ -2734,23 +2696,20 @@ function parse_run_options(args; retired::Bool = ANCHOR_LEVELS_RETIRED)
     anchor_targets = opt("--anchor-targets", "")
     anchor_reference = opt("--anchor-reference", "")
     no_anchors = haskey(cli, "--no-anchors")
-    # A WIRING CHECK THAT IS OPT-IN IS A WIRING CHECK NOBODY RUNS. Given no targets this
-    # script would write every table and exit 0, and the flag table would be byte-identical
-    # to a fully checked run's; the only difference would be two rows of a provenance file.
-    # So the default is refused, and skipping the check is a decision that has to be typed
-    # and is then recorded as one.
+    # An opt-in wiring check is a wiring check nobody runs: given no targets this script would
+    # write every table and exit 0, its flag table byte-identical to a fully checked run's and
+    # only two rows of a provenance file different. So the default is refused, and skipping the
+    # check has to be typed and is then recorded as a decision.
     #
-    # BOTH HALVES WHILE THE ANCHOR LEVELS ARE EVALUATED, for the same reason and not only the
-    # first. The row-by-row comparison against the earlier run is the half a run can drop by
-    # losing a flag in a driver script or a shell quoting change: the run then records
-    # `anchor_reference_status,not supplied` and publishes everything, and the only trace of
-    # the missing check is a provenance row nobody diffs. A gate one flag removes without a
-    # failure is not a gate.
+    # Both halves are required while the anchor levels are evaluated. The row-by-row comparison
+    # against the earlier run is the half a run can drop by losing a flag in a driver script or
+    # a shell quoting change, recording `anchor_reference_status,not supplied` and publishing
+    # everything, with no trace but a provenance row nobody diffs.
     #
-    # ONE HALF WHILE THEY ARE RETIRED. The grid then holds no all-legacy rows, so the
-    # comparison covers none whatever file is named, and the run records it as not
-    # applicable. Requiring the option would demand a path the run never opens, and any path
-    # would satisfy it: that is a requirement that checks nothing.
+    # One half while they are retired. The grid then holds no all-legacy rows, so the
+    # comparison covers none whatever file is named and the run records it as not applicable;
+    # requiring the option would demand a path the run never opens, and any path would satisfy
+    # it.
     missing_halves = String[]
     isempty(anchor_targets) &&
         push!(missing_halves, "--anchor-targets <path>, without which nothing checks that " *
@@ -2797,11 +2756,11 @@ function record_reference_not_applicable!(rec, anchor_reference::AbstractString)
     return true
 end
 
-# ONE staging directory, under a fixed name beside the outputs. Fixed, because a fresh name
-# per run accumulates one directory per run on any filesystem that will not let go of an
-# empty one; and beside the outputs, because a move within one filesystem is atomic and a
-# move across two is a copy that can half-finish. Whatever a previous attempt left in it is
-# cleared, so nothing from an earlier run can be published by this one.
+# ONE staging directory, under a fixed name beside the outputs. Fixed, because a fresh name per
+# run accumulates a directory per run on any filesystem that will not let go of an empty one;
+# beside the outputs, because a move within one filesystem is atomic while a move across two
+# can half-finish. Whatever a previous attempt left in it is cleared, so nothing from an
+# earlier run can be published by this one.
 const STAGING_DIR = "_staging"
 
 """
@@ -2865,17 +2824,16 @@ function publish!(stage::AbstractString, figdir::AbstractString, staged, gates)
         push!(written, joinpath(figdir, name))
     end
     # Everything is published by this point and the staging directory is now empty. A
-    # filesystem that will not remove it — a sync client still holding a handle, say — leaves
-    # one empty directory under a name that is reused and cleared next run, so nothing
-    # accumulates and nothing is lost. Refusing to return over that would report a complete,
-    # gated, published run as a failure.
+    # filesystem that will not remove it, a sync client still holding a handle say, leaves one
+    # empty directory under a name reused and cleared next run. Failing here would report a
+    # complete, gated, published run as a failure.
     try; rm(stage; recursive = true); catch; end
     return written
 end
 
-# The gates, by name, in the order they are built. A name per gate so that the set of them is
-# something a caller — the run, or a test — can enumerate and count, rather than a literal
-# vector written once inside the program guard where nothing can reach it.
+# The gates, by name, in the order they are built. A name per gate, so the run or a test can
+# enumerate and count the set, which a literal vector inside the program guard could not be
+# reached to do.
 const PUBLISH_GATES = ("anchor targets", "published breaker lists", "target sources",
                        "reference rows", "reference scope", "stale panel")
 
@@ -2948,10 +2906,9 @@ function publish_gates(; target_failures, unanchored_levels, source_checks, refe
                    "beside an earlier run's panel, under the names a reader and any " *
                    "downstream glob take as one result. Draw the panel, or remove the " *
                    "stale one on purpose")]
-    # THE SET OF GATES IS ITSELF DECLARED. A gate dropped from the vector above is a gate
+    # The set of gates is itself declared. A gate dropped from the vector above is a gate
     # nothing else in this file mentions, so the names are listed once beside the function and
-    # compared with what it built: removing an entry then takes two edits, and the second one
-    # is a bare list whose only job is to be checked.
+    # compared with what it built; removing an entry then takes two edits.
     built = String[String(g.name) for g in gates]
     built == String[String(n) for n in PUBLISH_GATES] ||
         error("the publish gate was built from " * join(built, ", ") * " where this file " *
@@ -2984,10 +2941,8 @@ const OPT = options_or_exit()
 
 # The inputs, by name, before anything is read or printed. Only the ones still at their
 # REGISTRY DEFAULT are checked: a path the reader typed is theirs, and the plain messages
-# further down report it as given rather than blaming the layout. Without this, a data root
-# that is not there surfaces as `missing <absolute path>` followed by a stack trace out of
-# Julia's include machinery — a path off one machine, printed by a step that never said
-# which named input it wanted.
+# further down report it as given. Without this, an absent data root surfaces as
+# `missing <absolute path>` and a stack trace out of Julia's include machinery.
 OPT.calls == DataInputs.input_path("habitat_calls") &&
     DataInputs.require_or_exit("habitat_calls")
 OPT.scan == DataInputs.input_path("background_scan_table") &&
@@ -3021,32 +2976,32 @@ rec!("calls_configurations", joined(sort(unique(sv.(calls.config)))))
 rec!("scan_table", basename(OPT.scan))
 rec!("scan_sha256", scan_read.sha256)
 rec!("scan_rows", nrow(scan))
-# THE THIRD INPUT, REQUIRED AND DIGESTED LIKE THE OTHER TWO. The call table and the scan
-# table both stop a run when they are missing, and so does this one: it is the input that
-# decides how much of the grid gets WRITTEN, so a path read whether it is there or not lets a
-# dropped path publish a table short of a whole contrast at exit 0. The digest goes with it,
-# because a digest written empty for an absent file reads as a digest that was taken.
+# The third input, required and digested like the other two. The call table and the scan table
+# both stop a run when they are missing, and so does this one: it decides how much of the grid
+# gets WRITTEN, so a dropped path would publish a table short of a whole contrast at exit 0.
+# The digest goes with it, because a digest written empty for an absent file reads as one that
+# was taken.
 census_read = require_census(OPT.census)
 census = census_read.census
 rec!("census_table", basename(OPT.census))
 rec!("census_sha256", census_read.sha256)
 
 # ---------------------------------------------------------------- the two rule seams
-# THE SPECIFICATIONS ARE BUILT HERE, before anything reads the call table, because they are
-# what says which configurations this grid reads: the seam checks below run over those and not
-# over one of them. `all_specs()` reads no input and decides nothing about the data.
+# The specifications are built here, before anything reads the call table, because they say
+# which configurations this grid reads: the seam checks below run over all of those.
+# `all_specs()` reads no input and decides nothing about the data.
 specs = all_specs()
 type_rule_configs = registered_type_rule_configurations(specs)
 seam_configs = grid_configurations(specs)
 rec!("grid_configurations", joined(seam_configs))
 
-# OVER EVERY CONFIGURATION WHOSE COMMITTED COLUMN THE REGISTERED RULE WROTE, not over the
-# primary alone. Four of the other configurations ARE registered levels — the text, generic-term
-# and isolation variants are their own committed weight columns read under a level's name — and
-# a column re-exported from a sibling keeps that configuration's tallies, its counts and its row
-# count, so every other guard in this file stays silent. The tallies are where the substitution
-# shows. The earlier pipeline's configuration is deliberately not in the list: its column
-# carries ITS type rule, which is the thing the anchor reproduces.
+# Over every configuration whose committed column the registered rule wrote, not the primary
+# alone. Four of the other configurations ARE registered levels: the text, generic-term and
+# isolation variants are their own committed weight columns read under a level's name. A column
+# re-exported from a sibling keeps that configuration's tallies, counts and row count, so every
+# other guard here stays silent, and the tallies are where the substitution shows. The earlier
+# pipeline's configuration is deliberately not in the list: its column carries ITS type rule,
+# which is what the anchor reproduces.
 tcheck = type_reconstruction_over(calls, type_rule_configs)
 tcheck.mismatches == 0 ||
     error("recomputing the registered type rule from the call table's own tallies " *
@@ -3084,9 +3039,9 @@ pool.taxids === nothing &&
     error("the move-in level has no pool: the scan table cannot answer the rule this " *
           "repository can apply alone")
 # The recorded decision for this run: the move-in level runs on the scan's own lanthanide
-# class call, which is a DIFFERENT measurement from the census's call on its own alignment,
-# and the pool the recorded rule names is not used. The run records which rule it ran
-# under, and that the other one was not taken, as data rather than as a note somewhere else.
+# class call, a DIFFERENT measurement from the census's call on its own alignment, and the
+# pool the recorded rule names is not used. The run records which rule it ran under, and that
+# the other was not taken, as data.
 rec!("movein_pool_rule", pool.rule)
 rec!("movein_pool_rule_source", String(pool.rule_source))
 rec!("movein_pool_rule_role",
@@ -3104,9 +3059,9 @@ rec!("movein_pool_taxa", length(pool.taxids))
 ctx = context(; calls = calls, scan = scan, ca_class_taxids = census.ca_class_taxids,
               movein_taxids = pool.taxids, min_distinct = MIN_DISTINCT_TERMS)
 rec!("min_distinct_terms", MIN_DISTINCT_TERMS)
-# THE ONE ASYMMETRY BETWEEN THE PRIMARY AND ITS VARIANTS, recorded where the numbers are
-# rather than in prose beside them: a reader of these three tables alone cannot otherwise know
-# that part of a variant's distance from the primary is the width of a written number.
+# The one asymmetry between the primary and its variants, recorded where the numbers are: a
+# reader of these three tables alone cannot otherwise know that part of a variant's distance
+# from the primary is the width of a written number.
 rec!("weight_column_precision",
      "the registered specification and every level that varies neither aggregation rule run " *
      "on the call table's COMMITTED type_weights column, which is rounded for reading; a " *
@@ -3119,37 +3074,36 @@ for m in sort(collect(keys(ctx.exclusions)))
 end
 
 # ---------------------------------------------------------------- the declared set
-# READ BEFORE THE GRID, because what this file declares has to be able to stop a run before it
-# computes anything. It carries two statements the run cannot make about itself: which levels
-# the registered set holds, and how many targets the file is supposed to hold.
+# Read before the grid, so what this file declares can stop a run before it computes anything.
+# It carries two statements the run cannot make about itself: which levels the registered set
+# holds, and how many targets the file is supposed to hold.
 anchor_file = isempty(OPT.anchor_targets) ? nothing : read_anchor_targets(OPT.anchor_targets)
 
 # ---------------------------------------------------------------- the grid
 S = variant_names(specs)
-# THE SET IS DECLARED IN THIS FILE, so nothing outside it says what belongs in it. This is the
-# check that keeps the declaration honest: a level that shares the registered specification's
+# The set is declared in this file, so nothing outside it says what belongs in it, and this is
+# the check that keeps the declaration honest: a level sharing the registered specification's
 # configuration, type rule, chemistry rule and background rule is that specification under
-# another name, and it would give every category a variant that cannot break it while the
-# size of the set, the uniqueness of its names and every anchor still passed.
+# another name, and would give every category a variant that cannot break it while the size of
+# the set, the uniqueness of its names and every anchor still passed.
 rec!("variants_checked_against_the_primary", assert_variants_vary_the_primary(specs))
-# AND A NAME IS NOT A LABEL. Everything published about a level is published under its name,
-# so the name is checked against the computation: the axis letter is a registered axis, the
-# level is a registered level of THAT axis, the field the axis varies carries it, and nothing
-# else moves. A level renamed onto another axis, or a rule the recorded decision keeps
-# outside the set running under a name from inside it, passes every count, every anchor and
-# the comparison against the primary — and publishes a correct number under the wrong rule's
-# name.
+# And a name is checked against the computation, because everything published about a level is
+# published under its name: the axis letter is a registered axis, the level is a registered
+# level of THAT axis, the field the axis varies carries it, and nothing else moves. A level
+# renamed onto another axis, or a rule kept outside the set running under a name from inside
+# it, passes every count, every anchor and the comparison against the primary, and publishes a
+# correct number under the wrong rule's name.
 rec!("variants_whose_name_describes_what_they_run",
      assert_variant_names_describe_what_they_run(specs))
-# AND NO TWO OF THEM ARE THE SAME SPECIFICATION. The comparison above is with the primary and
+# And no two of them are the same specification. The comparison above is with the primary and
 # with nothing else, so a pair of clones passes it while deleting a level from the set and
 # leaving its column standing.
 rec!("distinct_variant_specifications", assert_variants_differ_from_each_other(specs))
-# AND THE SET ITSELF IS DECLARED OUTSIDE THIS FILE. Every check above compares one part of this
-# script with another part of it, and the axis table reads its levels off the same tuples the
-# specifications are built from: delete a level and the wiring and the vocabulary move
-# together, so nothing is left to disagree. The declared set is the one statement about the
-# grid that an edit to the grid cannot also make.
+# And the set itself is declared outside this file. Every check above compares one part of this
+# script with another, and the axis table reads its levels off the same tuples the
+# specifications are built from, so deleting a level moves the wiring and the vocabulary
+# together. The declared set is the one statement about the grid that an edit to the grid
+# cannot also make.
 if anchor_file === nothing
     rec!("registered_set_declared", false)
     @warn("--no-anchors was given, so nothing outside this script says which levels the " *
@@ -3169,15 +3123,15 @@ rec!("axes", joined(sort(unique([s.axis for s in specs]))))
 t_grid = @elapsed G = run_grid(ctx, specs)
 rows = G.rows
 n_unique = assert_grid_complete(rows, S)
-# EVERY CATEGORY IS ONE THE LIBRARY DECLARES. A specification reading a column that holds
-# something other than what it was asked for writes plausible rows under names that are not
-# categories at all, and every one of them travels into the flag table under a registered
-# variant's name.
+# Every category is one the library declares. A specification reading a column that holds
+# something other than what it asked for writes plausible rows under names that are not
+# categories at all, and every one travels into the flag table under a registered variant's
+# name.
 rec!("grid_rows_with_a_registered_category", assert_categories_are_registered(rows))
-# AND NOTHING THE SPECIFICATIONS MEASURE IS SILENTLY ABSENT. Every guard above asks whether a
-# row that is here is right; this is the one that asks whether a row that should be here is
-# missing. The two do not look alike from the outside: a table short of a whole contrast, unit
-# or category carries no wrong number, meets every target, and goes out looking complete.
+# And nothing the specifications measure is silently absent. Every guard above asks whether a
+# row that is here is right; this one asks whether a row that should be here is missing. A
+# table short of a whole contrast, unit or category carries no wrong number, meets every
+# target, and goes out looking complete.
 rec!("published_series_checked_against_the_declaration",
      assert_the_published_shape_is_the_declared_one(rows, specs))
 rec!("declared_contrasts", joined(DECLARED_CONTRASTS))
@@ -3205,11 +3159,10 @@ let check_spec = Spec("check:any_term", "check", "any_term", PRIMARY_CONFIG, not
             c.compared, c.worst)
 end
 
-# THE MOVE-IN LEVEL GREW THE FOREGROUND. The arm builder refuses a pool that named frame
-# taxa and moved none; this is the other half, measured against the specification the level
-# varies.
-# It is checked on the whole arms and again on the thin-evidence subset, because the subset is
-# a second run of the same level and a level that is inert on one of them is inert.
+# The move-in level grew the foreground. The arm builder refuses a pool that named frame taxa
+# and moved none; this is the other half, measured against the specification the level varies.
+# Checked on the whole arms and again on the thin-evidence subset, because the subset is a
+# second run of the same level and a level inert on one of them is inert.
 for suffix in ("", MIN_DISTINCT_SUFFIX)
     mv = G.runs[("B:$(HE.MOVEIN_MODE)", suffix)].type_arms
     base = G.runs[("primary", suffix)].type_arms
@@ -3225,8 +3178,8 @@ for suffix in ("", MIN_DISTINCT_SUFFIX)
 end
 
 # The thin-evidence subset has to bite on BOTH arms, or it is a filter on the foreground
-# wearing the name of a unit check. Checked for every specification it is run for, because
-# the arms it filters are that specification's arms and not the registered one's.
+# wearing the name of a unit check. Checked for every specification it is run for, because the
+# arms it filters are that specification's and not the registered one's.
 let base_specs = vcat([primary_spec()], sensitivity_specs()), t = nothing
     for s in base_specs
         # the registered specification's own result is kept as it passes, rather than the
@@ -3240,28 +3193,27 @@ let base_specs = vcat([primary_spec()], sensitivity_specs()), t = nothing
     rec!("thin_evidence_n1_base", t.n1_whole); rec!("thin_evidence_n2_base", t.n2_whole)
 end
 
-# WHICH VARIANTS ACTUALLY MOVED SOMETHING. A one-at-a-time grid over two orthogonal rule
-# families produces cells no axis can reach, and those cells hold the primary's own numbers;
-# counting the movement is what separates them from agreement. A variant that moves nothing on
-# any unit is refused by name — that is not orthogonality, it is a level wired to nothing, or
-# the registered specification wearing a variant's name.
+# Which variants actually moved something. A one-at-a-time grid over two orthogonal rule
+# families produces cells no axis can reach, holding the primary's own numbers; counting the
+# movement separates them from agreement. A variant that moves nothing on any unit is refused
+# by name: not orthogonality, but a level wired to nothing, or the registered specification
+# wearing a variant's name.
 movement = estimate_movement(rows, S)
 rec!("variants_that_moved_an_estimate_somewhere",
      assert_every_variant_moves_something(movement, S))
-# AND NO TWO OF THEM ARE ONE MEASUREMENT. The clone check above compares declarations, and a
+# And no two of them are one measurement. The clone check above compares declarations, and a
 # duplicated configuration in the CALL TABLE leaves every declaration distinct while making two
-# levels the same measurement — no edit to this file, fourteen columns over thirteen
-# measurements, and a category both of them broke keeping one breaker where a reader counts
-# two. This is the same question asked of the numbers.
+# levels the same measurement: no edit to this file, fourteen columns over thirteen
+# measurements, and a category both broke keeping one breaker where a reader counts two. This
+# is the same question asked of the numbers.
 pair_differences = variant_pair_differences(rows, S)
 rec!("distinct_variant_measurements",
      assert_no_two_variants_are_one_measurement(rows, S, pair_differences))
-# AND HOW CLOSE THE CLOSEST LEGITIMATE PAIR CAME TO IT — per unit, not only overall. The guard
-# fires at zero cells apart, so a margin read against every cell the flag reads looks like far
-# more headroom than it is. Two levels of one rule family agree
-# on every cell of the other family's unit BY CONSTRUCTION, because their axis is declared
-# unable to reach it. The cells that could have separated them are the ones both axes reach,
-# and that denominator is the one a reader of the margin needs.
+# And how close the closest legitimate pair came to it, per unit as well as overall. The guard
+# fires at zero cells apart, so a margin read against every cell the flag reads looks like more
+# headroom than it is: two levels of one rule family agree on every cell of the other family's
+# unit BY CONSTRUCTION. The denominator a reader of the margin needs is the cells both axes
+# reach.
 let m = variant_pair_margin(pair_differences, specs)
     if m.overall !== nothing
         rec!("closest_variant_pair", m.overall.pair)
@@ -3280,11 +3232,10 @@ let m = variant_pair_margin(pair_differences, specs)
          "pair of levels on one axis that agrees on every reachable cell agrees on all of " *
          "them, which is why the guard is sound at the smaller denominator too")
 end
-# AND THE UNITS EACH ONE REACHED ARE THE UNITS ITS AXIS DECLARES. Without this the "does not
+# And the units each one reached are the units its axis declares. Without this the "does not
 # reach" lines below are read off the measurement they are supposed to describe, so a level
-# that lost its wiring to one unit is published as orthogonality — in the provenance, and as
-# `n.r.` in the written table, which says in words that the rule family does not touch that
-# unit at all.
+# that lost its wiring to one unit is published as orthogonality: in the provenance, and as
+# `n.r.` in the written table, which says the rule family does not touch that unit at all.
 rec!("axis_unit_declaration",
      joined([a.axis * "=" * join(a.units, ",") for a in VARIANT_AXES]))
 rec!("variants_that_reached_the_units_their_axis_declares",
@@ -3295,12 +3246,12 @@ for u in movement.units
     rec!("variants_whose_axis_does_not_reach_$u",
          joined([v for v in S if !(v in reached)]))
 end
-# HOW FAR EACH LEVEL MOVED, BESIDE HOW FAR IT COULD. The guard above is a threshold at zero,
-# and a variant that moves one cell of those its axis reaches passes it while
-# reproducing the registered specification everywhere else — which is what a half-applied
-# configuration looks like, not what a rule variant looks like. The frozen rules set no
-# threshold on how far a level must move, so none is invented here: the pair of numbers is
-# recorded per variant, and a one-cell level is then visible beside its siblings.
+# How far each level moved, beside how far it could. The guard above is a threshold at zero, so
+# a variant that moves one of the cells its axis reaches passes it while reproducing the
+# registered specification everywhere else, which is what a half-applied configuration looks
+# like. The frozen rules set no threshold on how far a level must move, so none is invented:
+# the pair of numbers is recorded per variant, and a one-cell level is visible beside its
+# siblings.
 let by_name = Dict(s.name => s for s in specs if s.role == ROLE_VARIANT)
     rec!("variant_cells_moved",
          joined(["$v=$(get(movement.per_variant, v, 0))" for v in S]))
@@ -3331,21 +3282,19 @@ rec!("fragile_categories",
      joined(sort([f.category for f in flags if f.robust_sign == "fragile"])))
 rec!("unit_checks_feed_the_flag", false)
 rec!("unit_checks", joined(("genera", "sequences", "n_distinct>=$MIN_DISTINCT_TERMS")))
-# THE GENUS SERIES, CHECKED RATHER THAN COUNTED. A downstream decision rests on this series
-# holding across the whole grid, so what is recorded is which specifications and which cells
-# were checked — a count of specifications that have a genus row somewhere would read the same
-# whether the series were complete or had lost a category under one level and gained a row
-# from a line outside the grid.
+# The genus series is checked, not counted. A downstream decision rests on it holding across
+# the whole grid, so what is recorded is which specifications and which cells were checked. A
+# count of specifications with a genus row somewhere would read the same whether the series
+# were complete or had lost a category under one level and gained a row from outside the grid.
 let g = check_genus_series(rows, vcat(["primary"], S))
     rec!("unit_check_genus_series_specifications", g.specifications)
     rec!("unit_check_genus_series_units", joined(g.units))
     rec!("unit_check_genus_series_cells_checked", g.cells)
     rec!("unit_check_genus_series_cells_missing", length(g.missing_cells))
-    # NOT AN ERROR, AND NAMED EITHER WAY. A rule variant that stops calling a category for
-    # any taxon legitimately has nothing to measure there, so a missing cell is a result of
-    # the grid and not a failure of it — but it is also the thing that would quietly turn
-    # "every specification agrees" into "every specification that had a row agrees", so it
-    # leaves this run as data with the cells named rather than as a blank in a table.
+    # Not an error, and named either way. A rule variant that stops calling a category for any
+    # taxon has nothing to measure there, so a missing cell is a result of the grid. It is
+    # also what would quietly turn "every specification agrees" into "every specification that
+    # had a row agrees", so it leaves this run as data with the cells named.
     rec!("unit_check_genus_series_cells_missing_are", joined(g.missing_cells))
     isempty(g.missing_cells) ||
         @warn("the genus series is missing $(length(g.missing_cells)) cell(s); they are " *
@@ -3372,27 +3321,26 @@ else
     rec!("anchor_targets_supplied", true)
     rec!("anchor_checks_declined", false)
     rec!("anchor_targets_file", basename(OPT.anchor_targets))
-    # HOW MANY TARGETS THE FILE SAID IT HELD. `anchor_targets_checked` below is a count of what
-    # the file contained, and a file that lost rows is a run that checked less and reported
-    # success in the same words. `read_anchor_targets` refuses the mismatch; this records the
-    # number the refusal was made against, so a reader of the provenance alone can see how
-    # strong the wiring check was rather than only that it passed.
+    # How many targets the file said it held. `anchor_targets_checked` below counts what the
+    # file contained, and a file that lost rows is a run that checked less and reported success
+    # in the same words. `read_anchor_targets` refuses the mismatch; this records the number
+    # the refusal was made against, so a reader of the provenance alone can see how strong the
+    # wiring check was.
     rec!("anchor_targets_expected", anchor_file.expected[:targets])
     rec!("anchor_targets_on_the_registered_specification",
          count(t -> t.anchor == primary_spec().name, anchor_file.targets))
-    # AND HOW MANY OF THEM SIT ON A LEVEL. The registered specification's own rows are one of
-    # the fifteen SPECIFICATIONS whose intervals decide a word; the other fourteen are the
-    # levels, and a target
-    # count that does not separate the two says nothing about them. The names with no target at
-    # all are recorded too, so the reach of the wiring check is a list rather than an
-    # impression.
+    # And how many of them sit on a level. The registered specification's own rows are one of
+    # the fifteen SPECIFICATIONS whose intervals decide a word and the other fourteen are the
+    # levels, so a target count that does not separate the two says nothing about them. The
+    # names with no target at all are recorded too, so the reach of the wiring check is a
+    # list.
     let anchored = sort(unique(String[t.anchor for t in anchor_file.targets if t.anchor in S]))
         rec!("anchor_targets_on_a_registered_level",
              count(t -> t.anchor in S, anchor_file.targets))
         rec!("registered_levels_with_a_target", length(anchored))
         rec!("registered_levels_without_a_target", joined([v for v in S if !(v in anchored)]))
     end
-    # WHERE THE NUMBERS CAME FROM, AS BYTES. A target transcribed from this grid's own output
+    # Where the numbers came from, as bytes. A target transcribed from this grid's own output
     # is identical to an honestly transcribed one, so the file names the implementation it was
     # transcribed from and carries that file's digest; a source present beside the targets and
     # not matching its declared digest stops the run below.
@@ -3407,10 +3355,9 @@ else
     end
     expected_reference_rows = anchor_file.expected[:reference_rows]
     # The targets are the one check that proves this grid is wired to its data, and they arrive
-    # as a file named on the command line rather than as constants of this script. Without
-    # their digest a later step can confirm neither that the check ran nor that it ran against
-    # the same bytes — while the call table and the scan table, which decide less, both carry
-    # one.
+    # as a file named on the command line rather than as constants of this script. Without their
+    # digest a later step can confirm neither that the check ran nor that it ran against the
+    # same bytes, while the call table and the scan table both carry one.
     rec!("anchor_targets_sha256", bytes2hex(sha256(read(OPT.anchor_targets))))
 end
 target_result = check_anchor_targets(rows, targets)
@@ -3423,12 +3370,12 @@ for e in exceptions
     rec!("anchor_named_exception_$(e.unit)_$(e.category)", e.note)
 end
 
-# THE LEVELS THIS RUN PUBLISHES BY NAME MUST BE PINNED BY SOMETHING. A breaker list is the
-# published claim that a result does not survive THAT rule and does survive the others, and it
-# is decided by the level's own arms — which the registered specification's targets never
-# touch. The requirement is read off what this run actually published rather than listed here,
-# so a level that starts or stops breaking a category carries the requirement with it; a list
-# written into this file would go stale in exactly the run where it mattered.
+# The levels this run publishes by name must be pinned by something. A breaker list claims that
+# a result does not survive THAT rule and does survive the others, and it is decided by the
+# level's own arms, which the registered specification's targets never touch. The requirement is
+# read off what this run actually published, so a level that starts or stops breaking a category
+# carries the requirement with it; a list written into this file would go stale in exactly the
+# run where it mattered.
 published_levels = anchor_file === nothing ? String[] : levels_named_in_a_breaker_list(flags)
 unanchored_levels = anchor_file === nothing ? String[] :
                     unanchored_published_levels(flags, targets)
@@ -3438,23 +3385,19 @@ rec!("levels_named_in_a_published_breaker_list_without_a_target", joined(unancho
 ref_ok = true
 reference_rows_compared = 0
 # What the targets file declares the comparison covers, carried only once a comparison was
-# actually made: a run that never reached the reference has no scope to disagree with, and its
-# refusal is the gate above rather than this one.
+# made: a run that never reached the reference has no scope to disagree with, and the gate
+# above is what refuses it.
 reference_rows_declared = nothing
 if ANCHOR_LEVELS_RETIRED && isempty(anchor_rows)
-    # NOT APPLICABLE, AND SAID SO RATHER THAN PASSED QUIETLY. The row-by-row comparison is a
-    # statement about the all-legacy anchor, and that level is not evaluated against the
-    # census this run reads (see ANCHOR_LEVELS_RETIRED). With no anchor rows to compare, every
-    # row of an earlier run's reference would count as `absent` and the gate could never pass
-    # — not because this grid disagrees with the earlier one, but because it was never asked
-    # the question.
+    # Not applicable, and said so rather than passed quietly. The row-by-row comparison is a
+    # statement about the all-legacy anchor, which is not evaluated against the census this run
+    # reads (see ANCHOR_LEVELS_RETIRED). With no anchor rows, every row of an earlier run's
+    # reference would count as `absent` and the gate could never pass.
     #
     # Pointing --anchor-reference at a file holding no rows would pass for the same arithmetic
-    # reason while recording nothing about WHY: a reader of the provenance would see a
-    # comparison that covered zero rows and no statement that covering zero is the intended
-    # outcome. So the status is written out in words, the count stays 0, and the targets
-    # file's `reference_rows,0` is the declaration that agrees with it; in this branch that
-    # declaration is read and not compared.
+    # reason while recording nothing about WHY. So the status is written out in words, the
+    # count stays 0, and the targets file's `reference_rows,0` is the declaration that agrees
+    # with it; in this branch that declaration is read and not compared.
     #
     # A reference named anyway is recorded by its file name and NOT opened; see
     # `record_reference_not_applicable!`.
@@ -3475,11 +3418,10 @@ elseif !isempty(OPT.anchor_reference)
             rec!("anchor_reference_sha256",
                  bytes2hex(sha256(read(OPT.anchor_reference))))
             rec!("anchor_reference_rows_compared", d.compared)
-            # HOW MANY ROWS THE COMPARISON WAS SUPPOSED TO COVER. "N of N rows agree" is the
-            # same sentence at any N, so a reference file regenerated at another scope — more
-            # rows, fewer rows, a different vintage — reports a number that reads better than
-            # the honest run's rather than different from it. The count is declared in the
-            # targets file and compared here.
+            # How many rows the comparison was supposed to cover. "N of N rows agree" is the
+            # same sentence at any N, so a reference file regenerated at another scope (more
+            # rows, fewer, a different vintage) reports a number that reads better than the
+            # honest run's. The count is declared in the targets file and compared here.
             reference_rows_compared = d.compared
             if expected_reference_rows !== nothing
                 rec!("anchor_reference_rows_expected", expected_reference_rows)
@@ -3490,10 +3432,10 @@ elseif !isempty(OPT.anchor_reference)
             rec!("anchor_reference_rows_absent", joined(d.absent))
             rec!("anchor_reference_worst_difference", d.worst)
             rec!("anchor_reference_named_exceptions", joined(scoped.excluded))
-            # THE ROWS THAT LEFT THE COMPARISON WITH THE UNIT THEY WERE MEASURED ON. Without
+            # The rows that left the comparison, with the unit they were measured on. Without
             # these two rows the provenance says "every compared row agrees" over a scope
-            # nobody can see, and the largest deliberate difference between the two runs is
-            # the one thing the machine-readable output does not mention.
+            # nobody can see, and the largest deliberate difference between the two runs goes
+            # unmentioned in the machine-readable output.
             rec!("anchor_reference_rows_out_of_scope", length(scoped.out_of_scope))
             rec!("anchor_reference_out_of_scope_units", joined(scoped.out_of_scope_units))
             rec!("anchor_reference_out_of_scope_reason", REFERENCE_OUT_OF_SCOPE_REASON)
@@ -3544,11 +3486,11 @@ if OPT.figure
 else
     rec!("panel_written", "")
 end
-# A RUN THAT DOES NOT DRAW THE PANEL MUST NOT PUBLISH BESIDE AN OLD ONE. `publish!` moves what
+# A run that does not draw the panel must not publish beside an old one. `publish!` moves what
 # was staged and leaves everything else where it is, so `--no-figure` into a directory that
 # already holds a panel leaves this run's tables beside the previous run's picture, under the
-# names a reader takes as one result. Measured here rather than asserted, so the number is in
-# the provenance of the run that was refused.
+# names a reader takes as one result. Measured here, so the number is in the provenance of the
+# run that was refused.
 stale_panels = stale_panel_files(OPT.figdir, OPT.figure)
 rec!("stale_panel_files", joined(stale_panels))
 rec!("panel_categories", length(panel))
@@ -3573,12 +3515,11 @@ rec!("robustness_column_note",
      "is left empty where the primary estimate is positive")
 
 # ---------------------------------------------------------------- the gates
-# BUILT BY A FUNCTION, NOT WRITTEN HERE, and built BEFORE the provenance is written so the run
-# records which gates it made. The predicates behind them are each tested on their own; the
-# wiring that hands them to `publish!` is a function rather than a literal inside this program
-# guard, which no test can execute — there, a gate entry deleted, or its `ok` quietly replaced
-# by `true`, leaves the whole suite green while the attack that gate exists to refuse
-# publishes at exit 0.
+# Built by a function, and built BEFORE the provenance is written so the run records which
+# gates it made. The predicates behind them are each tested on their own; the wiring that hands
+# them to `publish!` is a function and not a literal inside this program guard, which no test
+# can execute, where a deleted gate entry or an `ok` replaced by `true` would leave the suite
+# green while what that gate refuses publishes at exit 0.
 gates = publish_gates(; target_failures = target_result.failures,
                       unanchored_levels = unanchored_levels,
                       source_checks = source_checks,

@@ -14,53 +14,49 @@ using CSV
 const REST_ROOT = "https://rest.uniprot.org"
 
 #=
-    WHY THIS MODULE DOES NOT USE UNIPROT'S ID-MAPPING SERVICE.
+    Why this module does not use UniProt's id-mapping service.
 
-    The obvious route to a taxon per accession is an id-mapping job: POST a set of
-    accessions, poll the job, stream the result. That route fails in three ways, and the
-    third is the one that matters:
+    An id-mapping job (POST a set of accessions, poll the job, stream the result) fails in
+    three ways, all measured directly against the live service:
 
-      1. A job can SUCCEED and answer short: fewer results than ids submitted, with
-         `failedIds` empty and the service's own `x-total-results` agreeing with the short
-         number. It is not a fixed size cap and not a race — the short count is stable over
-         repeated reads — and the dropped ids are ordinary live entries that map when asked
-         for alone.
+      1. A job can SUCCEED and answer short: fewer results than ids submitted, `failedIds`
+         empty, and the service's own `x-total-results` agreeing with the short number. The
+         short count is stable over repeated reads, and the dropped ids are ordinary live
+         entries that map when asked for alone.
       2. Asking again cannot fix that, because a job is keyed on its id set: the same ids
          return the same jobId and the same cached answer. Splitting the set is the only
          recovery; a chunk that answers short can come back whole as two halves.
       3. Under a sustained run of back-to-back jobs the service starts FAILING them with an
          internal 503, while jobs of one to three ids still answer. The failures are caused
-         by the client's own volume, and splitting — which turns one job into two — makes it
-         worse: every level of halving still fails.
+         by the client's own volume, so splitting makes it worse: every level of halving
+         still fails.
 
-    And the decisive point: https://rest.uniprot.org/robots.txt disallows `/idmapping/`
-    outright, and every `/*/stream/` path. The route below needs neither, creates no
-    server-side state, and cannot have a wrong answer cached against it. The failure modes
-    above were measured directly against the live service.
+    https://rest.uniprot.org/robots.txt also disallows `/idmapping/` outright, and every
+    `/*/stream/` path. The route below needs neither, creates no server-side state, and
+    cannot have a wrong answer cached against it.
 =#
 
-# Pass 1: UniProtKB search, which returns ACTIVE and DELETED entries in one response —
-# actives with organism.taxonId, deleted ones with entryType "Inactive" and the
-# extraAttributes.uniParcId that pass 2 needs. `/uniprotkb/accessions` is NOT usable here:
-# it omits deleted entries silently, which is the ambiguity this route exists to remove.
+# Pass 1: UniProtKB search returns ACTIVE and DELETED entries in one response: actives with
+# organism.taxonId, deleted ones with entryType "Inactive" and the extraAttributes.uniParcId
+# that pass 2 needs. `/uniprotkb/accessions` is not usable here, because it omits deleted
+# entries silently.
 #
 # 100 is the service's own cap: a query with more terms answers HTTP 400 "Too many OR
 # conditions in query. Maximum allowed is 100." The default page size is 25, so size= must
-# be set or the response pages behind your back.
+# be set or the response pages silently.
 const SEARCH_BLOCK = 100
 const SEARCH_PAGE = 500
 const PASS1_FIELDS = "accession,organism_id"
 
 # Pass 2: UniParc, 500 UPIs per request (measured at 500; not probed above it, do not).
-# Always send fields= — an entry is ~246 B with it and ~3.6 kB without.
+# Always send fields=: an entry is ~246 B with it and ~3.6 kB without.
 const UPIS_BLOCK = 500
 const PASS2_FIELDS = "upi,accession,organism_id"
 
-# Politeness. All of this is OUR restraint, not an advertised limit: UniProt's responses,
-# as observed, carry no X-RateLimit-*, no RateLimit-Policy, no Retry-After and no Server
-# header, and UniProt publishes no requests-per-second figure. The only documented cause of
-# a 429 anywhere in their help corpus is "too many parallel requests", so the rule that
-# actually matters is the first one.
+# Politeness: our own restraint, not an advertised limit. UniProt's responses carry no
+# X-RateLimit-*, no RateLimit-Policy, no Retry-After and no Server header, and UniProt
+# publishes no requests-per-second figure. The only documented cause of a 429 in their help
+# corpus is "too many parallel requests", so the first rule below is the one that matters.
 const PACE_S = 1.0              # sustained, between request starts; never go above 3 req/s
 const PASS3_PACE_S = 0.3        # pass 3's calls are 30-100 ms; a shorter pause is defensible
 const USER_AGENT = "LnFinder/0.1"
@@ -125,9 +121,9 @@ end
 # ------------------------------------------------------------------
 #=
     Everything that talks to the network goes through one injected callable, the way
-    EnvironmentTools injects `path_of` into aggregate_habitats. Tests pass a fetch that
-    answers from inline fixtures, so the parsers below are exercised on the live JSON
-    shapes without a socket.
+    EnvironmentTools injects `path_of` into aggregate_habitats. Tests pass a fetch answering
+    from inline fixtures, so the parsers below are exercised on the live JSON shapes without
+    a socket.
 
     Contract:  fetch(method::Symbol, url; body=nothing, headers=Dict()) ->
                (status::Int, headers::Dict{String,String}, body::String)
@@ -136,8 +132,7 @@ end
       * header names in the returned Dict are lower-cased, so callers can look up
         "x-uniprot-release" or "link" without guessing the server's capitalisation.
       * redirects are NOT followed and HTTP statuses never throw: what a status means is
-        decided by the caller (`polite_get`), which refuses a redirect rather than follow
-        it somewhere nobody asked for.
+        decided by the caller (`polite_get`), which refuses a redirect.
 =#
 """
     default_fetch(method, url; body=nothing, headers=Dict()) -> (status, headers, body)
@@ -183,24 +178,18 @@ header_value(headers, name::AbstractString; default::AbstractString = "") =
 # 3. The polite request layer
 # ------------------------------------------------------------------
 #=
-    One serial GET at a time, paced, with an error policy that differs per status because
-    the statuses mean different things:
+    One serial GET at a time, paced, with an error policy that differs per status:
 
-      429  we are being told to stop. Never retry immediately and NEVER split the work —
-           splitting doubles the load on a service that has just said it is busy. Honour
-           Retry-After if present, else back off 60/120/300: three back-offs PER REQUEST,
-           and the fourth 429 on one request throws, which stops the run. The counter is
-           scoped to the request on purpose. The accession cache is written only once every
-           guard has passed, so a run-wide tally would let isolated 429s hours apart throw
-           away all of pass 1 and pass 2, while each request on its own already waits the
-           whole ladder before it gives up. UniProt's own reference client deliberately
-           omits 429 from its retry list: a 429 is not meant to be retried through.
-      5xx  transient. Same request, up to HTTP_TRIES_5XX, backoff factor 0.25 — this is
-           UniProt's own published client behaviour. A run that hits several of these is
-           seeing the saturation signature described at the top of this file; the right
-           response is to stop and come back later, not to push harder.
-      400  not transient. The block size and accession syntax are validated locally
-           precisely so this cannot be answered by retrying.
+      429  stop. Never retry immediately and never split the work: splitting doubles the
+           load on a service that has just said it is busy. Honour Retry-After if present,
+           else back off 60/120/300. That is three back-offs PER REQUEST, scoped to the
+           request, and the fourth 429 on one request throws, which stops the run. UniProt's
+           own reference client omits 429 from its retry list.
+      5xx  transient. Same request, up to HTTP_TRIES_5XX, backoff factor 0.25, which is
+           UniProt's own published client behaviour. Several of these in one run is the
+           saturation signature described at the top of this file: stop and resume later.
+      400  not transient. The block size and accession syntax are validated locally so this
+           cannot be answered by retrying.
 =#
 """
     polite_get(url; fetch=default_fetch, pace_s=PACE_S, tries=HTTP_TRIES_5XX)
@@ -231,10 +220,8 @@ function polite_get(url::AbstractString; fetch = default_fetch, pace_s::Real = P
             retry_after = header_value(headers, "Retry-After")
             asked_s = isempty(retry_after) ? BACKOFF_429_S[n429] :
                       something(tryparse(Float64, retry_after), BACKOFF_429_S[n429])
-            # Retry-After is honoured, but never below the sustained pace. A header of 0,
-            # or of a fraction of a second, would turn "stop" into an immediate re-ask —
-            # the one response a 429 rules out — and it arrives from the service that is
-            # already saying it has too much work.
+            # Retry-After is honoured, but never below the sustained pace: a header of 0, or
+            # of a fraction of a second, would turn "stop" into an immediate re-ask.
             wait_s = max(asked_s, PACE_S)
             @warn "UniProt answered 429; backing off" seconds = wait_s url
             sleeper(wait_s)
@@ -366,18 +353,15 @@ function pass1(accessions::Vector{String}; fetch = default_fetch, verbose::Bool 
             part = parse_uniprotkb_search(json)
 
             seen = union(Set(keys(part.active)), Set(String.(part.inactive.accession)))
-            # MEMBERSHIP, NOT CARDINALITY. Counting is not accounting: a response carrying
-            # an accession we did not ask for (a secondary that resolved to a different
-            # primary) holds `length(seen)` at `length(block)` while one of OUR ids is
-            # absent, and a size check then calls that block complete. Ask WHICH ids came
-            # back, never how many.
+            # Membership, not cardinality: a response carrying an accession we did not ask
+            # for (a secondary that resolved to a different primary) holds `length(seen)` at
+            # `length(block)` while one of OUR ids is absent, and a size check then calls
+            # that block complete.
             asked = Set(block)
             missing_accs = [a for a in block if !(a in seen)]
-            # NAMED, NOT INFERRED FROM A COUNT. Seen only as a disagreement with
-            # `x-total-results`, a surplus lets the run say "0 of N missing" and then abort
-            # as "short" while listing no missing id at all — a message that describes the
-            # opposite of what happened and sends the reader looking for a loss that is not
-            # there. The extras are right here in `seen`.
+            # The extras are named from `seen`, not inferred from a count: seen only as a
+            # disagreement with `x-total-results`, a surplus lets the run abort as "short"
+            # while listing no missing id at all.
             extra_accs = sort!([a for a in seen if !(a in asked)])
             came_short = !isempty(missing_accs)
             came_over  = !isempty(extra_accs) || (total !== nothing && total != length(block))
@@ -724,7 +708,7 @@ function fetch_own_xref(upi::AbstractString, accession::AbstractString;
                         fetch = default_fetch, pace_s::Real = PASS3_PACE_S, sleeper = sleep)
     # `?id=` filters on the accession itself, so the response is the one cross-reference we
     # care about. Preferred over `?dbTypes=UniProtKB/TrEMBL`, which assumes the accession
-    # sits in TrEMBL rather than Swiss-Prot — an assumption nothing here can guarantee.
+    # sits in TrEMBL and not Swiss-Prot.
     url = "$REST_ROOT/uniparc/$upi/databases?format=json&size=500" *
           "&id=$(HTTP.escapeuri(accession))"
     seen = 0
@@ -739,14 +723,13 @@ function fetch_own_xref(upi::AbstractString, accession::AbstractString;
         hit === nothing || return (hit = hit, complete = true)
         url = _next_link(header_value(headers, "Link"))
     end
-    # A miss the service did not account for is not a fact about the data. If the header is
-    # absent the answer cannot be shown complete either, and is treated as short rather than
-    # assumed whole — the cost of that is one repeated request, and the cost of assuming is a
-    # wrong negative that outlives every run.
+    # A miss the service did not account for is not a fact about the data. An absent header
+    # cannot show the answer complete either, so it counts as short: the cost is one
+    # repeated request.
     return (hit = nothing, complete = declared !== nothing && seen == declared)
 end
 
-# `Link: <url>; rel="next"` — the only rel the results endpoints emit.
+# `Link: <url>; rel="next"`, the only rel the results endpoints emit.
 function _next_link(link_header::AbstractString)
     isempty(link_header) && return ""
     m = match(r"<([^>]+)>\s*;\s*rel=\"next\"", link_header)
@@ -777,38 +760,34 @@ end
 # 9b. The accession-keyed cache — layer 1
 # ------------------------------------------------------------------
 #=
-    The (UPI, accession) cache above serves pass 3, which is the expensive step. What it
-    cannot do is spare a FRESH run any work, because it cannot be consulted until
-    `accession -> UPI` has already been re-derived over the network.
+    The (UPI, accession) cache above serves pass 3, the expensive step, but cannot spare a
+    FRESH run any work: it cannot be consulted until `accession -> UPI` has already been
+    re-derived over the network.
 
     This layer is keyed on the bare accession and nothing else, so a re-run is a local join
     and costs no HTTP at all while the release is unchanged.
 
-    `source` records which request shape produced each taxon, so one class can be
-    re-derived later without re-deriving all of them. `uniprot_release` is the ageing
-    handle: taxids are merged and deleted upstream, and a cache without a release stamp
-    cannot be invalidated honestly.
+    `source` records which request shape produced each taxon, so one class can be re-derived
+    later without re-deriving all of them. `uniprot_release` is the ageing handle: taxids are
+    merged and deleted upstream, and a cache without a release stamp cannot be invalidated.
 
-    One trap, because it would be easy and wrong: do NOT seed this from a census's own
-    filled TaxID column. That would confirm the census's numbers with the census's
-    numbers. Rows of uniparc_xref_cache.csv are fetched independently and promote freely;
-    a census's own values are a validation target, not an input.
+    Do NOT seed this from a census's own filled TaxID column: that would confirm the
+    census's numbers with the census's numbers. Rows of uniparc_xref_cache.csv are fetched
+    independently and promote freely; a census's own values are a validation target, not an
+    input.
 =#
 const TAXID_CACHE_COLS = ["accession", "taxid", "source", "uniparc_id", "active",
                           "uniprot_release", "fetched_at",
-                          # CARRIED SO THAT A CACHE-WARM RE-RUN DESCRIBES THE SAME CENSUS.
-                          # These three are not resolutions, they are what the resolution
-                          # SAYS, and the table this cache feeds carries them. Pass 1 is not
-                          # re-run for a cached accession, so without them a warm re-run
-                          # rebuilds the same taxa with three empty columns and calls it the
-                          # same census. A file without these columns still loads: the
-                          # reader keys off the header it finds.
+                          # Carried so that a cache-warm re-run describes the same census.
+                          # Pass 1 is not re-run for a cached accession, so without these
+                          # three a warm re-run rebuilds the same taxa with three empty
+                          # columns. A file without these columns still loads: the reader
+                          # keys off the header it finds.
                           "inactive_reason", "xref_created", "xref_last_updated"]
 
-# "unresolved" is deliberately NOT a member. A failure to resolve is not a fact about an
-# accession, it is the absence of one; caching it makes a transient failure permanent and
-# invisible, because `todo` then skips that accession on every later run and no guard ever
-# sees it again. Only established resolutions are cacheable.
+# "unresolved" is deliberately NOT a member. Caching a failure to resolve makes it permanent
+# and invisible, because `todo` then skips that accession on every later run and no guard
+# ever sees it again. Only established resolutions are cacheable.
 const TAXID_SOURCES = ("uniprotkb_active", "uniparc_single_organism", "uniparc_own_xref")
 
 # The two sources that mean "pass 1 called this Inactive and a later pass rescued it". A
@@ -829,9 +808,8 @@ function load_taxid_cache(path::Union{String, Nothing})
                                         Union{String, Missing}, Union{String, Missing},
                                         Union{String, Missing}}}}()
     (path === nothing || !isfile(path)) && return out
-    # WHAT THE HEADER ACTUALLY HOLDS, not what the writer emits. A cache without the three
-    # description columns is still a cache of valid resolutions; refusing it would throw
-    # away paid-for work over a schema difference.
+    # Read from the header the file actually holds, not from what the writer emits: a cache
+    # without the three description columns is still a cache of valid resolutions.
     hdr = split(strip(first(eachline(path))), ',')
     _opt(row, name) = name in hdr ?
         (getproperty(row, Symbol(name)) === missing ||
@@ -844,10 +822,10 @@ function load_taxid_cache(path::Union{String, Nothing})
         tx = (row.taxid === missing || isempty(row.taxid)) ? missing :
              something(tryparse(Int, row.taxid), missing)
         src = row.source === missing ? "" : String(row.source)
-        # REFUSED, NOT LOADED. A row with no TaxID, or with a source outside the allowed
-        # set, is never written by this module; such a row can only come from a writer that
-        # caches failures. Replaying it would reinstate a non-answer that `todo` then
-        # skips and no guard can see, so it is dropped here and counted out loud.
+        # A row with no TaxID, or with a source outside the allowed set, is never written by
+        # this module and can only come from a writer that caches failures. Replaying it
+        # would reinstate a non-answer that `todo` then skips and no guard can see, so it is
+        # refused here and counted out loud.
         if tx === missing || !(src in TAXID_SOURCES)
             n_refused += 1
             continue
@@ -1056,10 +1034,9 @@ function resolve_taxids(accessions::AbstractVector{<:AbstractString};
             answer = fetch_own_xref(upi, acc; fetch = fetch, pace_s = pass3_pace_s,
                                     sleeper = sleeper)
             own[acc] = answer.hit
-            # ONLY A COMPLETE ANSWER MAY BE CACHED. A short response and a genuine absence
-            # look identical here — both leave the accession unresolved for this run — but
-            # only one of them is true tomorrow. Caching the other is how a transient gap
-            # becomes permanent, silently, for every run that follows.
+            # Only a complete answer may be cached. A short response and a genuine absence
+            # both leave the accession unresolved for this run, but only one of them is true
+            # tomorrow, and caching the other makes a transient gap permanent and silent.
             if answer.complete
                 append_xref_cache(xref_cache, upi, acc, answer.hit)
             else
@@ -1067,11 +1044,9 @@ function resolve_taxids(accessions::AbstractVector{<:AbstractString};
             end
             verbose && n % 250 == 0 && println("   $n/$(length(multi))")
         end
-        # SAID OUT LOUD, because a silent counter is the same defect one layer up. These
-        # accessions were asked about and the answer could not be shown complete, so nothing
-        # was written for them: they will be asked again next run, which is the point. A
-        # number that stays high across runs is the service answering short repeatedly, not
-        # a census with missing cross-references.
+        # Warned about, not just counted. Nothing was written for these accessions, so they
+        # are asked again next run, which is the point. A number that stays high across runs
+        # is the service answering short repeatedly.
         n_xref_short > 0 &&
             @warn("$n_xref_short of $(length(multi)) cross-reference lookups came back " *
                   "without an accountable total and were NOT cached; they are re-asked on " *
@@ -1100,20 +1075,18 @@ function resolve_taxids(accessions::AbstractVector{<:AbstractString};
             # A cached row's release is the only release that describes it. If the row
             # carries none, the column stays EMPTY: stamping this run's release onto a
             # resolution established under an unknown one is a provenance claim nothing
-            # supports, and it is the kind of quiet false stamp this module exists to stop.
+            # supports.
             row_release = c.release
             status = c.source == "uniprotkb_active" ? "active" : "inactive"
-            # WHAT THE ROW SAYS, restored with it. Pass 1 is not re-run for a cached
-            # accession, so `by_acc` does not hold it and `reason` would otherwise be
-            # blank on every warm run - the same row, described differently, which makes a
-            # warm re-run a different census.
+            # What the row says is restored with it. Pass 1 is not re-run for a cached
+            # accession, so `by_acc` does not hold it and `reason` would otherwise be blank
+            # on every warm run, which makes a warm re-run a different census.
             c.reason === missing || (reason = c.reason)
             created = c.created
             updated = c.updated
-            # load_taxid_cache refuses TaxID-less rows, so this cannot hold unless the
-            # cache reached this point by some other route. Fail loudly rather than count a
-            # non-answer as a cache hit - counted as a hit, it lets the ledger balance while
-            # rows are missing.
+            # load_taxid_cache refuses TaxID-less rows, so this cannot hold unless the cache
+            # reached this point by some other route. Counted as a hit it would let the
+            # ledger balance while rows are missing, so it fails loudly instead.
             taxid === missing && error("Cache hit for $acc carries no TaxID. A cached row " *
                                        "must be an established resolution; delete the " *
                                        "cache file and re-run.")
@@ -1139,20 +1112,18 @@ function resolve_taxids(accessions::AbstractVector{<:AbstractString};
 
         push!(df, (accession = acc, TaxID = taxid, taxid_source = source,
                    entry_status = status, inactive_reason = reason, uniparc_id = upi,
-                   # STRUCTURALLY EMPTY, ON EVERY ROW, AND NOT AN OVERSIGHT TO BE FIXED
-                   # BY FILLING THEM IN. They are the surface of the commonTaxon route (see
-                   # `choose_taxid`), which pass 2 does not use. Populating them means
-                   # resolving through that route, and its sources are not in
+                   # Structurally empty on every row, and not an oversight to be fixed by
+                   # filling them in. They are the surface of the commonTaxon route (see
+                   # `choose_taxid`), which pass 2 does not use, and its sources are not in
                    # `TAXID_SOURCES`. Anything reading these columns as a metagenome
                    # safeguard is reading a column nothing writes.
                    common_taxon_ids = "", alt_cellular_taxid = missing,
                    xref_created = created, xref_last_updated = updated,
                    uniprot_release = row_release))
 
-        # ONLY ESTABLISHED RESOLUTIONS ARE CACHED. An unresolved accession goes to
-        # `unresolved_csv` for the operator, never to the cache: cached, the next run skips
-        # it at `todo`, reinstates the non-answer, and reaches the census with no guard
-        # having seen it.
+        # Only established resolutions are cached. An unresolved accession goes to
+        # `unresolved_csv` for the operator: cached, the next run skips it at `todo`,
+        # reinstates the non-answer, and reaches the census with no guard having seen it.
         (haskey(cached, acc) || taxid === missing) || push!(fresh_rows,
             (accession = acc, taxid = taxid, source = source, uniparc_id = upi,
              active = status == "active", release = row_release, fetched_at = stamp,
@@ -1162,12 +1133,11 @@ function resolve_taxids(accessions::AbstractVector{<:AbstractString};
 
     # --- The guard: every accession accounted for by a row the code actually saw ---
     #
-    # THE SUM BELOW CANNOT FAIL, AND IS KEPT ONLY BECAUSE ITS MESSAGE NAMES THE TERMS. The
-    # assembly loop runs exactly once per member of `uniq` and every branch of it increments
-    # exactly one of these counters, so their total restates the loop's own bound. On its
-    # own it would report a balanced ledger over a table that had lost half its rows. The
-    # checks that follow compare the counters against the TABLE, which is built by a
-    # different statement, and those can disagree.
+    # The sum below cannot fail, and is kept only because its message names the terms: the
+    # assembly loop runs exactly once per member of `uniq` and every branch increments
+    # exactly one of these counters, so their total restates the loop's own bound. The checks
+    # that follow compare the counters against the TABLE, which is built by a different
+    # statement, and those can disagree.
     total = n_cached + n_active + n_single + n_own + n_unresolved
     if total != length(uniq)
         error("Ledger does not balance: $(length(uniq)) accessions in, but " *
@@ -1187,9 +1157,9 @@ function resolve_taxids(accessions::AbstractVector{<:AbstractString};
               "$(length(unique(df.accession))) distinct accessions: an accession was " *
               "written more than once, and a join on it would multiply rows silently.")
     end
-    # An unresolved accession is exactly a row with no TaxID. Counted one way by the loop
-    # and another way by the table; if they part company, one of them is lying about the
-    # census and the rescue floor below is measured over the wrong population.
+    # An unresolved accession is exactly a row with no TaxID, counted once by the loop and
+    # once by the table. If they part company the rescue floor below is measured over the
+    # wrong population.
     n_missing = count(ismissing, df.TaxID)
     if n_missing != n_unresolved
         error("The loop counted $n_unresolved unresolved accessions and the table holds " *
@@ -1213,29 +1183,26 @@ function resolve_taxids(accessions::AbstractVector{<:AbstractString};
     end
 
     # The rescue floor applies to passes 2+3 jointly: of what pass 1 called Inactive, at
-    # least min_rescue_frac must end with a taxon. Counted from what NEEDED a rescue, not
-    # from what we found a pointer for — otherwise a payload whose shape changed empties
-    # the numerator and denominator together and a floor of 0/0 passes while the rescue
-    # silently returns nothing.
+    # least min_rescue_frac must end with a taxon. Counted from what NEEDED a rescue, so a
+    # payload whose shape changed cannot empty numerator and denominator together and pass a
+    # floor of 0/0 while the rescue silently returns nothing.
     #
-    # THE FLOOR MEASURES THE CENSUS, NOT THIS RUN'S SLICE. Only resolutions are cached, so
-    # after a successful run `todo` holds exactly the accessions that FAILED. A floor taken
-    # over `todo` alone is then taken over a population that is 100% known failures: it is
-    # 0/k by construction and aborts a perfectly healthy re-run, on unchanged input, while
-    # blaming the UniParc payload. A cached rescue-sourced row both needed a rescue and got
-    # one, so it belongs in BOTH terms and the fraction stays a statement about the census.
+    # The floor measures the census, not this run's slice. Only resolutions are cached, so
+    # after a successful run `todo` holds exactly the accessions that FAILED, and a floor
+    # taken over `todo` alone would be 0/k by construction and abort a healthy re-run on
+    # unchanged input. A cached rescue-sourced row both needed a rescue and got one, so it
+    # belongs in BOTH terms.
     n_cached_rescued = count(a -> haskey(cached, a) && cached[a].source in RESCUE_SOURCES,
                              uniq)
     n_needed = nrow(p1.inactive) + n_cached_rescued
     n_rescued = n_single + n_own + n_cached_rescued
     n_needed > 0 && check_rescue(n_needed, n_rescued; min_frac = min_rescue_frac)
 
-    # THE CACHE IS WRITTEN LAST, ONLY ONCE EVERY GUARD ABOVE HAS PASSED. Written earlier, a
-    # run that aborts still leaves its rows behind; the NEXT run then reads them, finds
-    # `todo` empty, skips every pass and every guard, and publishes the short answer the
-    # abort existed to prevent - an aborting run converted into a passing one by re-running
-    # it, which is the id-mapping service's own failure mode (a short answer cached against
-    # the request) moved inside this module's cache.
+    # The cache is written last, only once every guard above has passed. Written earlier, a
+    # run that aborts still leaves its rows behind; the next run reads them, finds `todo`
+    # empty, skips every pass and every guard, and publishes the short answer the abort
+    # existed to prevent - the id-mapping service's own failure mode (a short answer cached
+    # against the request) moved inside this module's cache.
     append_taxid_cache(taxid_cache, fresh_rows)
 
     return df

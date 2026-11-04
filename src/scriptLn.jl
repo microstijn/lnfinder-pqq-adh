@@ -5,13 +5,12 @@
     dereplicate to the USEARCH centroids, resolve and attach taxonomy, attach habitat,
     then write the census and its manifest, and only then compute statistics.
 
-    Two ordering rules this file exists to keep, both of which a linear script is easy to
-    break:
+    Two ordering rules this file exists to keep:
 
       1. The full census CSV and its TOML manifest are written BEFORE anything is
-         filtered. Rows without a TaxID, a kingdom or a habitat belong to the census; if
-         they are dropped before the write, no reader can tell what was excluded
-         downstream, and the rescued-taxonomy rows can never be audited.
+         filtered. Rows without a TaxID, a kingdom or a habitat belong to the census, so
+         that a reader can tell what was excluded downstream and the rescued-taxonomy
+         rows can be audited.
       2. Nothing mutates the census table after that write. Every analysis subset is
          built with `filter`, so the table on disk and the table in memory stay equal.
 
@@ -19,9 +18,9 @@
 
     INPUTS ARE NOT IN THIS REPOSITORY. The alignment, the unaligned FASTA, the NCBI
     taxonomy dump and the USEARCH clustering are large third-party or derived files that
-    the repository does not carry and this script does not regenerate. All four live under
-    ONE data root — the directory named by LNFINDER_DATA, or dat/ in the clone when that is
-    not set — in the layout docs/DATA.md documents:
+    this script does not regenerate. All four live under ONE data root: the directory
+    named by LNFINDER_DATA, or dat/ in the clone when that is not set, in the layout
+    docs/DATA.md documents:
 
       census/firstTry.fa            the unaligned sequences the hits came from
       census/clusters.uc            their USEARCH `-uc` clustering (see USEARCH_CMD)
@@ -31,9 +30,9 @@
                                     (\$LNFINDER_TAXDUMP names it somewhere else)
 
     A run stops on the first one that is not there, naming the input, where the layout
-    expects it and which variable moves it. The two that answer to a variable of their own
-    are the two a reader makes or fetches rather than unpacks, and they are often large
-    enough to be kept outside a project tree.
+    expects it and which variable moves it. The two with a variable of their own are the
+    two a reader makes or fetches rather than unpacks, and are often large enough to be
+    kept outside a project tree.
 
       LNFINDER_CENSUS_OUT   directory this run writes the census and its manifest into
 
@@ -71,13 +70,13 @@ using TOML
 const REPO = normpath(joinpath(@__DIR__, ".."))
 
 # The one registry: every input this driver reads is a NAME there, resolved under the data
-# root, and every refusal below is that registry's, naming the input rather than echoing a
-# path off anybody's machine.
+# root, and every refusal below is that registry's, naming the input and no path off
+# anybody's machine.
 include(joinpath(REPO, "src", "ModuleDataInputs.jl"))
 
-# A missing input is a sentence, not a sentence followed by several screens of Julia's own
-# include machinery: when this file IS the program the refusal is printed and the process
-# stops, and when it was included the exception is thrown for the caller to see.
+# When this file IS the program, a missing input prints the refusal and stops the process,
+# with none of Julia's include machinery after it; when it was included, the exception is
+# thrown for the caller to see.
 abspath(PROGRAM_FILE) == (@__FILE__) &&
     DataInputs.require_or_exit("model_alignment", "hits_fasta", "taxdump",
                                "uc_clusters", "profile_hmm")
@@ -99,8 +98,8 @@ const USEARCH_CMD = "usearch11 -sortbylength <in>.fa -fastaout <sorted>.fa ; " *
 
 const RUN_DATE = Dates.today()
 
-# Where this run writes. Required rather than defaulted: a census written into a directory
-# nobody chose is a census that overwrites, or hides beside, an earlier one.
+# Where this run writes; never defaulted, because a census written into a directory nobody
+# chose overwrites, or hides beside, an earlier one.
 const OUT_ROOT = get(ENV, "LNFINDER_CENSUS_OUT", "")
 isempty(OUT_ROOT) && error("LNFINDER_CENSUS_OUT is not set. It must name the directory " *
                            "this run writes the census and its manifest into.")
@@ -196,12 +195,11 @@ n_centroids = nrow(df_dedup)
     UniProt round trip and never reach the census.
 =#
 
-# The three side files matter on a real run. accession_taxid_cache.csv is the primary
-# layer: keyed on the bare accession, it makes a repeat run a local join costing no HTTP at
-# all while the UniProt release is unchanged. uniparc_xref_cache.csv keeps the expensive
-# per-entry cross-reference round trips resumable after an interruption. And the unresolved
-# list is written before the rescue floor throws, so a collapse leaves behind the
-# accessions to investigate rather than only a count.
+# The three side files. accession_taxid_cache.csv, keyed on the bare accession, makes a
+# repeat run a local join with no HTTP at all while the UniProt release is unchanged.
+# uniparc_xref_cache.csv keeps the expensive per-entry cross-reference round trips resumable
+# after an interruption. unresolved_accessions.csv is written before the rescue floor
+# throws, so a collapse leaves behind the accessions to investigate, not only a count.
 #
 # Do NOT seed the accession cache from this census's own TaxID column: a verification run
 # that reads back the numbers it is meant to check has verified nothing.

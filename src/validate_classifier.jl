@@ -1,31 +1,25 @@
 #=
     validate_classifier.jl  — Control-set validation for the D-x-D Ln/Ca classifier
     ---------------------------------------------------------------------------------
-    Purpose
-    -------
     The whole LnFinder dataset rests on one equivalence (Voutsinos et al. 2025,
     doi:10.1093/ismejo/wraf057):
 
         D-x-D     at the calibrated active-site column  =>  Lanthanide
         D-x-[ATS] at the calibrated active-site column  =>  Calcium
 
-    Nothing in the pipeline currently *checks* that this call is correct on proteins
-    whose cofactor is experimentally known. This harness does exactly that. It also
-    exposes a structural fragility in `calibrate_active_site`: it returns the FIRST
-    model column where ref-1 is D-x-D and ref-2 is D-x-[ATS]. If more than one such
-    "collision" column exists, the first one is not necessarily the catalytic one,
-    and every downstream call inherits that mistake. `diagnose_calibration` reports
-    how many collision columns exist so you can see whether the choice is unique.
+    Nothing else in the pipeline checks that this call is correct on proteins whose
+    cofactor is experimentally known; this harness does. It also exposes a structural
+    fragility in `calibrate_active_site`: it returns the FIRST model column where ref-1
+    is D-x-D and ref-2 is D-x-[ATS], so if more than one such "collision" column exists,
+    the first is not necessarily the catalytic one and every downstream call inherits
+    that mistake. `diagnose_calibration` reports how many collision columns exist.
 
-    What it proves / does NOT prove
-    -------------------------------
-    - PROVES: whether D-x-D, read at the calibrated column, recovers the known
-      cofactor on a labelled control set (sensitivity / specificity / accuracy).
-    - DOES NOT prove functional Ln-dependence of any *uncharacterised* hit — that
-      still needs structure (coordination geometry) and ultimately wet-lab assays.
+    It proves whether D-x-D, read at the calibrated column, recovers the known cofactor
+    on a labelled control set (sensitivity / specificity / accuracy). It does NOT prove
+    functional Ln-dependence of any uncharacterised hit; that still needs structure
+    (coordination geometry) and ultimately wet-lab assays.
 
-    Human-in-the-loop steps (cannot be done from code alone)
-    --------------------------------------------------------
+    Three steps cannot be done from code alone:
     1. Confirm the labels in dat/control_set/known_cofactor_mdhs.tsv (domain expert).
     2. Provide an `hmmalign` binary (HMMER not on PATH here) OR a pre-aligned AFA.
     3. Network access for the UniProt sequence fetch.
@@ -586,8 +580,8 @@ function stratified_summary(joined::AbstractDataFrame; level::Real = 0.95, quiet
         push!(rows, (name, n, n == 0 ? missing : k, n == 0 ? missing : k / n, lo, hi, note))
     end
 
-    # Contested rows are subtracted from the reference stratum too: "never counted" has to
-    # mean never, not "never, except in the one stratum nobody reads".
+    # Contested rows are subtracted from the reference stratum too, so that "never counted"
+    # means never, in every stratum.
     scored_row!("reference", .!heldout .& .!contested;
                 note = "calibration source — not held out")
 
@@ -922,13 +916,13 @@ function _subunit_bonus(protein_name::AbstractString)
 end
 
 # An intact PQQ-dependent dehydrogenase of this family is far longer than this. An entry
-# below the bar is a fragment, an accessory peptide, or a different protein, and none of
-# those can be aligned across the profile that the active-site column indexes into.
+# below the bar is a fragment, an accessory peptide or a different protein, none of which
+# aligns across the profile the active-site column indexes into.
 const _MIN_INTACT_LENGTH = 400
 
 # UniProt's `fragment` field is empty for a complete entry and carries a word otherwise.
 # Anything neither empty nor explicitly negative counts as a fragment, so a change of
-# wording upstream fails towards caution rather than towards a silent zero penalty.
+# wording upstream fails towards caution instead of a silent zero penalty.
 const _NOT_FRAGMENT = ("", "no", "false", "0", "n", "-")
 _is_fragment(v) = !(lowercase(strip(string(coalesce(v, "")))) in _NOT_FRAGMENT)
 
@@ -1268,10 +1262,10 @@ end
 # Shared scoring tail: check columns → reorder refs → diagnose → calibrate → parse →
 # label → evaluate twice → stratify → write the labelled predictions and the summary.
 #
-# Two evaluations are always computed, because they answer different questions:
+# Two evaluations are always computed:
 #   `all`     — every scorable labelled row, calibration references included;
 #   `heldout` — `role != reference` only (see `is_heldout`), the rows the classifier was
-#               not built from, and therefore the only ones that test it.
+#               not built from and therefore the only ones that test it.
 # Contested rows (tier X) are outside both, and are listed by `stratified_summary` with
 # the calls they received.
 #

@@ -8,16 +8,15 @@ using ProgressMeter
 using SHA
 
 #=
-    NCBI reorganised the top of the taxonomy in March 2025: "superkingdom" became "domain",
-    a real "kingdom" rank was inserted below it (Pseudomonadati, Metazoa, …) and viruses
-    were moved under the "acellular root". Code that keys on "superkingdom" alone silently
-    returns an empty kingdom for every row of a post-March-2025 dump, and code that keys on
-    rank == "kingdom" picks up Pseudomonadati instead of Bacteria. Both schemes are handled
-    here, and append_taxonomy! refuses to return a census whose kingdom column is mostly
-    empty rather than letting the gap travel downstream.
-
-    Dumps before March 2025 use rank "superkingdom" for Bacteria/Archaea/Eukaryota; later
-    dumps use "domain" (Cox et al. 2025, doi:10.1093/nar/gkae967; NCBI Insights 2025-02-27).
+    NCBI reorganised the top of the taxonomy in March 2025 (Cox et al. 2025,
+    doi:10.1093/nar/gkae967; NCBI Insights 2025-02-27): "superkingdom" became "domain", a
+    real "kingdom" rank was inserted below it (Pseudomonadati, Metazoa, …) and viruses
+    were moved under the "acellular root". Dumps before March 2025 therefore use rank
+    "superkingdom" for Bacteria/Archaea/Eukaryota and later dumps use "domain". Code that
+    keys on "superkingdom" alone silently returns an empty kingdom for every row of a
+    post-March-2025 dump, and code that keys on rank == "kingdom" picks up Pseudomonadati
+    instead of Bacteria. Both schemes are handled here, and append_taxonomy! refuses to
+    return a census whose kingdom column is mostly empty.
 =#
 
 # Ranks copied into the lineage. "superkingdom" (pre-2025) and "domain" (post-2025) both
@@ -268,9 +267,8 @@ function append_taxonomy!(df::DataFrame, db::TaxonomyDB; taxid_col=:TaxID,
         end
     end
 
-    # Fail loudly here rather than let a kingdom-less census reach the figures: a
-    # kingdom-less census is exactly what the March 2025 rank change produces, and nothing
-    # downstream notices it.
+    # Fail here, before a kingdom-less census reaches the figures: that is what the March
+    # 2025 rank change produces, and nothing downstream notices it.
     if n_with_taxid == 0
         @warn "No row carries a TaxID; kingdom coverage cannot be checked."
     else
@@ -335,7 +333,7 @@ function merge_taxonomy_with_hits(hits_df::DataFrame, tax_df::DataFrame; on_col=
 
     # 3. Post-merge Cleanup
     # The habitat summary below indexes :habitat_specific, so a metadata frame without it
-    # would throw two lines after the warning that exists to soften exactly that case.
+    # would throw two lines after the warning meant to soften that case.
     if !all(c -> c in names(merged_df), ("habitat_category", "habitat_specific"))
         @warn "Metadata columns not found in merged result. Check tax_df headers."
         return merged_df

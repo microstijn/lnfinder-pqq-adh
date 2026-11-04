@@ -2,70 +2,63 @@
     habitat_figure.jl — where the carriers of lanthanide-type PQQ-dependent dehydrogenases
     live: the enrichment table drawn as two panels, coloured by the robustness flags.
 
-    WHAT IS DRAWN. The two panels share one row per category.
+    The two panels share one row per category.
       (a) The share of taxa in each category: the carrier arm as a solid bar inside the
           background arm's outline, on a common baseline, so an overshoot is read as a length
-          against a fixed origin. One ink only: this panel runs no test, so it carries none of
-          panel (b)'s colour.
-      (b) log2 enrichment against the background, with three marks per row on three
-          sub-rows. The crude estimate is an open ring below; the phylum-standardised estimate
-          is a filled dot on its 95% interval; above both, a thin tick marks the same
-          standardised estimate for the family comparator, the PQQ-ADH carriers with no
-          lanthanide-type sequence. A connector joins ring and dot, so the distance between
-          them is the contribution of phylum composition, drawn rather than asserted. It has
-          no fixed direction: adjustment moves some rows toward zero and others away from it,
-          and the connector is what tells them apart. Rows are sorted on the standardised
-          estimate within each block, so the dots form a staircase and the rings are free not
-          to.
+          against a fixed origin. One ink only, because this panel runs no test.
+      (b) log2 enrichment against the background, with three marks per row on three sub-rows.
+          The crude estimate is an open ring below; the phylum-standardised estimate is a
+          filled dot on its 95% interval; above both, a thin tick marks the same standardised
+          estimate for the family comparator, the PQQ-ADH carriers with no lanthanide-type
+          sequence. A connector joins ring and dot, so the distance between them draws the
+          contribution of phylum composition. It has no fixed direction: adjustment moves
+          some rows toward zero and others away from it. Rows are sorted on the standardised
+          estimate within each block.
 
-    COLOUR IS THE ROBUSTNESS FLAG AND NOTHING ELSE. A dot is coloured only where the
+    Colour is the robustness flag and nothing else. A dot is coloured only where the
     sensitivity grid's flag gives the row a sign that the primary specification and every
-    one-at-a-time variant reproduce. An interval that excludes zero under the primary
-    specification alone does not colour a row, so no interval test decides a colour here. A
-    flag that contradicts its own interval stops the run; it is never drawn grey instead.
+    one-at-a-time variant reproduce; an interval that excludes zero under the primary
+    specification alone does not colour a row. A flag that contradicts its own interval stops
+    the run.
 
-    THE TICK HAS A SUB-ROW OF ITS OWN. Where the comparator's estimate nearly coincides with
-    the carriers' own, a tick drawn at the dot's height disappears under the dot and the
-    figure shows one measurement where it made two. The offsets and marker sizes are named
-    constants whose clearances the test suite checks as arithmetic, and the figure's height
-    is derived from a row pitch, so the clearances that hold in the suite hold on the page.
+    The tick has a sub-row of its own: where the comparator's estimate nearly coincides with
+    the carriers' own, a tick drawn at the dot's height disappears under the dot. The offsets
+    and marker sizes are named constants whose clearances the test suite checks as arithmetic,
+    and the figure's height is derived from a row pitch, so the clearances that hold in the
+    suite hold on the page.
 
     CHEMISTRY shares panel (b)'s axis as a second block below a rule: the same estimator in
     the same units. Its flags are not exclusive of each other, and the block label says so.
 
-    A MINIMUM WEIGHTED COUNT decides which categories are drawn. It compares the fractional
+    A minimum weighted count decides which categories are drawn. It compares the fractional
     foreground count (a taxon whose terms tie is split between the tied categories), and it
     is blind to direction, so it cannot select on the outcome. The held-back categories are
     reported with their counts, and the sensitivity panel draws them beside the rest.
 
-    NOTHING IS PUBLISHED UNLESS THE INPUTS DESCRIBE ONE ANALYSIS. The enrichment rows, their
+    Nothing is published unless the inputs describe one analysis. The enrichment rows, their
     arm summary, the robustness flags, the sensitivity grid and the grid's provenance come
     from separate runs. Every identity between them is a named gate; every gate is evaluated
-    and all failures are reported together, and a single failure stops the run before
-    anything is staged. A flag is not taken on trust either: its sign and the variants it
-    names as breaking it are recomputed from the grid rows it summarises, so a flag its own
-    grid does not support stops the run whether one file was edited or two. The outputs are
-    staged side by side and moved into the figure directory together, and only once the
-    staged set is exactly the declared one.
+    and all failures are reported together, and a single failure stops the run before anything
+    is staged. A flag's sign and the variants it names as breaking it are recomputed from the
+    grid rows it summarises, so a flag its own grid does not support stops the run. The
+    outputs are staged side by side and moved into the figure directory together, and only
+    once the staged set is exactly the declared one.
 
-    THE PUBLISHED PROVENANCE NAMES FILES, NOT LOCATIONS. It records each input's file name,
-    whether the path was typed or defaulted, and its digest; the digests pin the bytes, so a
-    local absolute path would add nothing and would travel with the file. A value that looks
-    like one stops the run.
+    The published provenance names files, not locations: each input's file name, whether the
+    path was typed or defaulted, and its digest. The digests pin the bytes, and a value that
+    looks like a local absolute path stops the run.
 
-    WHICH CATEGORIES THIS FIGURE IS ABOUT IS AN INPUT, NOT A CONSTANT. The category whose
+    Which categories this figure is about is an input, not a constant. The category whose
     sharing ratio is read back and the categories whose intervals are counted across every
-    registered specification were chosen from this data set's own estimates, with the estimates
-    in hand, after those estimates existed. The phylum whose two shares are quoted is not a
-    choice of that kind: it is DETERMINED as the heaviest standardisation stratum, and the
-    identity gate below asserts the weight identities only while the run's own heaviest stratum
-    is still that phylum. It is supplied here for a different reason — the share keys are named
-    after it and a reader has to be able to derive that name. So they are supplied per run in
-    the criteria file --categories names — the same file step 3 is handed, read with step 3's
-    own reader — this file holds no default for any of them, and a run without it is refused by
-    name. The selection and the criteria file's digest go into the published provenance, and the
-    keys that carry a selected name derive from it, so a run on other categories exports keys
-    for THOSE categories rather than filing other numbers under names chosen here.
+    registered specification were chosen from this data set's own estimates, with the
+    estimates in hand. The phylum whose two shares are quoted is DETERMINED as the heaviest
+    standardisation stratum, and the identity gate below asserts the weight identities only
+    while the run's own heaviest stratum is still that phylum; it is supplied here because the
+    share keys are named after it. All of them are supplied per run in the criteria file
+    --categories names, the same file step 3 is handed, read with step 3's own reader. This
+    file holds no default for any of them, and a run without it is refused by name. The
+    selection and the criteria file's digest go into the published provenance, and the keys
+    that carry a selected name derive from it.
 
     Run:  julia --project=. scripts/habitat_figure.jl --figdir <dir> [options]
           (--help lists every option and exits before any package is loaded)
@@ -165,10 +158,10 @@ const SENSITIVITY_PROVENANCE_FILE = "habitat_sensitivity_provenance.csv"
 const INPUT_NAMES = (:stats, :summary, :robustness, :sensitivity, :sensitivity_provenance,
                      :calls)
 
-# What each of those is and which option names it, so that a missing one is a sentence rather
-# than a bare path. The three step-4 outputs live in the figure directory the reader chose, so
-# the path in the message is theirs by construction; the other three are registry names and
-# are refused by name in the program guard before this is reached.
+# What each of those is and which option names it, so that a missing one is a sentence and
+# not a bare path. The three step-4 outputs live in the figure directory the reader chose, so
+# the path in the message is theirs by construction; the other three are registry names,
+# refused by name in the program guard before this is reached.
 const INPUT_WHAT = (stats = ("step 3's estimates table", "--stats"),
                     summary = ("step 3's arm summary", "--summary"),
                     robustness = ("step 4's robustness table", "--robustness"),
@@ -187,27 +180,21 @@ const INPUT_GATES = ("arm sizes", "summary identities", "robustness rows", "comp
 # The name of the check made on the staged outputs just before they are published.
 const OUTPUT_GATE = "staged outputs"
 
-# THE SELECTED CATEGORIES ARE NOT CONSTANTS OF THIS FILE, AND IT SHIPS NONE OF THEM. Which
-# category's sharing ratio is read back and which categories' intervals are counted across
-# every specification are selections made from this data set's own estimates — chosen with the
-# estimates in hand, not before. Which phylum's shares are quoted is not a selection of that
-# kind: it is determined as the heaviest standardisation stratum, and the summary-identity gate
-# asserts the weight identities only while the run's own heaviest stratum is still that phylum.
-# It is supplied rather than written here because the share keys are named after it. They arrive
-# in the criteria
-# file --categories names (the same file step 3 is given, so the two steps cannot disagree
-# about them), they are read by HE.read_category_selection, they travel with the inputs as
-# `inp.selection`, and there is no default for any of them anywhere in this file. A run given
-# no criteria file is refused by name.
+# The selected categories are not constants of this file, and it ships none of them: the
+# sharing category, the grid-count categories and the standardisation phylum (see the header)
+# arrive in the criteria file --categories names, the same file step 3 is given, so the two
+# steps cannot disagree about them. They are read by HE.read_category_selection and travel
+# with the inputs as `inp.selection`. The summary-identity gate asserts the weight identities
+# only while the run's own heaviest stratum is still the selected phylum. There is no default
+# for any of them anywhere in this file, and a run given no criteria file is refused by name.
 #
-# What that leaves here is one number that is NOT a category selection:
+# What that leaves here is one number that is not a category selection:
 
-# How many drawn rows the thinnest-stratum list names. A listing convention, and outcome-
-# independent BY CONSTRUCTION rather than by date: the list is extended through a tie at its
-# last place, and the smallest count among the rows it leaves out is exported beside it, so the
-# list plus that bound is a statement about every drawn row and not a selection. It was written
-# during figure construction, after the results were known, which is why the defence is the
-# construction and not a claim about when the number was fixed.
+# How many drawn rows the thinnest-stratum list names. A listing convention, outcome-
+# independent BY CONSTRUCTION: the list is extended through a tie at its last place, and the
+# smallest count among the rows it leaves out is exported beside it, so the list plus that
+# bound is a statement about every drawn row. It was written during figure construction,
+# after the results were known, so the defence is the construction and not the date.
 const N_THINNEST_LISTED = 4
 
 # Roles of the rows in the source data.
@@ -265,9 +252,9 @@ const TOP_PAD     = 1.0
 const LABEL_DY    = 0.08     # a block label's top edge sits this far below its anchor line
 const LABEL_DX    = 0.01     # and this fraction of the axis in from its left edge
 const B_PAD       = 0.12     # log2 units added on both sides of panel (b)'s extent
-# The raster preview's resolution at the figure's own width. The vector files carry the figure;
-# this is the number a raster submission is checked against, so it is stated rather than implied
-# by a scale factor.
+# The raster preview's resolution at the figure's own width. The vector files carry the
+# figure; this is the number a raster submission is checked against, so it is stated outright
+# and not implied by a scale factor.
 const PNG_DPI     = 300
 const PT_PER_INCH = 72
 const SHARE_STEPS = (1, 2, 5, 10, 20, 25, 50, 100)
@@ -398,11 +385,10 @@ input records whether its path was typed or defaulted.
 function parse_run_options(args; env = ENV)
     cli = HE.parse_options(args, OPTION_SPEC)
     (haskey(cli, "--help") || haskey(cli, "-h")) && return (help = true,)
-    # FIRST, and with no default: which category's sharing ratio this figure reads back, which
-    # categories' intervals it counts across specifications and which phylum's shares it quotes
-    # are selections made from this data set's estimates, not properties of this software. A
-    # default would publish a choice as this file's own, and would be indistinguishable from a
-    # selection somebody checked.
+    # First, and with no default: which category's sharing ratio this figure reads back,
+    # which categories' intervals it counts across specifications and which phylum's shares
+    # it quotes are selections made from this data set's estimates. A default would publish a
+    # choice as this file's own.
     categories = HE.option_string(cli, "--categories", "")
     isempty(categories) &&
         error("no --categories file was given, and this step has no default for what is in " *
@@ -504,9 +490,9 @@ function load_inputs(opt)
                sha256 = isfile(joinpath(panel_dir, n)) ?
                         bytes2hex(open(sha256, joinpath(panel_dir, n))) : "")
               for n in split_codes(get(provenance, "panel_written", ""))]
-    # The category selection, read from the criteria file with step 3's own reader — one
-    # reader, so a file step 3 accepted cannot be read differently here. Its digest comes from
-    # the bytes it parsed, and reaches the provenance record.
+    # The category selection, read from the criteria file with step 3's own reader, so a file
+    # step 3 accepted cannot be read differently here. Its digest comes from the bytes it
+    # parsed, and reaches the provenance record.
     selection = HE.read_category_selection(opt.categories)
     return (files = files,
             selection = selection,
@@ -704,10 +690,10 @@ function check_summary_identities(inp)
         push!(problems, "n_bacteria_fg $(show_num(nb)) and n_archaea_fg $(show_num(na)) do not " *
                         "sum to n1_taxa $(show_num(n1))")
     end
-    # The two quoted phylum shares against the standardisation weights they must equal. WHICH
-    # phylum is the run's own selection, and the identities hold only while that phylum is also
-    # the heaviest stratum — so the phylum and its key prefix both come from the selection, and
-    # the check makes no assertion when the run's heaviest stratum is some other phylum.
+    # The two quoted phylum shares against the standardisation weights they must equal. Which
+    # phylum is the run's own selection, so the phylum and its key prefix both come from the
+    # selection, and the check makes no assertion when the run's heaviest stratum is some
+    # other phylum.
     phylum = inp.selection.standardisation_phylum
     kp = inp.selection.key.standardisation_phylum
     if get(s, "standardisation_heaviest_stratum", "") == phylum
@@ -1534,12 +1520,11 @@ function caption_values(inp, sel, plan)
     put("legend_only", prose_list(split_codes(require_value(s, "categories_legend_only", ARM))))
     put("drawn_rows_with_a_zero_stratum_cell",
         prose_list([r.category for r in order if r.n_zero_stratum_cells > 0]))
-    # The rows a standardised estimate rests on the fewest background taxa for: computed and
-    # named here, so a sentence about them cannot name a row the data no longer supports. The
+    # The rows a standardised estimate rests on the fewest background taxa for, computed and
+    # named here so a sentence about them cannot name a row the data no longer supports. The
     # list is the ascending head of ALL drawn rows, carried past a tie at its last place, and
-    # the bound is the smallest count it leaves out, rounded DOWN so the bound never claims
-    # more than the row it came from - together they say something about every drawn row, so no
-    # row can be thinner than the list without appearing in it.
+    # the bound is the smallest count it leaves out, rounded DOWN, so no row can be thinner
+    # than the list without appearing in it.
     thin = sort([(r.min_bg_stratum_cell, r.unit, r.category) for r in plan.rows])
     cut = thin[min(N_THINNEST_LISTED, length(thin))][1]
     put("thinnest_bg_stratum_rows",
@@ -1560,7 +1545,7 @@ function caption_values(inp, sel, plan)
     put("largest_bg_share_category", bg[3])
     put("largest_bg_share", fmt_pct(bg[4]))
     # How far adjustment moved a row, in either direction: the drawn row whose ring is
-    # furthest from its dot, computed rather than asserted.
+    # furthest from its dot.
     shift = sort([(-abs(r.std - r.crude), r.unit, r.category, abs(r.std - r.crude))
                   for r in plan.rows])[1]
     put("largest_adjustment_shift_category", shift[3])
@@ -1771,9 +1756,8 @@ function provenance_rows(opt, inp, gates, plan; run_at::AbstractString)
     put("run_at", run_at)
     put("julia_version", VERSION)
     put("figdir_given", opt.figdir_given)
-    # The criteria file this run was held to, and what it selected. A figure whose categories
-    # came from a file records which file and which categories, so two runs can be told apart
-    # by what they were asked about and not only by what came out.
+    # The criteria file this run was held to, and what it selected, so two runs can be told
+    # apart by what they were asked about and not only by what came out.
     put("input_categories_file", basename(opt.categories))
     put("input_categories_sha256", inp.selection.digest)
     put("selection_roles", join([r.role for r in HE.SELECTION_ROLES], ";"))
@@ -1803,8 +1787,8 @@ function provenance_rows(opt, inp, gates, plan; run_at::AbstractString)
     put("drawn_rows_top_to_bottom", join([rowkey(r.unit, r.category) for r in order], ";"))
     put("colour_classes_top_to_bottom", join([String(r.colour_class) for r in order], ";"))
     s = inp.summary
-    # The first of these is named after the selected phylum, so it is derived rather than
-    # written out; the rest are selection-independent.
+    # The first of these is named after the selected phylum, so it is derived; the rest are
+    # selection-independent.
     for k in ("pct_$(inp.selection.key.standardisation_phylum)_bg_before_scan",
               "frame_size", "frame_taxa_with_usable_term",
               "bg_frame_coverage_numerator", "bg_frame_coverage_denominator",
@@ -2110,14 +2094,13 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # The inputs that come from the data root, by name, before `main` opens anything. Only
     # the ones still at their REGISTRY DEFAULT are checked: a path the reader typed is
     # theirs, and `read_input` reports it as given. Without this a missing data root reaches
-    # the reader as `habitat_figure.jl: missing input: <absolute path>` — no input name, no
-    # layout path, and a path off one machine.
+    # the reader as `habitat_figure.jl: missing input: <absolute path>`, with no input name,
+    # no layout path, and a path off one machine.
     #
     # In the program guard and not in `main`, because `require_or_exit` ends the process and
     # `main` is a function the suite calls and reads the return code of. The option reader is
-    # run here and its failure swallowed: a bad command line stays `main`'s to report, with
-    # the usage, and stays FIRST — a reader who mistyped `--figdir` must be told that and not
-    # told about a file they never asked for.
+    # run here and its failure swallowed, so a bad command line stays `main`'s to report,
+    # with the usage, and stays FIRST.
     # The three figure-directory inputs are step 4's outputs and are not under the data root
     # at all, so they are not registry names and stay where they are.
     let opt = try

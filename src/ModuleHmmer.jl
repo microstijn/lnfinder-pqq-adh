@@ -76,8 +76,7 @@ function calibrate_active_site(fasta_path::String)
     println("Ref 2 (Ca): Looking for D-x-[ATS]")
     println("-"^40)
 
-    # 3. Scan for the unique overlap
-    # Iterate through the MODEL string
+    # 3. Scan the MODEL string for the unique overlap
     for i in 1:(length(ref_ln) - 2)
         # Check Reference 1 for Lanthanide Pattern (D-x-D)
         r1_anchor = ref_ln[i]

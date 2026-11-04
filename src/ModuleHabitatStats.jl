@@ -9,35 +9,32 @@ using HypothesisTests, Statistics
     HabitatStats — the enrichment estimators, the multiple-testing correction and the row
     builder that scripts/habitat_enrichment.jl calls.
 
-    WHY THEY LIVE HERE. Estimators defined inside an analysis script cannot be unit-tested,
-    and cannot be re-used by a sensitivity grid without copying them. Everything here is
-    pure: plain vectors in, NamedTuples out, no DataFrames, no I/O, no global row buffer to
-    push into. One numeric path serves both weight representations, so a Bool hit vector
-    and the equivalent 0/1 Float vector give bitwise identical results; that equality is
-    asserted in test/test_habitat_stats.jl.
+    They live here so the unit tests can reach them and a sensitivity grid can re-use them
+    without copying. Everything here is pure: plain vectors in, NamedTuples out, no
+    DataFrames, no I/O, no global row buffer. One numeric path serves both weight
+    representations, so a Bool hit vector and the equivalent 0/1 Float vector give bitwise
+    identical results; test/test_habitat_stats.jl asserts that equality.
 
-    TWO ESTIMATORS, ALWAYS REPORTED TOGETHER.
+    Two estimators, always reported together:
 
       CRUDE         a/n1 / (b/n2), unadjusted, as a log2 risk ratio with a Katz Wald
                     interval and a Fisher exact p.
       STANDARDISED  the background's share of the category REWEIGHTED to the foreground's
                     phylum distribution: p0_std = sum_k w_k (c_k/n0_k), w_k = n1_k/n1.
 
-    The gap between them is the phylogenetic contribution. Habitat annotation tracks
+    The gap between them is the phylogenetic contribution: habitat annotation tracks
     phylum, so a crude ratio can report "enrichment" that is nothing but the phylogenetic
-    range of the protein family; reweighting makes that contribution legible instead of
-    leaving it to be argued about.
+    range of the protein family, and reweighting makes that contribution legible.
 
-    FRACTIONAL HITS. A hit vector may be Bool (a unit is in the category or it is not) or
+    Fractional hits. A hit vector may be Bool (a unit is in the category or it is not) or
     Real (a unit is split across categories, e.g. one part per tied term). See the
     `standardised` docstring for what fractional weights do to the intervals.
 
-    THE UNIT MUST BE THE SAME ON BOTH SIDES. Aggregating the foreground to unique
-    genus-by-category PAIRS while the background stays one row per taxon lets a genus
-    count once per category it occupies on one side and once in total on the other. That
-    is not a like-for-like comparison, and such a contrast cannot be read as a
-    conservative bound. Collapsing BOTH arms with `collapse_to_genus` keeps n1 and n2 in
-    the same currency.
+    The unit must be the same on both sides. Aggregating the foreground to unique
+    genus-by-category PAIRS while the background stays one row per taxon lets a genus count
+    once per category it occupies on one side and once in total on the other, which is not
+    like-for-like and cannot be read as a conservative bound. Collapsing BOTH arms with
+    `collapse_to_genus` keeps n1 and n2 in the same currency.
 =#
 
 const MIN_CELL = 5        # a+b below this is reported but never tested
@@ -131,9 +128,9 @@ function standardised(fg_phy::AbstractVector, fg_hit::AbstractVector,
                                  n_zero_stratum_cells = nzero, min_bg_stratum_cell = cmin)
     (a == 0 || n1 == 0) && return nanres(0, 0, NaN)
     # A phylum column read straight from a CSV is Union{Missing,String}, so normalise here
-    # rather than trusting every caller to do it: a grid variant that calls standardised
-    # directly would otherwise hit a MethodError instead of the "Other phyla" collapse.
-    # This is a no-op for the Vector{String} contrast_rows already passes.
+    # and not in every caller: a grid variant that calls standardised directly would
+    # otherwise hit a MethodError instead of the "Other phyla" collapse. A no-op for the
+    # Vector{String} contrast_rows already passes.
     fg_phy = _sv.(fg_phy); bg_phy = _sv.(bg_phy)
     # stratum hygiene: collapse thin phyla so a single-unit stratum cannot dominate
     cnt_f = Dict{String,Int}(); cnt_b = Dict{String,Int}()

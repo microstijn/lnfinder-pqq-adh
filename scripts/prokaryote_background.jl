@@ -1,29 +1,26 @@
 #=
     prokaryote_background.jl — the denominator: where do prokaryotes live IN GENERAL?
 
-    "Where do lanthanide binders live?" cannot be answered by counting their habitats.
-    OmniCrobe is text-mined from publications, and a model organism accumulates habitat
-    relations by orders of magnitude faster than an unstudied one, so a raw habitat tally
-    measures research effort, not ecology. The distribution only becomes interpretable
-    against a background: if 35% of all studied prokaryotes are aquatic, then 35% of Ln
-    hits being aquatic is not a finding.
+    OmniCrobe is text-mined from publications, so a model organism accumulates habitat
+    relations orders of magnitude faster than an unstudied one and a raw habitat tally
+    measures research effort. Ln-hit habitats only become interpretable against a
+    background: if 35% of all studied prokaryotes are aquatic, 35% of Ln hits being aquatic
+    is no finding. This builds that background by running a generic sample of prokaryotes
+    through the IDENTICAL pipeline the census used (fetch_relations → aggregate_habitats),
+    which is what makes the two comparable.
 
-    This builds that background by running a generic sample of prokaryotes through the
-    IDENTICAL pipeline the census used (fetch_relations → aggregate_habitats), which is
-    what makes the two directly comparable.
-
-    TAXON POOL — UniProt reference proteomes for Bacteria (taxonomy_id:2) and Archaea
-    (2157). Chosen deliberately: the census hits are themselves UniProt proteins from
-    sequenced organisms, so the pool shares the census's strongest bias (only cultured,
-    sequenced, named organisms are represented) and it therefore cancels in the contrast.
-    An "all of NCBI taxonomy" pool would NOT share it and would manufacture enrichment.
+    Taxon pool: UniProt reference proteomes for Bacteria (taxonomy_id:2) and Archaea
+    (2157). The census hits are themselves UniProt proteins from sequenced organisms, so
+    the pool shares the census's strongest bias (only cultured, sequenced, named organisms
+    are represented) and it cancels in the contrast. An "all of NCBI taxonomy" pool would
+    NOT share it and would manufacture enrichment.
 
     The `lineage` field is fetched alongside so a PHYLUM-MATCHED background can be built
-    downstream. That control matters: census taxa are those carrying a PQQ-ADH, so an
-    apparent habitat enrichment could just be the protein family's phylogenetic range.
+    downstream: census taxa are those carrying a PQQ-ADH, so an apparent habitat enrichment
+    could be the protein family's phylogenetic range.
 
-    ⚠ UniProt gzips responses even when identity encoding is requested — see
-    `ValidateClassifier._http_fetch` in src/validate_classifier.jl. Without the defensive
+    ⚠ UniProt gzips responses even when identity encoding is requested (see
+    `ValidateClassifier._http_fetch` in src/validate_classifier.jl); without the defensive
     gunzip every parse fails silently and the whole background comes back empty.
 
     Resumable: taxa already present in the output CSV are skipped, so an interrupted run
@@ -33,12 +30,11 @@
 =#
 
 # ---------------------------------------------------------------------------
-# Command line. This step takes no options, but it still reads the command line, before
-# any package is loaded and before any file or URL is touched. Every other step in the
-# pipeline answers --help, so a reader probes this one the same way; without this block
-# `--help` falls through to the body and begins a multi-thousand-request UniProt fetch and
-# a write into the reader's working tree. An unrecognised argument is refused rather than
-# ignored, for the same reason: a mistyped flag must not silently become a full run.
+# Command line. This step takes no options, but still reads the command line before any
+# package is loaded and before any file or URL is touched: every other step in the pipeline
+# answers --help, and without this block `--help` falls through to the body and begins a
+# multi-thousand-request UniProt fetch and a write into the reader's working tree. An
+# unrecognised argument is refused for the same reason.
 # ---------------------------------------------------------------------------
 const USAGE = """
 Usage: julia --project=. scripts/prokaryote_background.jl [-h|--help]
@@ -81,18 +77,18 @@ const OUT           = DataInputs.input_path("pool_background")
 const TAXA_CACHE    = DataInputs.input_path("pool_taxa")
 const OBT_CACHE_CSV = DataInputs.input_path("obt_path_cache")
 
-# This step is the first thing that writes under the data root, so it is the step that has
-# to be able to create the directory the layout puts its outputs in. Done here rather than
-# at load, so that loading this file still writes nothing.
+# First step that writes under the data root, so it is the step that has to create the
+# directory the layout puts its outputs in. Called at use time, so loading this file still
+# writes nothing.
 make_output_dir() = mkpath(dirname(OUT))
 const MAX_TAXA      = 8000      # take everything below this; subsample above it
 const SUBSAMPLE     = 6000
 const SEED          = 20260810  # recorded so the sample is reproducible
 
 # ---- OBT path cache, shared with every habitat run in this repository ------------
-# The loader and the writer live in ModuleEnvironmentTools so that every habitat run shares
-# one on-disk cache and one ordering; local copies drift, and a copy that writes the CSV in
-# Dict order reintroduces the non-determinism the habitat work exists to remove.
+# Loader and writer live in ModuleEnvironmentTools so that every habitat run shares one
+# on-disk cache and one ordering; a local copy that writes the CSV in Dict order
+# reintroduces the non-determinism the habitat work exists to remove.
 prime_cache!() = EnvironmentTools.load_obt_cache!(OBT_CACHE_CSV)
 save_cache!() = EnvironmentTools.save_obt_cache(OBT_CACHE_CSV)
 

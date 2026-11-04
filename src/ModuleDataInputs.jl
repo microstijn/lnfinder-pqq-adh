@@ -1,29 +1,28 @@
 #=
     ModuleDataInputs.jl — the one place this repository says where its inputs live.
 
-    THE CONTRACT, IN ONE PARAGRAPH. Every file the analysis code reads that this
-    repository does not carry lives under a single directory, the DATA ROOT. The root is
-    the directory named by the environment variable LNFINDER_DATA, and when that is not
-    set it is `dat/` inside the clone. Underneath the root the layout is fixed and is
-    declared in INPUTS below, so a reader who unpacks the archived data set at the root
-    has satisfied every path at once. Two inputs are not in that archive because a reader
-    makes or fetches them from a public source — the alignment and the taxonomy dump —
-    and those two, and only those two, also answer to a variable of their own, so that a
-    large file already on the machine does not have to be copied under the root.
+    THE CONTRACT. Every file the analysis code reads that this repository does not carry
+    lives under a single directory, the DATA ROOT: the directory named by the environment
+    variable LNFINDER_DATA, or `dat/` inside the clone when that is not set. Underneath
+    the root the layout is fixed and is declared in INPUTS below, so a reader who unpacks
+    the archived data set at the root has satisfied every path at once. Two inputs are not
+    in that archive because a reader makes or fetches them from a public source, the
+    alignment and the taxonomy dump; those two, and only those two, also answer to a
+    variable of their own, so a large file already on the machine need not be copied under
+    the root.
 
-    WHY ONE ROOT. A pipeline of this size otherwise accumulates one absolute root per
-    stage, each of them valid on one machine. Every input here is a path under
-    LNFINDER_DATA, so there is one thing to set, one layout to document, and one place —
-    this file — that a rename has to pass through.
+    One root: every input here is a path under LNFINDER_DATA, so there is one thing to
+    set, one layout to document, and one place, this file, that a rename has to pass
+    through.
 
-    WHAT THIS FILE IS NOT. It is not a downloader and it opens no network connection. It
-    resolves names to paths, and it refuses by name when the file a name points at is not
-    there. `scripts/verify_data.jl` checks a data root against a checksum manifest;
+    This is not a downloader and it opens no network connection. It resolves names to
+    paths, and it refuses by name when the file a name points at is not there.
+    `scripts/verify_data.jl` checks a data root against a checksum manifest;
     `docs/DATA.md` says what each entry is, how it was produced and how to obtain it.
 
-    This module deliberately EXPORTS NOTHING. Several scripts include it, some of them
-    into the same namespace as each other, and a name that arrived from two copies of one
-    module would be ambiguous at the point of use. Everything is called qualified:
+    This module deliberately EXPORTS NOTHING. Several scripts include it, some into the
+    same namespace as each other, where a name arriving from two copies of one module
+    would be ambiguous. Everything is called qualified:
     `DataInputs.input_path("census_habitat")`.
 
     Run:  julia --project=. test/test_data_inputs.jl
@@ -139,9 +138,9 @@ const INPUTS = DataInput[
               "the curated set of enzymes whose cofactor is known from the literature",
               "control-set validation"),
     # The anchor targets ship with the code, and so do the two files they were transcribed
-    # from. Step 4 digests a declared source only when it finds it beside the targets file
-    # and reports one it cannot find without refusing, so a source that did not travel with
-    # the targets is a check that silently never runs.
+    # from. Step 4 digests a declared source only when it finds it beside the targets file,
+    # and reports a missing one without refusing, so a source that did not travel with the
+    # targets is a check that never runs.
     DataInput("anchor_targets", ("dat", "criteria", "anchor_targets.csv"), :file, :repo, "",
               "the transcribed anchor cells, the registered level names and the digests of " *
               "the two files the cells were transcribed from, which step 4 checks its grid " *
@@ -175,10 +174,10 @@ const INPUTS = DataInput[
               "the directory the stored response bodies and their manifest live in; the archive " *
               "carries the manifest and not the bodies",
               "habitat step 1"),
-    # The bodies are a separate entry from the directory that holds them, and deliberately.
-    # A cache miss in step 1 is a live fetch, so "the cache directory exists" is not the
-    # property that has to hold before an offline run: "the bodies are there" is. A cache
-    # put in place one level wrong satisfies the parent and nothing else.
+    # The bodies are a separate entry from the directory that holds them, deliberately. A
+    # cache miss in step 1 is a live fetch, so what has to hold before an offline run is
+    # that the bodies are there, not that the cache directory exists: a cache put in place
+    # one level wrong satisfies the parent and nothing else.
     DataInput("relation_bodies", ("habitat", "omnicrobe_cache", "relations"),
               :dir, :deposit, "",
               "the stored response bodies themselves, one <taxid>.json per taxon",
@@ -265,8 +264,7 @@ const INPUTS = DataInput[
 const BY_NAME = Dict{String,DataInput}(i.name => i for i in INPUTS)
 
 # A registry with two entries under one name would resolve whichever came first, and the
-# duplicate would look declared. Checked when this file loads, not by a suite that may or
-# may not run.
+# duplicate would look declared. Checked when this file loads, not only by the suite.
 length(BY_NAME) == length(INPUTS) ||
     error("ModuleDataInputs: two entries share a name")
 

@@ -1,19 +1,17 @@
 #=
     verify_data.jl — is the data root the one the analysis was run against?
 
-    WHAT IT IS FOR. The analyses in this repository read files this repository does not
-    carry. Those files are archived separately, and an archive can arrive truncated, half
-    unpacked, line-ending-mangled or simply out of date. This checks a data root against a
-    checksum manifest and says, per file, whether it is there and whether it is the same
-    bytes — and exits non-zero if anything is missing or different, so it can stand in
-    front of a long run in a script.
+    The analyses here read files this repository does not carry. Those files are archived
+    separately, and an archive can arrive truncated, half unpacked, line-ending-mangled or
+    out of date. This checks a data root against a checksum manifest and says, per file,
+    whether it is there and whether it is the same bytes. It exits non-zero if anything is
+    missing or different, so it can stand in front of a long run in a script.
 
-    WHY JULIA RATHER THAN A SHELL SCRIPT. Julia is the only prerequisite this repository
-    declares, so a reader who can run the analysis can run this. A shell version would
-    need `sha256sum` on Linux, `shasum -a 256` on macOS and PowerShell's `Get-FileHash` on
-    Windows — three variants to keep in step — and a Python version would add a runtime
-    nothing else here needs. This file uses only the standard library (`SHA`, `Printf`), so
-    it also runs BEFORE `Pkg.instantiate`, which is exactly when a reader is setting up.
+    Julia is the only prerequisite this repository declares, so a reader who can run the
+    analysis can run this; a shell version would need `sha256sum` on Linux, `shasum -a 256`
+    on macOS and PowerShell's `Get-FileHash` on Windows kept in step. Only the standard
+    library is used (`SHA`, `Printf`), so this also runs BEFORE `Pkg.instantiate`, which is
+    when a reader is setting up.
 
     The manifest is plain sha256sum format, so `sha256sum -c ../docs/data_manifest.sha256`
     from inside the data root is a second, independent way to run the same check.
@@ -172,17 +170,17 @@ function main(opt)
         return 1
     end
 
-    # THE ARCHIVE'S OWN RECORD CANNOT BE THE ONLY ONE CONSULTED. It travels with the files it
-    # describes, so on its own it says no more than "this archive agrees with itself": bytes
-    # and record could have moved together and every line would still read ok. The
-    # repository's copy is the second, independent location, which is the whole reason it is
-    # shipped — so whenever the run is against some other record, this one is cross-checked
-    # too, for the paths it covers, and a disagreement between the two is a failure.
+    # The archive's own record travels with the files it describes, so on its own it says no
+    # more than "this archive agrees with itself": bytes and record could have moved
+    # together and every line would still read ok. The repository's copy is the second,
+    # independent location, so whenever the run is against some other record this one is
+    # cross-checked too, for the paths it covers, and a disagreement between the two is a
+    # failure.
     cross = (!isempty(repo_record) && manifest != repo_record &&
              isfile(repo_record)) ? repo_record : ""
 
-    # A manifest that cannot be read is a sentence, not a stack trace: it is a file the reader
-    # was handed, and the message has to say what is wrong with it.
+    # A manifest that cannot be read gets a sentence: it is a file the reader was handed, so
+    # the message has to say what is wrong with it.
     entries = try
         read_manifest(manifest)
     catch e
@@ -219,11 +217,10 @@ function main(opt)
         end
     end
 
-    # The second record. Files it lists that the first one also listed are compared against
-    # the digest already measured, so nothing is hashed twice; files only it lists are
-    # hashed here. A file it lists that is absent is NOT reported again — the first record
-    # has already said so, or does not claim it — because the question this section answers
-    # is only whether the two records agree about the same bytes.
+    # The second record. Files the first one also listed are compared against the digest
+    # already measured, so nothing is hashed twice; files only it lists are hashed here. An
+    # absent file is not reported again: the question here is only whether the two records
+    # agree about the same bytes.
     disagree, crosschecked = String[], 0
     if !isempty(cross)
         cross_entries = try
@@ -249,10 +246,9 @@ function main(opt)
         end
     end
 
-    # The manifest is one record; the code's own registry is another. A data root can pass
-    # the digests and still be missing something a step reads, so the contract itself is
-    # checked too — this is the list of archived inputs the pipeline will refuse on.
-    # Inputs a reader has to obtain elsewhere are outside it; docs/DATA.md section 5
+    # A data root can pass the digests and still be missing something a step reads, so the
+    # code's own registry is checked too: the list of archived inputs the pipeline will
+    # refuse on. Inputs a reader obtains elsewhere are outside it; docs/DATA.md section 5
     # lists those, and each names itself when a step asks for it and it is not there.
     unresolved = String[]
     for i in DataInputs.deposit_inputs()

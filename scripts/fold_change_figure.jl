@@ -2,28 +2,26 @@
     fold_change_figure.jl -- how much a setting raises the chance of carrying the gene,
     measured within each phylum against that phylum's own rate.
 
-    WHY A FOLD-CHANGE AND NOT A PERCENTAGE. The equal-phylum percentage is the prevalence in
-    a community where these four phyla are equally common, which is nowhere: Host-plant's
-    28.1 % is neither the observed 42.8 % nor any phylum's rate (75/16/12/9). It reads as a
-    fact about genomes and is a fact about an invented population. A fold-change compares
-    each phylum only against itself, so nothing has to be invented, and the reference is 1x.
+    Why a fold-change and not the equal-phylum percentage: that percentage is the prevalence
+    in a community where these four phyla are equally common, which is nowhere. Host-plant's
+    28.1 % is neither the observed 42.8 % nor any phylum's rate (75/16/12/9). A fold-change
+    compares each phylum only against itself, and the reference is 1x.
 
-    WHAT IS DRAWN, one thing each:
-      open circles  the four per-phylum fold-changes. They ARE the finding, not decoration:
-                    two settings can share a mean and be completely different underneath.
-      filled marker their geometric mean -- the right centre for ratios, since an arithmetic
+    What is drawn, one thing each:
+      open circles  the four per-phylum fold-changes, which ARE the finding: two settings
+                    can share a mean and be completely different underneath.
+      filled marker their geometric mean, the right centre for ratios, since an arithmetic
                     mean of 0.5x and 2.0x is 1.25x, claiming a rise where there is none.
       whisker       its bootstrap interval (prevalence_phylum_average.py), which resamples
                     the setting cell with each phylum's overall rate held fixed.
       solid line    1x, the phylum's own average.
-    The row label carries the raw OBSERVED percentage, unadjusted, as the concrete anchor a
-    ratio cannot give.
+    The row label carries the raw OBSERVED percentage, unadjusted, as a concrete anchor.
 
-    THE POINT OF THE FIGURE. Host-plant and Terrestrial have the same mean, 1.50x against
-    1.49x, and are not the same result: Host-plant runs 0.81x to 3.56x and is BELOW 1x in
-    Bacteroidota, while Terrestrial lifts all four (1.05, 1.59, 1.89, 1.54). Soil is the
-    consistent signal; plants the large but erratic one. A bar chart of the means hides that
-    exactly.
+    Why the per-phylum spread is drawn and not a bar chart of the means: Host-plant and
+    Terrestrial have the same mean, 1.50x against 1.49x, and are not the same result.
+    Host-plant runs 0.81x to 3.56x and is BELOW 1x in Bacteroidota, while Terrestrial lifts
+    all four (1.05, 1.59, 1.89, 1.54). Soil is the consistent signal; plants the large but
+    erratic one.
 =#
 
 using CSV, DataFrames, Printf, SHA
@@ -32,9 +30,9 @@ import CairoMakie as mk
 # Paths follow the repository's data contract (docs/DATA.md): inputs under dat/, outputs
 # where $LNFINDER_FIGDIR says, defaulting beside the inputs so a bare clone just works.
 const REPO = normpath(joinpath(@__DIR__, ".."))
-# No variable of its own: docs/DATA.md allows exactly two per-input overrides, and these
-# tables are not among them. They resolve under the data root like everything else, and the
-# root defaults to dat/ in the clone, which is where the tracked copies already sit.
+# No variable of its own: docs/DATA.md allows exactly two per-input overrides and these
+# tables are not among them. They resolve under the data root, which defaults to dat/ in
+# the clone, where the tracked copies already sit.
 const DATADIR = joinpath(get(ENV, "LNFINDER_DATA", joinpath(REPO, "dat")), "figure")
 const OUTDIR = get(ENV, "LNFINDER_FIGDIR", DATADIR)
 const HERE = OUTDIR
@@ -84,9 +82,9 @@ function main()
                          obs = get(obs, string(r.setting), NaN)))
         end
     end
-    # The Thermal row, when asked for. It fails the four-phylum rule -- Actinomycetota is 0 of
-    # 13 there -- so neither variant is comparable with the rows above it, and both say so with
-    # an open marker and a dagger rather than blending in.
+    # The Thermal row, when asked for. It fails the four-phylum rule (Actinomycetota is 0 of
+    # 13 there), so neither variant is comparable with the rows above it; both say so with an
+    # open marker and a dagger.
     if MODE in ("pooled", "twophylum")
         th = CSV.read(THERM, DataFrame)
         want = MODE == "pooled" ? "pooled_fold" : "twophylum_fold"
@@ -161,8 +159,8 @@ function main()
               orientation = :horizontal, framevisible = false, labelsize = FS - 0.5,
               patchlabelgap = 3, colgap = 10, nbanks = 2, patchsize = (7.0f0, 7.0f0),
               rowgap = 2)
-    # No explanatory line under the figure. What the marks mean is caption material, and a
-    # figure carrying its own methods note only competes with the caption that must repeat it.
+    # No explanatory line under the figure: what the marks mean is caption material, and a
+    # figure carrying its own methods note competes with the caption that must repeat it.
     mk.rowgap!(fig.layout, 1, 6)
     mk.resize_to_layout!(fig)
 

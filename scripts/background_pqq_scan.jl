@@ -6,88 +6,75 @@
     taxonomy alone: every reference-proteome taxon that is not a census taxon. It has
     never been checked for the enzyme itself.
 
-    THE FAILURE THIS PREVENTS. The census is a UniProtKB hmmsearch snapshot, so a taxon
-    lands outside it for two very different reasons:
-      (a) it has no PQQ-ADH — a true background organism, and
+    The census is a UniProtKB hmmsearch snapshot, so a taxon lands outside it for two
+    different reasons:
+      (a) it has no PQQ-ADH, a true background organism, and
       (b) it has one, but the census run did not see it (a proteome added after the census
           release, an entry whose TaxID moved, a sequence below the census threshold).
-    Case (b) organisms are carriers sitting in the comparator arm. They drag the background
-    habitat profile towards the carrier profile, which biases every contrast towards the
-    null — and the bias is invisible, because nothing in the pipeline ever asks whether a
-    background taxon has the gene. This script asks, with the census HMM itself.
+    Case (b) organisms are carriers in the comparator arm, biasing every contrast towards
+    the null. This script asks, with the census HMM itself, which of the two a background
+    taxon is.
 
-    METHOD — targeted scan, not a full-proteome scan. Downloading every background proteome
-    is several GB for a question about one domain family, so the search space is narrowed
-    first, to the UniProtKB entries InterPro places in EITHER of two entries:
+    METHOD. Downloading every background proteome is several GB for a question about one
+    domain family, so the search space is narrowed first, to the UniProtKB entries InterPro
+    places in EITHER of two entries:
       IPR011047  Quinoprotein alcohol dehydrogenase-like superfamily (homologous superfamily)
       IPR017512  PQQ-dependent dehydrogenase, methanol/ethanol family (family)
     The names are InterPro's own. IPR017512 is the whole methanol/ethanol family, Ca- and
-    Ln-dependent members alike; it is not a lanthanide signature, and nothing here treats
-    it as one.
+    Ln-dependent members alike, and nothing here treats it as a lanthanide signature.
 
-    WHY THE UNION. The completeness criterion this step is held to names both entries, and
-    the recall clause it carries can only be evaluated over a search space that covers
-    both. The superfamily alone does not: InterPro annotates some family members without
-    the superfamily entry, and under a superfamily-only prefilter a taxon whose only family
-    members are of that kind never reaches hmmsearch, so it comes out with zero hits
-    however permissive the threshold. The union puts those entries in front of the model;
-    whether they then reach the cutoff is measured, not assumed — the run reports how many
-    family entries and frame taxa sit outside the superfamily and how many of those
-    entries are hits. The superfamily pages keep their original directory names, so a
-    download already on disk is reused rather than re-paged; the family pages go into
-    their own directories and the union is taken by accession, locally. Each download
-    keeps its own release record, and the run stops if the two came from different
-    UniProtKB releases: a union of two snapshots is not a snapshot.
+    The union, because the completeness criterion this step is held to names both entries
+    and its recall clause can only be evaluated over a search space covering both: InterPro
+    annotates some family members without the superfamily entry, and a superfamily-only
+    prefilter never puts those taxa in front of hmmsearch. Whether the entries the union
+    adds reach the cutoff is measured, and the run reports how many family entries and
+    frame taxa sit outside the superfamily and how many of those entries are hits. The
+    superfamily pages keep their original directory names, so a download already on disk is
+    reused; the family pages go into their own directories and the union is taken by
+    accession, locally. Each download keeps its own release record, and the run stops if
+    the two came from different UniProtKB releases.
 
-    RECALL. The union is still a prefilter, and a prefilter is an assumption, so the
-    recall stage measures it: --recall-n frame taxa get their reference proteome
-    downloaded and scanned at the same threshold, and of the taxa the full scan flags, a
-    share of at least MIN_RECALL must also be flagged by the prefilter. A TaxID UniProt
-    lists no reference proteome under gets every UniProtKB entry of that TaxID instead;
-    the release record beside the download says which, and the acceptance table counts
-    them. The sample is the first N draws of one seeded permutation of the frame, so a
-    larger N keeps every taxon a smaller one drew — and the run CHECKS that against the
-    sample column of an earlier scan table instead of taking it on faith. A sample in
-    which the full scan flags nothing is a MISS, not a pass: it measured no recall at all.
+    RECALL. The union is a prefilter, so the recall stage measures it: --recall-n frame taxa
+    get their reference proteome downloaded and scanned at the same threshold, and of the
+    taxa the full scan flags, a share of at least MIN_RECALL must also be flagged by the
+    prefilter. A TaxID UniProt lists no reference proteome under gets every UniProtKB entry
+    of that TaxID instead; the release record beside the download says which, and the
+    acceptance table counts them. The sample is the first N draws of one seeded permutation
+    of the frame, so a larger N keeps every taxon a smaller one drew, and the run CHECKS
+    that against the sample column of an earlier scan table. A sample in which the full
+    scan flags nothing is a MISS: it measured no recall at all.
 
-    A RATE IS NOT A BOUND, AND THE TWO ANSWER DIFFERENT QUESTIONS. The recall row this
-    scan gates on is the rate: it asks whether the prefilter finds the carriers the
-    full-proteome scan finds, which is what decides whether the exclusion list can be
-    published. A small sample with every carrier recovered answers that question, and a
-    wide interval around the answer does not make the list wrong. The stronger statement,
-    that the background left after the exclusion holds no carrier the prefilter missed,
-    needs more than an observed rate: a perfect score on a small number of flagged taxa is
-    still compatible with a true recall below the bar. So recall.txt also records
-    lower_bound_95, the exact one-sided 95 % Clopper-Pearson lower bound of the recovered
-    share, and the acceptance table discloses it without a bar of its own here. The
-    habitat analysis downstream decides that stronger statement on the bound, held to the
-    same recall bar, rather than on the rate row's PASS, so a scan can pass its own gate
-    and still leave that statement unlicensed.
+    RATE AND BOUND. This scan gates on the rate, whether the prefilter finds the carriers
+    the full-proteome scan finds, which decides whether the exclusion list can be
+    published. A perfect rate on a small number of flagged taxa is still compatible with a
+    true recall below the bar, so recall.txt also records lower_bound_95, the exact
+    one-sided 95 % Clopper-Pearson lower bound of the recovered share, which the acceptance
+    table discloses without a bar of its own. The stronger statement, that the background
+    left after the exclusion holds no carrier the prefilter missed, is decided downstream in
+    the habitat analysis on that bound, held to the same recall bar, so a scan can pass its
+    own gate and still leave that statement unlicensed.
 
-    Both sides assign a sequence to an organism by the entry's own TaxID — the OX= token
-    of the proteome FASTA on one side, the organism column of the search-space pages on
-    the other — and not by the proteome a sequence was downloaded under. A proteome entry
-    whose TaxID is not a sampled taxon is therefore counted for neither. Whether any such
-    entry exists is not assumed either way: the run counts them and their hits. The one
-    exception is a header with no OX= token at all, which has no TaxID of its own to go
-    by; it is attributed to the taxon it was downloaded under, and the run counts those
-    headers too, so the exception is a number rather than an assumption.
+    Both sides assign a sequence to an organism by the entry's own TaxID: the OX= token of
+    the proteome FASTA on one side, the organism column of the search-space pages on the
+    other, never the proteome a sequence was downloaded under. A proteome entry whose TaxID
+    is not a sampled taxon is counted for neither, and the run counts those entries and
+    their hits. The one exception is a header with no OX= token at all: it is attributed to
+    the taxon it was downloaded under, and the run counts those headers too.
 
     WHOLE-FRAME FAMILY MEMBERSHIP. The per-taxon IPR017512 columns are read from the same
     two downloads the search space is built from, which carry xref_interpro and the
     sequence length for every entry and whose releases the run requires to agree. The
-    membership is a property of the TAXON, taken from every family entry the taxon has,
-    independent of the hit table. That independence is what lets the family acceptance
-    check fail: a full-length family member the model scores below the cutoff leaves its
-    taxon unflagged while the roll-up still counts it. The other hole this check answers
-    for, a frame family entry outside the search space, cannot arise while the search
-    space is the union: every family entry of a frame taxon that the download holds is a
-    candidate. A carrier annotated in neither entry is invisible to the check and to the
-    search alike; that is the recall sample's question, not this check's.
+    membership is a property of the TAXON, taken from every family entry the taxon has, and
+    independent of the hit table, which is what lets the family acceptance check fail: a
+    full-length family member the model scores below the cutoff leaves its taxon unflagged
+    while the roll-up still counts it. The other hole that check answers for, a frame family
+    entry outside the search space, cannot arise while the search space is the union. A
+    carrier annotated in neither entry is invisible to the check and to the search alike;
+    that is the recall sample's question.
 
-    TWO READINGS OF IPR017512 MEMBERSHIP, EACH UNDER ITS OWN NAME. `in_ipr017512` is
-    n_ipr017512_entries > 0, a property of the TAXON. The narrower reading — true when some
-    HIT row of the taxon is annotated IPR017512 — is false for every zero-hit taxon by
+    IPR017512 MEMBERSHIP, TWO READINGS UNDER TWO NAMES. `in_ipr017512` is
+    n_ipr017512_entries > 0, a property of the TAXON. The narrower reading, true when some
+    HIT row of the taxon is annotated IPR017512, is false for every zero-hit taxon by
     construction, so a guard built on it can never see a carrier the scan missed; it is
     carried separately as hit_ipr017512. Columns appended after the first nine:
       n_ipr017512_entries          family entries of this exact TaxID, whole-frame query
@@ -98,50 +85,44 @@
       hit_ipr017512                the narrow reading: some hit row is annotated IPR017512
       n_hits_ln_or_ca              hit sequences classed Lanthanide or Calcium
 
-    THRESHOLD. The HMM carries no GA/TC/NC cutoffs, so hmmsearch has no threshold of its
-    own and -T is mandatory: left to itself it falls back to an E-value default, and an
-    E-value moves with the size of the database searched, so the small candidate set and
-    the large proteome set would be scanned at two different stringencies. A bit score
-    does not move, but a hand-picked one would be unreproducible, so the threshold is set
-    EMPIRICALLY — the same hmmsearch is run over the census accessions present in the
-    downloaded search space and the cutoff is read off their full-sequence bit scores.
-    That puts the background scan on the census's own scale, as permissive as the census
-    it is compared against up to the low tail the rule gives up — the share of census
-    accessions below the cutoff is not assumed small, it is the recovery the acceptance
-    table gates on. That is the property the comparison needs. `--threshold <bits>`
-    replaces the calibrated cutoff with a recorded one for a cheap re-run; threshold.txt
-    records which of the two was used.
+    THRESHOLD. The HMM carries no GA/TC/NC cutoffs, so -T is mandatory: hmmsearch would
+    otherwise fall back to an E-value default, and an E-value moves with the size of the
+    database searched, so the small candidate set and the large proteome set would be
+    scanned at two different stringencies. A hand-picked bit score would be unreproducible,
+    so the threshold is set EMPIRICALLY: the same hmmsearch is run over the census
+    accessions present in the downloaded search space and the cutoff is read off their
+    full-sequence bit scores. That puts the background scan on the census's own scale, as
+    permissive as the census up to the low tail the rule gives up, and the share of census
+    accessions below the cutoff is the recovery the acceptance table gates on.
+    `--threshold <bits>` replaces the calibrated cutoff with a recorded one for a cheap
+    re-run; threshold.txt records which of the two was used.
 
-    SPECIFICITY IS DISCLOSED, NOT GATED. Every acceptance criterion bounds the flagged set
-    from one side: a carrier left in the background fails a check, a non-carrier removed
-    from it fails none. A hit at the census cutoff is not necessarily a PQQ-ADH — the
-    census itself keeps sequences whose alignment never reaches the active-site column —
-    so the acceptance table reports how many flagged taxa have no hit classed Lanthanide
-    or Calcium. There is no pre-registered bar for that number, and the table says so
-    instead of inventing one.
+    SPECIFICITY. Every acceptance criterion bounds the flagged set from one side: a carrier
+    left in the background fails a check, a non-carrier removed from it fails none. A hit at
+    the census cutoff is not necessarily a PQQ-ADH, since the census itself keeps sequences
+    whose alignment never reaches the active-site column, so the acceptance table reports,
+    without gating on it, how many flagged taxa have no hit classed Lanthanide or Calcium.
+    No bar was pre-registered for that number, and the table says so.
 
-    THE POSITIVE CONTROLS CHECK THE WIRING, NOT THE FINDING. Five named frame taxa must come
-    out flagged. They were not drawn from the literature: each was selected, before this
-    search was first run, because a UniProtKB entry of that exact TaxID is annotated to the
-    methanol/ethanol family at full length. So the check asks whether this prefilter and this
-    profile recover what public annotation already claims, and a PASS is not evidence about
-    any of those organisms' cofactors. POSITIVE_CONTROLS names the five entries.
+    THE POSITIVE CONTROLS CHECK THE WIRING. Five named frame taxa must come out flagged.
+    Each was selected, before this search was first run, because a UniProtKB entry of that
+    exact TaxID is annotated to the methanol/ethanol family at full length; none was drawn
+    from the literature. So the check asks whether this prefilter and this profile recover
+    what public annotation already claims, and a PASS is not evidence about any of those
+    organisms' cofactors. POSITIVE_CONTROLS names the five entries.
 
-    ONE RUN, ONE IDENTITY. The per-taxon table and the three records that describe it —
-    threshold.txt, recall.txt and acceptance.tsv — mean something only together, so they
-    are published together or not at all. The table is written first, as
-    background_pqq_scan.csv.pending; the sha256 of those bytes is the run's scan_sha256,
-    and it goes, with one run_id stamp, into all three records, each written as
-    <name>.pending too. Only when no acceptance verdict is MISS are the four renamed to
-    their final names. On a MISS nothing is promoted: the failing run's files stay
-    .pending for inspection, a table and records left by an earlier run are renamed to
-    .stale, and the run exits 1.
-    The failure this prevents: written in run order, a failing run would overwrite
-    threshold.txt and recall.txt and leave the previous run's table in place, so a
-    consumer would read one run's cutoff and recall beside another run's exclusion list
-    with no file saying they did not belong together. Under the rule above there is no table
-    left to misread, and a consumer that hashes the table it reads can refuse any record
-    that names another.
+    PUBLISHING. The per-taxon table and the three records that describe it, threshold.txt,
+    recall.txt and acceptance.tsv, mean something only together, so they are published
+    together or not at all. The table is written first, as background_pqq_scan.csv.pending;
+    the sha256 of those bytes is the run's scan_sha256, and it goes, with one run_id stamp,
+    into all three records, each written as <name>.pending too. Only when no acceptance
+    verdict is MISS are the four renamed to their final names. On a MISS nothing is
+    promoted: the failing run's files stay .pending for inspection, a table and records left
+    by an earlier run are renamed to .stale, and the run exits 1. Written in run order
+    instead, a failing run would overwrite threshold.txt and recall.txt and leave the
+    previous run's table in place, so a consumer would read one run's cutoff and recall
+    beside another run's exclusion list. A consumer that hashes the table it reads can
+    refuse any record that names another.
 
     acceptance.tsv columns: check, value, denominator, bar, verdict, note, run_id,
     scan_sha256. value and bar are numbers on the same scale, and a row with a bar is
@@ -151,27 +132,25 @@
     nothing. A row without a bar is DISCLOSED and never blocks. Every bar is a fixed
     parameter of this script or computed by this run, and the note says which.
 
-    CACHES ARE CHECKED, NOT TRUSTED. A derived file is reused only when the parameters
-    that produced it still hold: a subset FASTA must hold exactly the requested accession
-    set, a hmmsearch table must have been produced at the requested -T (read back from
-    the table's own option line), the reference FASTA must hold the requested pair, and
-    the recall concatenation must carry a manifest naming exactly the sampled taxa. A
-    stale derived file is rebuilt, loudly, and the search built on it is dropped. A
-    download that disagrees with the server's own X-Total-Results cannot be repaired
-    locally, so that stops the run. One kind of file is reused on its name alone: a
-    per-taxon proteome download. It is written through a rename, so it is complete as
-    fetched, but nothing can re-check it against a release that has since moved on — so
-    every new download records the UniProtKB release it came from, an acceptance row
-    fails if a recorded release differs from the search space's, and a download made
-    before those records existed is counted as unrecorded rather than assumed current.
+    CACHES. A derived file is reused only when the parameters that produced it still hold:
+    a subset FASTA must hold exactly the requested accession set, a hmmsearch table must
+    have been produced at the requested -T (read back from the table's own option line),
+    the reference FASTA must hold the requested pair, and the recall concatenation must
+    carry a manifest naming exactly the sampled taxa. A stale derived file is rebuilt,
+    loudly, and the search built on it is dropped. A download that disagrees with the
+    server's own X-Total-Results stops the run, since it cannot be repaired locally. One
+    kind of file is reused on its name alone: a per-taxon proteome download, written
+    through a rename, so complete as fetched but not re-checkable against a release that
+    has since moved on. So every new download records the UniProtKB release it came from,
+    an acceptance row fails if a recorded release differs from the search space's, and a
+    download made before those records existed is counted as unrecorded.
 
-    ASYMMETRY, ON PURPOSE. Carriers found here are removed from the BACKGROUND only. The
-    census arm is left untouched: this step cleans the comparator, it does not recruit new
-    members into the foreground.
+    Carriers found here are removed from the BACKGROUND only, on purpose: this step cleans
+    the comparator, it does not recruit new members into the foreground.
 
-    Everything downloaded lands under habitat/background_scan/ in the data root and every stage
-    resumes from what is already on disk, so a dropped connection costs one page, not the
-    run. Requests are anonymous.
+    Everything downloaded lands under habitat/background_scan/ in the data root and every
+    stage resumes from what is already on disk, so a dropped connection costs one page, not
+    the run. Requests are anonymous.
 
     Run:  julia --project=. scripts/background_pqq_scan.jl [options]
           (--help lists them and exits before anything is loaded, fetched or written)
@@ -180,11 +159,10 @@
 const REPO = normpath(joinpath(@__DIR__, ".."))
 
 # ---------------------------------------------------------------------------
-# Command line. Parsed before any package is loaded and before any file is touched, so
-# --help and a mistyped option cost nothing. Both would otherwise cost a run: an ignored
-# unknown option means `--thresold 50` scans at the calibrated cutoff and rewrites every
-# record as if the flag had been honoured, and a `--help` read after the work starts begins
-# the downloads.
+# Command line. Parsed before any package is loaded and before any file is touched: an
+# ignored unknown option means `--thresold 50` scans at the calibrated cutoff and rewrites
+# every record as if the flag had been honoured, and a `--help` read after the work starts
+# begins the downloads.
 # ---------------------------------------------------------------------------
 
 # The sample size lives with the usage text because the usage text quotes it.
@@ -323,12 +301,12 @@ const CA_REF      = "P16027"
 const PAGE        = 500           # UniProt REST maximum page size
 const RECALL_SEED = 20260913      # recorded so the recall sample is reproducible
 const HMM_CPU     = 8
-# A family member shorter than this is treated as a fragment rather than as a carrier; the
-# column names n_ipr017512_ge500 / in_ipr017512_ge500 record the floor.
+# A family member shorter than this counts as a fragment, not a carrier; the column names
+# n_ipr017512_ge500 / in_ipr017512_ge500 record the floor.
 const MIN_FAMILY_LEN = 500
 # Acceptance bars, fixed before the scan was run. Both are floors on a share; the flagged-
-# count floor is not a constant at all but computed by the run (see the acceptance stage),
-# and specificity has no bar, for the reason the header gives.
+# count floor is computed by the run instead (see the acceptance stage), and specificity
+# has no bar, for the reason the header gives.
 const MIN_RECOVERY = 0.99
 const MIN_RECALL   = 0.98
 # The default level of clopper_pearson_lower. The bound recall.txt records does not read
@@ -407,7 +385,7 @@ const PENDING_EXT = ".pending"
 const STALE_EXT   = ".stale"
 
 # ---------------------------------------------------------------------------
-# Pure helpers. No network, no HMMER — unit-tested in test/test_background_scan.jl.
+# Pure helpers. No network, no HMMER; unit-tested in test/test_background_scan.jl.
 # ---------------------------------------------------------------------------
 
 """
@@ -794,8 +772,8 @@ function read_keyvals(path::AbstractString)
 end
 
 # Typed field readers for a key/value record. Absent, empty or unparseable is `nothing`,
-# never a default: a consumer that fills a missing `pass` with `false` is safe by luck, and
-# one that fills a missing count with 0 turns "not recorded" into "measured nothing".
+# never a default: a consumer that fills a missing count with 0 turns "not recorded" into
+# "measured nothing".
 _kv_str(d, k)   = (s = get(d, k, ""); isempty(s) ? nothing : s)
 _kv_int(d, k)   = tryparse(Int, get(d, k, ""))
 _kv_float(d, k) = tryparse(Float64, get(d, k, ""))
@@ -1430,12 +1408,11 @@ include(joinpath(REPO, "src", "validate_classifier.jl"))
 using .ValidateClassifier: win_to_wsl, run_hmmalign, reorder_references!, fetch_control_sequences
 using .ValidateClassifier.ModuleHmmer: calibrate_active_site, parse_hmmalign_results
 
-# HOW HMMER IS CALLED, ON EACH PLATFORM. HMMER has no native Windows build, so on Windows
-# every invocation is prefixed with `wsl` and every path is translated to its /mnt/<drive>
-# form. On Linux and macOS the binary is called directly with the paths as they are.
-# `win_to_wsl` returns a non-Windows path unchanged, so one helper covers both, and the
-# option line is identical either way — the two arms of this scan are compared to each
-# other, so nothing about the invocation may depend on where it ran.
+# HMMER has no native Windows build, so on Windows every invocation is prefixed with `wsl`
+# and every path is translated to its /mnt/<drive> form; on Linux and macOS the binary is
+# called directly with the paths as they are. `win_to_wsl` returns a non-Windows path
+# unchanged, so one helper covers both, and the option line is identical either way,
+# because the two arms of this scan are compared to each other.
 const USE_WSL = Sys.iswindows()
 hmmer_path(p::AbstractString) = USE_WSL ? win_to_wsl(p) : String(p)
 hmmer_argv(args::AbstractString...) = USE_WSL ? String["wsl", args...] : String[args...]
@@ -1495,8 +1472,8 @@ function drop_search_outputs(tag::AbstractString)
 end
 
 # The superfamily download predates the union and keeps its original file names: its
-# release record is the one the downstream habitat summary reads, and re-paging it only
-# to rename directories would cost time and buy nothing.
+# release record is the one the downstream habitat summary reads, and re-paging it to
+# rename directories would buy nothing.
 release_file(entry) = joinpath(SCAN_DIR, entry == IPR_SUPERFAMILY ? "uniprot_release.txt" :
                                              "uniprot_release_$(entry).txt")
 page_dir(entry, kind) = joinpath(SCAN_DIR, entry == IPR_SUPERFAMILY ? "family_$(kind)" :
@@ -1550,9 +1527,8 @@ DataInputs.require_or_exit("profile_hmm")
 println("=== background PQQ-ADH scan ===")
 
 # ---- 1. the frame: reference-proteome taxa that are not census taxa ----------------
-# Both inputs are named before they are parsed: a missing one is the registry's own
-# refusal, naming the input and where the layout puts it, not a CSV parse error and a
-# stack trace.
+# Both inputs are named before they are parsed, so a missing one gets the registry's own
+# refusal, naming the input and where the layout puts it, instead of a CSV parse error.
 DataInputs.require_or_exit("census_habitat", "pool_taxa")
 # Created only once every input has been found, so a refused run leaves nothing behind.
 mkpath(SCAN_DIR)
@@ -1570,9 +1546,8 @@ frame_set = Set{Int}(frame)
         nrow(pool), length(census_taxids), length(census_accs), length(frame))
 
 # The recall sample depends only on the frame, the seed and --recall-n, so it is drawn and
-# checked against the earlier sample HERE, before an hour of downloads: a sample that does
-# not extend the earlier one is reported at the start, not discovered at the end. The
-# verdict itself is an acceptance row, so it is persisted with everything else.
+# checked against the earlier sample HERE, before an hour of downloads. The verdict itself
+# is an acceptance row, so it is persisted with everything else.
 const SAMPLE = recall_sample(frame, OPT.recall_n, RECALL_SEED)
 const RECALL_REF_GIVEN = !isempty(OPT.recall_reference)
 const RECALL_REF = RECALL_REF_GIVEN ? OPT.recall_reference : default_recall_reference(OUT_CSV)
@@ -1671,18 +1646,16 @@ for cls in ["Lanthanide", "Calcium", "Gap", "Unknown"]
             cls, length(s), first(s), quantile(s, 0.01), median(s), last(s))
 end
 # Kept for the sweep below: the cutoff the census implies if only its rows with a READ
-# active-site motif are treated as the thing to match. It is not the operating rule —
-# that would quietly redefine "carries a PQQ-ADH" as "carries one the classifier could
-# read" — but the two are far enough apart that the difference has to be visible.
+# active-site motif are treated as the thing to match. Not the operating rule, which would
+# redefine "carries a PQQ-ADH" as "carries one the classifier could read", but the two are
+# far enough apart that the difference has to be visible.
 const THR_LN = haskey(cls_scores, "Lanthanide") ? quantile(cls_scores["Lanthanide"], 0.01) : NaN
 
-# The 1st percentile is the operating rule: the minimum is decided by one sequence, and
-# whichever census accession happens to be the most truncated fragment should not get to
-# set a method parameter on its own. Whether that matters is an empirical question, not
-# an assumption — the two numbers are printed above and the sweep below shows how much
-# of the background sits between them. A recorded threshold given with --threshold
-# replaces the rule outright; the calibration still runs, so its recovery is reported
-# against whichever cutoff is in force.
+# The 1st percentile is the operating rule: the minimum is decided by one sequence, and the
+# most truncated census fragment should not set a method parameter on its own. Both numbers
+# are printed above, and the sweep below shows how much of the background sits between them.
+# A recorded threshold given with --threshold replaces the rule outright; the calibration
+# still runs, so its recovery is reported against whichever cutoff is in force.
 const THRESHOLD_SOURCE = OPT.threshold === nothing ? "calibration" : "cli"
 const THRESHOLD = OPT.threshold === nothing ? thr_p1 : Float64(OPT.threshold)
 # Both searches run at the lower of the calibration minimum and the operating cutoff and
@@ -1697,8 +1670,8 @@ REC >= MIN_RECOVERY || @warn "calibration recovery below the criterion" REC MIN_
 CSV.write(joinpath(SCAN_DIR, "calibration_scores.csv"), cal_best)
 
 # ---- 5. scan the candidates --------------------------------------------------------
-# Searched at SEARCH_FLOOR and filtered afterwards, so both rules — and a sensitivity
-# sweep past them — come out of one scan instead of one scan per cutoff.
+# Searched at SEARCH_FLOOR and filtered afterwards, as above, so one scan serves both rules
+# and the sweep past them.
 all_hits = run_hmmsearch(cand_fa, "candidates"; threshold = SEARCH_FLOOR)
 all_hits = leftjoin(all_hits, select(cand_rows, :accession, :taxid, :interpro), on = :accession)
 dropmissing!(all_hits, :taxid)
@@ -1706,8 +1679,8 @@ hits = all_hits[all_hits.full_bits .>= THRESHOLD, :]
 @printf("hits: %d sequences from %d taxa at or above %.2f bits\n",
         nrow(hits), length(unique(hits.taxid)), THRESHOLD)
 # The part of the search space only the union reaches: frame entries of the family that
-# lack the superfamily annotation, and how many of them are hits. This is the measured
-# size of the hole the union closes.
+# lack the superfamily annotation, and how many are hits. The measured size of the hole
+# the union closes.
 const OUTSIDE_ACCS = Set{String}(a for (a, t, o) in zip(fam.accession, fam.taxid, fam_outside)
                                  if o && t in frame_set)
 const N_OUTSIDE_HITS = count(a -> a in OUTSIDE_ACCS, hits.accession)
@@ -1715,8 +1688,8 @@ const N_OUTSIDE_HITS = count(a -> a in OUTSIDE_ACCS, hits.accession)
         N_OUTSIDE_HITS, length(OUTSIDE_ACCS))
 
 # How hard does the answer lean on the cutoff? The two calibration rules can land close
-# together, so the rows past them are there to show where the background would
-# start changing if a recorded census threshold ever replaces the empirical one.
+# together, so the rows past them show where the background would start changing if a
+# recorded census threshold ever replaces the empirical one.
 println("sensitivity of the flagged count to the cutoff:")
 for cut in sort(unique(Float64[thr_min, THRESHOLD, 50.0, 100.0, THR_LN, 200.0, 300.0]))
     isnan(cut) && continue
@@ -1772,7 +1745,7 @@ n_unscored = count(a -> !haskey(classes, String(a)), hits.accession)
 
 # The derived cutoff, the column the hits were classed at and the model they came from
 # are one method record. It is assembled here, once the column is known, and written only
-# by publish_scan, together with the table it describes — writing it now would put this
+# by publish_scan, together with the table it describes: writing it now would put this
 # run's cutoff on disk beside whatever table an earlier run left.
 const THRESHOLD_RULE = THRESHOLD_SOURCE == "cli" ?
     "supplied on the command line" :
@@ -1835,9 +1808,9 @@ const RELEASES = proteome_release_audit(prot_dir, sample_taxa, sf.release)
 
 recall_all = run_hmmsearch(recall_fa, "recall"; threshold = SEARCH_FLOOR)
 recall_hits = recall_all[recall_all.full_bits .>= THRESHOLD, :]
-# Every full-proteome hit counts for the organism its entry names (OX=), and only when
-# that organism is a sampled taxon — the same exact-TaxID rule the prefilter's hits
-# follow. Entries of another TaxID and the hits they carry are counted, not assumed away.
+# Every full-proteome hit counts for the organism its entry names (OX=), and only when that
+# organism is a sampled taxon: the exact-TaxID rule the prefilter's hits follow too. Entries
+# of another TaxID and their hits are counted, not assumed away.
 const TAXMAP = proteome_taxon_map(prot_dir, sample_taxa)
 const FULL = recall_flagged(recall_hits.accession, TAXMAP.acc2tax, sample_set)
 pre_flagged = intersect(Set{Int}(hits.taxid), sample_set)
@@ -1850,8 +1823,8 @@ rs = recall_summary(n_sampled = length(sample_taxa), full_flagged = FULL.flagged
         isnan(rs.rate) ? "undefined" : @sprintf("%.1f %%", 100 * rs.rate),
         isnan(rs.lower_bound_95) ? "undefined" : @sprintf("%.4f", rs.lower_bound_95))
 # Nothing here compares the bound with the bar. The gate below is on the rate, and the
-# statement the bound decides is decided by its consumer alone, so this script holds no
-# second copy of that rule to drift from the first.
+# statement the bound decides is its consumer's, so this script holds no second copy of
+# that rule.
 @printf("  %d sampled taxa had no candidate entry, so only the full scan searched them\n",
         rs.n_never_searched_in_sample)
 @printf("  %d of %d proteome entries name a TaxID other than the taxon downloaded; %d of %d hit sequences set aside for it\n",
@@ -1900,9 +1873,7 @@ end
 
 # ---- 9. acceptance: the questions this step exists to answer -----------------------
 # Every gated row carries the numbers its verdict is derived from (accept! derives it), so
-# the table cannot say PASS beside numbers that fail and a consumer can check it. A
-# printed criterion that nothing reads and that exits 0 is not a criterion; it is a
-# comment.
+# the table cannot say PASS beside numbers that fail and a consumer can check it.
 println("\n--- acceptance ---")
 accept = acceptance_table()
 flagged_taxids = Set{Int}(out.taxid[out.n_hits .> 0])
@@ -1910,8 +1881,8 @@ nflag = length(flagged_taxids)
 
 # Every frame taxon with a full-length member of the methanol/ethanol family must come
 # out flagged. The denominator is the whole-frame roll-up, not the prefilter's candidate
-# rows: drawn from the search space, it could only contain taxa the search space reached
-# and would pass exactly when the search space has a hole.
+# rows, which could only hold taxa the search space reached, so the check would pass
+# exactly when the search space has a hole.
 family_missed = ipr017512_unflagged(fam_tax, flagged_taxids)
 accept!(accept, "$IPR_FAMILY frame taxa flagged (>= $MIN_FAMILY_LEN aa, whole-frame membership)";
         value = n_family_taxa - length(family_missed), denominator = n_family_taxa,
@@ -1947,27 +1918,25 @@ accept!(accept, "recall proteome downloads without a reference proteome";
         value = RELEASES.n_recorded > 0 ? RELEASES.n_no_reference_proteome : missing,
         denominator = RELEASES.n_recorded > 0 ? RELEASES.n_recorded : missing,
         note = "no pre-registered bar, disclosed; every UniProtKB entry of the TaxID was downloaded instead; counted over the downloads whose record exists, the others cannot say")
-# The floor on the flagged count is computed, not remembered: every frame taxon carrying
-# a full-length family entry is a carrier by annotation alone, so no complete flagged set
-# can be smaller than their number. A floor copied from an earlier run would describe
-# that run's data, not this one's.
+# The floor on the flagged count is computed, not remembered: every frame taxon carrying a
+# full-length family entry is a carrier by annotation alone, so no complete flagged set can
+# be smaller than their number, and a floor copied from an earlier run would describe that
+# run's data.
 accept!(accept, "flagged background taxa"; value = nflag, denominator = nrow(out),
         bar = n_family_taxa,
         note = "bar computed by this run: the number of frame taxa with a family entry at the length floor, which every flagged set must contain")
 accept!(accept, "hit sequences classed at the active-site column";
         value = nrow(hits) - n_unscored, denominator = nrow(hits), bar = nrow(hits),
         note = "bar computed by this run: every hit; an unclassed hit reads as not-Lanthanide downstream without an error")
-# WHAT THIS CONTROL ASSERTS, SPELLED OUT, because a bare hit count beside an organism's name
-# reads as a claim about the organism. It tests that the scan FINDS SEQUENCES for a taxon
-# carrying the enzyme family. It does not test that the organism is methylotrophic, and the
-# two come apart here: the per-taxon notes on POSITIVE_CONTROLS above record that 217069
-# has published evidence AGAINST growth on methanol as a sole carbon and energy source.
-# Read those notes rather than this line - they also carry the limit that matters, which
-# is that the 2004 assay was calcium-supplemented with no lanthanides at a date when
+# This control tests that the scan FINDS SEQUENCES for a taxon carrying the enzyme family,
+# not that the organism is methylotrophic, and the two come apart here: the per-taxon notes
+# on POSITIVE_CONTROLS above record that 217069 has published evidence AGAINST growth on
+# methanol as a sole carbon and energy source. Those notes carry the limit that matters,
+# that the 2004 assay was calcium-supplemented with no lanthanides at a date when
 # lanthanide-dependent dehydrogenases were unknown, so it could not have detected one.
-# Sequence presence is what is measured and it holds; what that evidence rules out is only
-# the rationale "this taxon is a control because it grows on methanol", which is not the
-# one the list was selected by (public annotation, as the notes above say).
+# Sequence presence is what is measured, and it holds. The published evidence rules out only
+# the rationale "this taxon is a control because it grows on methanol", which is not how the
+# list was selected (public annotation, as the notes above say).
 for (t, name) in POSITIVE_CONTROLS
     r = out[out.taxid .== t, :]
     accept!(accept, "positive control $name ($t)";
@@ -1979,10 +1948,9 @@ for (t, name) in POSITIVE_CONTROLS
                    "fixed bar; the control taxon is absent from the frame")
 end
 
-# Disclosed, not gated. The flagged set is bounded from one side by every criterion
-# above, so the quantities that would show over-exclusion, and the ones that size the
-# union's reach, are written down here instead of being tested against a bar invented
-# after the scan.
+# Disclosed, not gated. The flagged set is bounded from one side by every criterion above,
+# so the quantities that would show over-exclusion, and the ones that size the union's
+# reach, are written down here instead of tested against a bar invented after the scan.
 spec = specificity_disclosure(out.n_hits, out.n_hits_ln_or_ca)
 accept!(accept, "flagged taxa with no Lanthanide- or Calcium-classed hit";
         value = spec.n_without_ln_or_ca, denominator = spec.n_flagged,

@@ -13,18 +13,17 @@ const OBT_CACHE = Dict{String, String}()
     OBT branch ids → habitat TYPE.
 
     Derived empirically from the OBT ontology paths of the habitat terms the input data
-    returns, not assumed. Four branch ids are deliberately NOT in the table, because keying
-    it at their level mis-assigns wholesale:
+    returns. Four branch ids are deliberately NOT in the table, because keying it at their
+    level mis-assigns wholesale:
 
-        OBT:000013 is not "Aquatic"     — it is the NATURAL-ENVIRONMENT branch and
-                                          contains soil, rock, forest and air as
-                                          well as lake and sea, so `soil` and even
-                                          `terrestrial habitat` would score Aquatic.
-        OBT:000006 is not "Terrestrial" — it is the MAN-MADE branch (saltern, mine,
-                                          sewage, bioreactor, hospital, landfill).
-        OBT:001660 / OBT:002027 / OBT:000987 / OBT:000763 match NOTHING in the returned
-                                          paths at all, so a table keyed on them leaves
-                                          Host-associated and Anthropogenic unfired.
+        OBT:000013 is the NATURAL-ENVIRONMENT branch: it holds soil, rock, forest and air as
+                   well as lake and sea, so `soil` and even `terrestrial habitat` would score
+                   Aquatic.
+        OBT:000006 is the MAN-MADE branch (saltern, mine, sewage, bioreactor, hospital,
+                   landfill), not Terrestrial.
+        OBT:001660 / OBT:002027 / OBT:000987 / OBT:000763 match NOTHING in the returned paths
+                   at all, so a table keyed on them leaves Host-associated and Anthropogenic
+                   unfired.
 
     The real pillars sit one level down, e.g. soil = /OBT:000001/OBT:000013/OBT:000158/…
     and lake = /OBT:000001/OBT:000013/OBT:000047/…
@@ -32,15 +31,13 @@ const OBT_CACHE = Dict{String, String}()
     Checked in order; first match wins, so the specific anatomy branches are tested before
     the general "living organism" one.
 =#
-    # Official ontology names, fetched from /api/get/obt/<id> — quoted here so a future
-    # reader can check the label against the source without a network call.
+    # Official ontology names, fetched from /api/get/obt/<id> and quoted here, so a future
+    # reader can check a label against the source without a network call.
 const OBT_TYPE = [
     # Aquatic must include the SUBSTRATE nodes below, not just "aquatic environment".
     # OBT:000079 "environmental matter" is not labelled wholesale: only `rock` is geological,
     # while the branch also holds aquatic sediments and the bare term `water`, which
-    # "Geological" would classify as rock. Same failure shape as labelling the
-    # natural-environment parent Aquatic, so the branch is split by child instead of
-    # labelled at the parent.
+    # "Geological" would classify as rock. The branch is split by child instead.
     ("Aquatic",        ["OBT:000047",                   # "aquatic environment"
                         "OBT:000468",                   # "water"
                         "OBT:001430",                   # "aquatic sediment"
@@ -67,12 +64,11 @@ const OBT_TYPE = [
 ]
 
 #=
-    ISOLATION SOURCES, not habitats. "Food/substance" and "Lab-medium" record where a strain
-    was OBTAINED — fermented seafood, nutrient broth, a culture flask — not where the
-    organism lives. Counting them as habitats inflates the anthropogenic pillar with what is
-    really sampling and cultivation history, so ecological analyses should exclude them
-    (and say how many they dropped). They stay as first-class types rather than being folded
-    away, so the exclusion is visible and reversible rather than silent.
+    "Food/substance" and "Lab-medium" are isolation sources: they record where a strain was
+    OBTAINED (fermented seafood, nutrient broth, a culture flask), not where the organism
+    lives. Counting them as habitats inflates the anthropogenic pillar with sampling and
+    cultivation history, so ecological analyses should exclude them and say how many they
+    dropped. They stay as first-class types, so the exclusion is visible and reversible.
 =#
 const ISOLATION_SOURCE = Set(["Food/substance", "Lab-medium"])
 
@@ -84,38 +80,37 @@ organism lives. Filter these out of ecological enrichment; report the count drop
 """
 is_isolation_source(t) = !ismissing(t) && String(t) in ISOLATION_SOURCE
 #=
-    On salterns being Aquatic rather than Anthropogenic: this looked like a judgement call
-    but the ontology settles it. OBT:003164 "saltern" carries THREE lineages —
+    On salterns being Aquatic rather than Anthropogenic: the ontology settles it. OBT:003164
+    "saltern" carries THREE lineages:
         /OBT:000001/OBT:000006/OBT:000050/OBT:003164                       (artificial)
         /OBT:000001/OBT:000009/OBT:000090/OBT:000302/OBT:000667/OBT:003164 (extreme/haline)
         /OBT:000001/OBT:000013/OBT:000047/OBT:000326/OBT:000705/OBT:003164 (AQUATIC)
-    — so OBT already classes a saltern as an aquatic environment, and the multi-lineage
-    lookup finds it via OBT:000047 regardless of the OBT:000050 entry above. Nothing is
-    lost either way: on the two-axis scheme it reads Aquatic × Hypersaline, and the
-    constructed-ness is recoverable from the artificial lineage if ever wanted.
+    OBT therefore already classes a saltern as an aquatic environment, and the multi-lineage
+    lookup finds it via OBT:000047 regardless of the OBT:000050 entry above. On the two-axis
+    scheme it reads Aquatic × Hypersaline, with the constructed-ness recoverable from the
+    artificial lineage.
 =#
 
 #=
     OBT branch ids → habitat CHEMISTRY (the second, orthogonal axis).
 
-    OBT:000009 is an environmental-CONDITION branch, which is what makes two axes possible
-    without inventing a scheme: salinity, alkalinity and oxygen state are already modelled
-    there, separately from habitat type. A solar saltern is Anthropogenic × Hypersaline; a
-    hypersaline lake is Aquatic × Hypersaline; saline soil is Terrestrial × Hypersaline.
-    No single-axis pillar list can express that, because salinity cuts across every
-    habitat type.
+    OBT:000009 is an environmental-CONDITION branch, which makes two axes possible without
+    inventing a scheme: salinity, alkalinity and oxygen state are already modelled there,
+    separately from habitat type. A solar saltern is Anthropogenic × Hypersaline, a
+    hypersaline lake Aquatic × Hypersaline, saline soil Terrestrial × Hypersaline, and no
+    single-axis pillar list can express that, because salinity cuts across every habitat type.
 =#
-    # These ids are the SPECIFIC condition nodes, not their parents. Three obvious-looking
-    # parents were checked and rejected, because each would have mislabelled wholesale:
+    # These ids are the SPECIFIC condition nodes, not their parents. The obvious-looking
+    # parents were checked and rejected; each would have mislabelled wholesale:
     #   OBT:002018 "environmental water with chemical property" — any chemistry, not saline
     #   OBT:000141 "polluted environment"   — would flag every polluted site as hypersaline
     #   OBT:000090 "extreme environment"    — thermal/acidic/etc., not specifically alkaline
     #   OBT:000078 "environment wrt oxygen level" — the parent of BOTH aerobic and anaerobic
     # NB the parent OBT:000009 is "habitat wrt chemico-PHYSICAL property", so this axis
-    # legitimately carries physical conditions (temperature, pressure, osmolarity) as well
-    # as chemical ones. The field is called `chemistry` for brevity; read it as "condition".
-    # Extensible: acidity, pressure (OBT:000307) and osmolarity (OBT:000306) have nodes too
-    # and can be added the same way when a dataset needs them.
+    # legitimately carries physical conditions (temperature, pressure, osmolarity) as well as
+    # chemical ones. The field is called `chemistry` for brevity; read it as "condition".
+    # Acidity, pressure (OBT:000307) and osmolarity (OBT:000306) have nodes too and can be
+    # added the same way when a dataset needs them.
 const OBT_CHEMISTRY = [
     ("Hypersaline", ["OBT:002592",                   # "saline water"
                      "OBT:003115",                   # "salt contaminated soil"
@@ -161,8 +156,8 @@ const CHEM_REGEX = [
 const COARSE = Dict(
     "Aquatic" => "Aquatic",
     "Terrestrial" => "Terrestrial", "Geological" => "Terrestrial",
-    # Air belongs to none of the original four; mapping it to Other is deliberate, not a
-    # gap. Give it its own pillar if aerosol/dust habitats ever matter to the analysis.
+    # Air belongs to none of the original four; mapping it to Other is deliberate. Give it its
+    # own pillar if aerosol/dust habitats ever matter to the analysis.
     "Atmospheric" => "Other",
     "Host-plant" => "Host-associated", "Host-animal" => "Host-associated",
     "Host-other" => "Host-associated",
@@ -232,15 +227,15 @@ category_from_path(path::AbstractString) = coarse_pillar(habitat_type(path))
 #=
     GENERIC TERMS: ontology nodes so high in the tree that they carry no ecological
     information. OBT:000010 "living organism" and OBT:000061 "cell" are the two the habitat
-    data returns as terms in their OWN right — a relation typed to either says "this
-    organism was found in or on some living thing", which is true of almost every
-    host-associated record and specific to nothing. Left in, they hand the Host-other
-    bucket to taxa whose only informative habitat statements are elsewhere.
+    data returns as terms in their OWN right; a relation typed to either says "this organism
+    was found in or on some living thing", true of almost every host-associated record and
+    specific to nothing. Left in, they hand the Host-other bucket to taxa whose only
+    informative habitat statements are elsewhere.
 
-    Matched on the TERM'S OWN id, never on its lineage. OBT:000010 is the ancestor of every
+    Matched on the TERM'S OWN id, never on its lineage: OBT:000010 is the ancestor of every
     plant and animal host term, so a substring test against the path would delete the whole
-    host-associated pillar instead of the two uninformative nodes. The term's own id is the
-    leaf of each lineage, which is why the check reads the last segment.
+    host-associated pillar. The term's own id is the leaf of each lineage, which is why the
+    check reads the last segment.
 =#
 const GENERIC_TERMS = Set(["OBT:000010",      # "living organism"
                            "OBT:000061"])     # "cell"
@@ -265,11 +260,11 @@ function is_generic_term(obtid::AbstractString, path::AbstractString = "")
 end
 
 #=
-    THE RULE NAMES, one tuple per knob. The check that refuses an unknown name and the
-    message that lists the valid ones are both read off these tuples, so a rule added to the
-    code cannot be missing from the message. Without that check, any symbol `resolve` does not
-    recognise falls through to the fractional split, and a misspelt rule then produces a
-    plausible table under a rule nobody asked for.
+    The rule names, one tuple per knob. The check that refuses an unknown name and the message
+    that lists the valid ones are both read off these tuples, so a rule added to the code
+    cannot be missing from the message. Without it, an unrecognised symbol falls through to
+    the fractional split and a misspelt rule produces a plausible table under a rule nobody
+    asked for.
 =#
 const TIE_RULES = (:mentions_fractional, :fractional, :alphabetical, :legacy_dict,
                    :unresolved, :share, :any_type)
@@ -285,10 +280,9 @@ const SHARE_THRESHOLD = 0.25
 
 # The label of a taxon a rule declines to call: a tie that survives the mention step under
 # `:unresolved`, or evidence spread so thinly under `:share` that no category reaches the
-# share. No branch table produces it, so it can never be scored as a category; and it is not
+# share. No branch table produces it, so it can never be scored as a category, and it is not
 # blank, so a caller that drops blank calls keeps the taxon in its arm, where it scores zero.
-# Dropping it instead would let a rule that is meant to change only the assignment shrink
-# the denominator as well.
+# Dropping it would let a rule meant to change only the assignment shrink the denominator.
 const UNRESOLVED = "Unresolved"
 
 _rule_names(rules) = join((":" * String(r) for r in rules), ", ")
@@ -299,8 +293,7 @@ function _check_rule(knob::AbstractString, rule::Symbol, rules)
 end
 
 # A share is a fraction. 25 (a percentage) or 0 would each turn the share rule into a
-# different rule without saying so — nothing clears 25, everything clears 0 — so both are
-# refused rather than run.
+# different rule without saying so: nothing clears 25, everything clears 0. Both are refused.
 function _check_share(t::Real)
     (isfinite(t) && 0 < t <= 1) || error("share_threshold must lie in (0, 1]; got $t")
     return t
@@ -354,11 +347,11 @@ function resolve(primary::AbstractDict, mentions::AbstractDict, rule::Symbol;
         return (lab, Dict{String,Float64}(lab => 1.0), length(tied), :none)
     end
 
-    # The multi-label rules never choose among the tied — they label every category meeting
-    # their condition — so neither the mention step nor a split has anything to decide. The
-    # share is compared as a quotient against the threshold, not as `v >= t * total`: the
-    # quotient of two integers is correctly rounded, so a category sitting exactly on a
-    # decimal threshold such as 0.3 stays on it, where the product can round past it.
+    # The multi-label rules label every category meeting their condition, so neither the
+    # mention step nor a split has anything to decide. The share is compared as a quotient
+    # against the threshold, not as `v >= t * total`: the quotient of two integers is
+    # correctly rounded, so a category sitting exactly on a decimal threshold such as 0.3
+    # stays on it, where the product can round past it.
     if rule === :share || rule === :any_type
         total = sum(values(primary))
         labelled = sort!(String[k for (k, v) in primary
@@ -524,15 +517,15 @@ function aggregate_habitats(relations, path_of; weighting::Symbol = :distinct,
     isolation in (:term, :taxon) || error("isolation must be :term or :taxon")
     _check_rule("tie_rule", tie_rule, TIE_RULES)
     _check_rule("chemistry_rule", chemistry_rule, CHEMISTRY_RULES)
-    # Checked even when neither rule is a share rule: a threshold given in percent is a
-    # mistake worth hearing about at the call that made it, not two configurations later.
+    # Checked even when neither rule is a share rule: a threshold given in percent should
+    # fail at the call that made it, not two configurations later.
     _check_share(share_threshold)
     chem_text in (:forms_union, :object_name, :first_form) ||
         error("chem_text must be :forms_union, :object_name or :first_form")
     # `nothing` means the FETCH FAILED (see `fetch_relations`); it does not mean "this taxon
-    # has no habitat". Silently aggregating it as an empty vector is exactly the confusion
-    # the fetch signature exists to prevent, so refuse it here rather than return a
-    # blank call that is indistinguishable from a genuinely unannotated taxon.
+    # has no habitat". Aggregating it as an empty vector is the confusion the fetch signature
+    # exists to prevent, and the blank call it produces cannot be told from a genuinely
+    # unannotated taxon, so it is refused.
     relations === nothing &&
         throw(ArgumentError("aggregate_habitats received `nothing`: the relation fetch " *
                             "failed. Handle the failure (retry it, or record the taxon as " *
@@ -578,16 +571,16 @@ function aggregate_habitats(relations, path_of; weighting::Symbol = :distinct,
     end
 
     # Rank by mentions, ties by id: a cap must drop the long tail reproducibly, and the second
-    # key is what makes "which of the equal-mention terms survives" independent of hash order.
-    # Then FILTER BEFORE TRUNCATING — walk the ranking, resolving paths lazily, until
-    # `max_distinct` usable terms are held, so the cap spends its budget on terms that can
-    # contribute rather than on generic nodes and culture media.
+    # key makes "which of the equal-mention terms survives" independent of hash order. Then
+    # FILTER BEFORE TRUNCATING: walk the ranking, resolving paths lazily, until `max_distinct`
+    # usable terms are held, so the cap spends its budget on terms that can contribute and not
+    # on generic nodes and culture media.
     #
     # `:legacy_dict` selects the `Dict`-order ranking along with the matching tie-break,
     # because the two are one effect seen twice: sorting on mentions alone is stable, so among
-    # equal-mention terms the surviving 50 are whichever ones the hash table happens to
-    # yield first. Replicating the committed numbers means replicating that too. Nothing but
-    # replication should use this branch (see `resolve`).
+    # equal-mention terms the surviving 50 are whichever ones the hash table yields first.
+    # Replicating the committed numbers means replicating that. Nothing but replication should
+    # use this branch (see `resolve`).
     legacy = tie_rule === :legacy_dict
     ranked = legacy ? sort(collect(keys(mentions)), by = o -> -mentions[o]) :
                       sort(collect(keys(mentions)), by = o -> (-mentions[o], o))
@@ -649,11 +642,11 @@ function aggregate_habitats(relations, path_of; weighting::Symbol = :distinct,
     cprim, _,     cment = tally(type_terms, oid -> coarse_pillar(ftype[oid]))   # 5-pillar
     xprim, _,     xment = tally(kept,       oid -> chem_of[oid])                # chemistry
 
-    # A type-axis rule settles the type axis. The chemistry WINNER under one of those three
-    # falls back to the primary rule, because they have no single-winner reading: a multi-label
-    # rule would join flag combinations into a string that no longer parses as combinations,
-    # and `:unresolved` would blank a chemistry call over a tie in the type tally's rule.
-    # Keeping the fallback also keeps a type variant from moving a chemistry row.
+    # Under a type-axis rule the chemistry WINNER falls back to the primary rule, because
+    # those three rules have no single-winner reading: a multi-label rule would join flag
+    # combinations into a string that no longer parses as combinations, and `:unresolved`
+    # would blank a chemistry call over a tie, under a rule meant for the type tally. The
+    # fallback also keeps a type variant from moving a chemistry row.
     chem_rule = tie_rule in TYPE_ONLY_RULES ? :mentions_fractional : tie_rule
     fine,   fweights, n_tied, resolved_by = resolve(fprim, fment, tie_rule; share_threshold)
     coarse, cweights, _, _                = resolve(cprim, cment, tie_rule; share_threshold)
@@ -661,8 +654,8 @@ function aggregate_habitats(relations, path_of; weighting::Symbol = :distinct,
     chem_weights = resolve_chemistry(xprim, chemistry_rule; share_threshold)
 
     # NON-EXCLUSIVE chemistry: a term that is both alkaline and hypersaline votes for both
-    # flags, which is what a condition axis means - the conditions are not alternatives to
-    # each other. The winning COMBINATION stays in `chemistry` for back-compatibility.
+    # flags, since the conditions are not alternatives to each other. The winning COMBINATION
+    # stays in `chemistry` for back-compatibility.
     flag_counts = Dict{String,Int}(); n_chem_terms = 0
     for oid in kept
         isempty(chem_of[oid]) && continue
@@ -677,7 +670,7 @@ function aggregate_habitats(relations, path_of; weighting::Symbol = :distinct,
     in_best = [o for o in type_terms if haskey(fweights, ftype[o])]
     rep_order = legacy ? (o -> -mentions[o]) : (o -> (-mentions[o], o))
     rep = isempty(in_best) ? missing : label[first(sort(in_best, by = rep_order))]
-    # How much of the evidence carries ANY chemistry flag — distinguishes "not saline" from
+    # How much of the evidence carries ANY chemistry flag: it distinguishes "not saline" from
     # "we only had two terms and neither said anything about chemistry".
     chem_any = sum(values(xprim)) / max(sum((w(o) for o in kept), init = 0), 1)
 
@@ -698,7 +691,7 @@ function aggregate_habitats(relations, path_of; weighting::Symbol = :distinct,
             chemistry_weights = chem_weights,
             chemistry_flag_counts = counts_str(flag_counts), n_chem_terms = n_chem_terms,
             n_isolation_terms = n_isolation, n_generic_terms = n_generic,
-            # "every term this taxon has is one of these" — how a caller tells a call blanked
+            # "every term this taxon has is one of these": how a caller tells a call blanked
             # by filtering from a taxon that was never annotated at all.
             isolation_only = n_isolation > 0 && n_isolation == n_examined,
             generic_only = n_generic > 0 && n_generic == n_examined)
@@ -726,11 +719,11 @@ function get_obt_path(obtid::AbstractString; strict::Bool = false)
         if r.status == 200
             json = JSON3.read(r.body)
             # OBT is a DAG, not a tree: a term can hang under SEVERAL parents and the API
-            # returns every lineage. Taking path[1] silently discards the rest — `saline
-            # lake` returns its chemico-physical lineage first, so its aquatic lineage would
-            # be invisible and it would type as "Other" despite obviously being a lake. Join
-            # them all; both classifiers match by substring, so a term is assigned from the
-            # union of its lineages (type precedence in OBT_TYPE breaks any tie).
+            # returns every lineage. Taking path[1] discards the rest, and `saline lake`
+            # returns its chemico-physical lineage first, so its aquatic lineage would be
+            # invisible and it would type as "Other". Join them all; both classifiers match
+            # by substring, so a term is assigned from the union of its lineages (type
+            # precedence in OBT_TYPE breaks any tie).
             path_str = isempty(json.path) ? "" : join(String.(json.path), " ")
             OBT_CACHE[oid] = path_str
             return path_str
@@ -884,13 +877,13 @@ function fetch_relations(taxid::Int; cache_dir::Union{AbstractString,Nothing} = 
     end
 
     url = "https://omnicrobe.migale.inrae.fr/api/search/relations?taxid=ncbi%3A$taxid&type=habitat"
-    # A TRANSIENT FAILURE AND A REFUSAL NEED OPPOSITE RESPONSES. 429 and the 5xx statuses
-    # below are the service under load, and a request that raised is a connection that
-    # dropped; both are worth asking again. Any other non-200 is an answer about this
-    # request, and repeating it only repeats the mistake. `retries` defaults to 0, so a caller
-    # that does not ask for retries, and every injected test getter, makes exactly one
-    # request per uncached taxon -- the long network runs, where one blip otherwise discards
-    # the whole fetch, opt in explicitly.
+    # A transient failure and a refusal need opposite responses. 429 and the 5xx statuses
+    # below are the service under load, and a request that raised is a dropped connection;
+    # both are worth asking again. Any other non-200 is an answer about this request, and
+    # repeating it only repeats the mistake. `retries` defaults to 0, so a caller that does
+    # not ask for retries, and every injected test getter, makes exactly one request per
+    # uncached taxon; the long network runs, where one blip otherwise discards the whole
+    # fetch, opt in explicitly.
     body = nothing
     for attempt in 1:(retries + 1)
         transient = false
@@ -1052,9 +1045,9 @@ const _KW_AQUA   = ["water", "marine", "lake", "sea", "spring", "ocean", "ice", 
                     "trench", "coastal"]
 const _KW_TERRA  = ["soil", "paddy", "field", "permafrost", "sediment", "mud", "rhizoplane",
                     "terrestrial"]
-# Plant SURFACES. Under the original five-pillar convention "rhizoplane" fell to
-# Terrestrial and "phyllosphere" to Other; both are left exactly there by default and are
-# only reclassified when the caller explicitly asks for the host split.
+# Plant SURFACES. Under the original five-pillar convention "rhizoplane" fell to Terrestrial
+# and "phyllosphere" to Other; both stay there by default and are reclassified only when the
+# caller asks for the host split.
 const _KW_PLANT_X = ["phyllosphere", "rhizoplane"]
 
 """
@@ -1100,13 +1093,13 @@ function agg_habitat(name::Union{String, Missing}; split_host::Bool = false)
 end
 
 function calculate_enrichment_stats(df; top_n::Int = 5)
-    # Filter for hits that actually have a habitat and a valid position-2 residue. WHICH
-    # residues the table covers is not fixed here: it is the `top_n` commonest position-2
-    # residues OF THE TABLE PASSED IN, so the selection is a property of the caller's data
-    # and not a constant of this repository, and ties at the cut are broken alphabetically
-    # so the choice is reproducible. The residues kept are the row labels of the table
-    # returned, so it states what it was built on. Valid means a standard one-letter code:
-    # the placeholder written for a sequence with no second motif residue is not one.
+    # Filter for hits that have a habitat and a valid position-2 residue. WHICH residues the
+    # table covers is not fixed here: it is the `top_n` commonest position-2 residues OF THE
+    # TABLE PASSED IN, a property of the caller's data and not a constant of this repository,
+    # with ties at the cut broken alphabetically so the choice is reproducible. The residues
+    # kept are the row labels of the table returned, so it states what it was built on. Valid
+    # means a standard one-letter code; the placeholder written for a sequence with no second
+    # motif residue is not one.
     aa = Set(string.(collect("ACDEFGHIKLMNPQRSTVWY")))
     with_habitat = filter(row -> row.report_group ∉ ["_Not Mapped_", "Other"] &&
                                  row.pos2_aa ∈ aa, df)

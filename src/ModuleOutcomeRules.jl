@@ -7,95 +7,79 @@ export interval_excludes_zero, interval_code, sharing_wording_code, depletion_ti
 #=
     OutcomeRules — the recorded outcome rules, as pure predicates over an estimate.
 
-    WHY THIS MODULE EXISTS. The rules that decide which claim a habitat-enrichment result
-    licenses are pure predicates here rather than inline expressions in
-    scripts/habitat_enrichment.jl, where a one-liner sitting next to the code that prints
-    its answer is reachable by no test. Each entry below is a failure this module forecloses;
-    the first four are rules that cannot fail, or cannot be stated at all, inline.
+    The rules that decide which claim a habitat-enrichment result licenses are pure predicates
+    here, not inline expressions in scripts/habitat_enrichment.jl, where a one-liner next to
+    the code that prints its answer is reachable by no test. Each entry below is a failure
+    this module forecloses.
 
-      * THE TWO-VALUED INTERVAL TEST. Answering "does this interval exclude zero?" with a
-        Bool folds a NaN interval — an estimate that was never computed — into
-        "includes zero", and the output then reports a decision about a number that does not
-        exist. Three values are the remedy: excluding zero, including zero and undecidable
-        are three different states, and only the first two are evidence.
+      * The interval test has three values: excluding zero, including zero and undecidable,
+        and only the first two are evidence. A Bool folds a NaN interval, an estimate that was
+        never computed, into "includes zero".
 
-      * THE NOVELTY TEST THAT COMPARES AGAINST A CONSTANT. Whether a category is NEW can
-        only be asked against the earlier result it would be new relative to. Comparing a
-        run against a hard-coded list of category names reports a category that had already
-        excluded zero as new — including on the earlier run itself, where by construction
-        nothing can be new. `category_sets` takes that earlier (anchor) set as an argument
-        and has no constant to fall back on.
+      * Whether a category is NEW can only be asked against the earlier result it would be new
+        relative to, so `category_sets` takes that earlier (anchor) set as an argument and has
+        no constant to fall back on. A hard-coded list of category names reports a category
+        that had already excluded zero as new, including on the anchor run itself, where by
+        construction nothing can be new.
 
-      * A ROBUSTNESS TIER CLAIMED WITHOUT THE EVIDENCE FOR IT. The two strong tiers are
-        defined by what a one-at-a-time sensitivity grid does, so they cannot be read off
-        the primary row. `depletion_tier` returns :undecidable when no grid is supplied, and
-        the only tier it will decide without one is the tier that needs no grid: the one
-        where the primary interval already includes zero.
+      * The two strong robustness tiers are defined by what a one-at-a-time sensitivity grid
+        does, so they cannot be read off the primary row. `depletion_tier` returns
+        :undecidable when no grid is supplied, and the only tier it will decide without one is
+        the tier that needs no grid: the one where the primary interval already includes zero.
 
-      * A GRADED WORD TAKEN FROM AN UNBOUNDED RATIO. The sharing rule grades a comparator
-        arm's effect as a fraction of the reference arm's. A fraction above one, a negative
-        fraction, or one produced by a denominator near zero is not a fraction of anything,
-        and a bare comparison returns the strongest grade for all three.
+      * The sharing rule grades a comparator arm's effect as a fraction of the reference arm's.
+        A fraction above one, a negative fraction, or one produced by a denominator near zero
+        is not a fraction of anything, and a bare comparison returns the strongest grade for
+        all three.
 
-    Four more places where an absent measurement can pass for a present one — in the module
-    itself and in what its consumer would otherwise decide on its own.
+    Four more places where an absent measurement can pass for a present one.
 
-      * AN ABSENCE REPORTED AS A LOSS. A category that excluded zero in the anchor and is
-        missing from the primary set is not thereby one that no longer excludes zero: its
-        primary interval may have been computed and included zero, or may never have been
-        computed at all, and only the first is a measurement. `category_sets` takes the
-        categories whose primary interval is undecidable and returns them as a list of their
-        own.
+      * A category that excluded zero in the anchor and is missing from the primary set may
+        have a primary interval that was computed and included zero, or none that was ever
+        computed; only the first is a measurement. `category_sets` takes the categories whose
+        primary interval is undecidable and returns them as a list of their own.
 
-      * A MAPPING THAT LIVES IN THE CONSUMER. Rules that turn one interval into one of two
-        caller codes are two-line ternaries when they sit in the script, which no test
-        reaches and which the next consumer has to copy. `interval_code` is the one mapping,
-        and its undecidable case is not the caller's to rename.
+      * `interval_code` is the one mapping from an interval to two caller codes, and its
+        undecidable case is not the caller's to rename.
 
-      * A REFUSAL THAT LOOKS LIKE A GRADE. Labelling the sharing rule's refusal of an
-        out-of-domain fraction with the form that happened to see it leaves a table unable to
-        tell "graded, and too small to count" from "not a fraction at all". The refusal
-        carries its own label.
+      * The sharing rule's refusal of an out-of-domain fraction carries its own label, so a
+        table can tell "graded, and too small to count" from "not a fraction at all".
 
-      * A LICENCE READ OFF RECORDS NOBODY TIED TO THE TABLE. Taking the scan's persisted
-        recall verdict on trust lets a record that measured nothing but says "pass", a record
-        left over from an earlier scan, and a table the scan's own acceptance check refused
-        each license the strong code. `scan_evidence_status`
-        requires every record to carry the digest of the table actually read, no acceptance
-        verdict to be a miss, and the recall verdict to be re-derived from the record's own
-        counts and to agree with what the record says.
+      * `scan_evidence_status` requires every record to carry the digest of the table actually
+        read, no acceptance verdict to be a miss, and the recall verdict to be re-derived from
+        the record's own counts and to agree with what the record says. With the scan's
+        persisted verdict taken on trust, a record that measured nothing but says "pass", a
+        record left over from an earlier scan, and a table the scan's own acceptance check
+        refused would each license the strong code.
 
-    Two more, which remain even with every record tied to the table: its other numbers taken
-    as written, and the recall bar read against the wrong quantity.
+    Two more remain even with every record tied to the table.
 
-      * A BAR MET BY A POINT ESTIMATE. A recall sample that recovers every taxon it flags has
-        seen no miss. It has not shown that misses are rarer than the bar allows, and a small
-        sample cannot show that however clean it is. The licence therefore takes the recall
-        verdict on the exact one-sided lower confidence bound, `recall_lower_bound`, which a
-        sample clears only once it is large enough for "no miss seen" to mean "misses are
-        rare". The scan's own acceptance gate stays on the point estimate, because it asks a
-        different question — whether its exclusion list is fit for finding carriers — and a
-        bound below the bar does not make that list wrong.
+      * A recall sample that recovers every taxon it flags has seen no miss, which does not
+        show that misses are rarer than the bar allows, and a small sample cannot show that
+        however clean it is. The licence therefore takes the recall verdict on the exact
+        one-sided lower confidence bound, `recall_lower_bound`, which a sample clears only
+        once it is large enough for "no miss seen" to mean "misses are rare". The scan's own
+        acceptance gate stays on the point estimate, because it asks whether its exclusion
+        list is fit for finding carriers, and a bound below the bar does not make that list
+        wrong.
 
-      * NUMBERS NOBODY RECOMPUTED. With every digest intact, a recall record whose rate
-        disagrees with its own counts, a bar lowered in the very record whose counts it
-        judges, more flagged taxa than the sample holds, and an acceptance table with its
-        gated rows cut out would each license the strong code. Each of those numbers is
-        compared with the counts it summarises, with the other records that carry it, or
-        with the table that was read.
+      * With every digest intact, a recall record whose rate disagrees with its own counts, a
+        bar lowered in the very record whose counts it judges, more flagged taxa than the
+        sample holds, and an acceptance table with its gated rows cut out would each license
+        the strong code. Each of those numbers is compared with the counts it summarises, with
+        the other records that carry it, or with the table that was read.
 
-    EVERYTHING HERE IS PURE: plain numbers and labels in, NamedTuples out. No I/O, no
-    files, no globals, no DataFrames. Two consumers need these predicates — the enrichment
-    run and the sensitivity grid that varies one axis at a time — and a rule that exists in
-    two copies is a rule that will eventually disagree with itself. The digest of a file is
-    therefore computed by the caller, which has the file; this module only compares digests.
+    Everything here is pure: plain numbers and labels in, NamedTuples out. No I/O, no files,
+    no globals, no DataFrames. Two consumers need these predicates, the enrichment run and the
+    sensitivity grid that varies one axis at a time, and a rule that exists in two copies will
+    eventually disagree with itself. The digest of a file is therefore computed by the caller,
+    which has the file; this module only compares digests.
 
-    NEUTRAL CODES, NEVER SENTENCES. Every function returns Symbols and label lists, so the
-    step that writes prose maps a code to a phrase somewhere else. That keeps wording out
-    of this repository, and it also makes a rule's output diffable across runs, which a
-    sentence is not.
+    Every function returns neutral codes, Symbols and label lists, never sentences, so the
+    step that writes prose maps a code to a phrase somewhere else. That keeps wording out of
+    this repository, and it makes a rule's output diffable across runs.
 
-    UNKNOWN IS NOT FALSE. `missing`, `nothing` and NaN reach these functions whenever an
+    Unknown is not false. `missing`, `nothing` and NaN reach these functions whenever an
     estimate was not computed or a column was absent. None of them is read as a number and
     none of them licenses a claim: an unknown input either yields :undecidable or, where the
     contract is a Bool, yields the answer that withholds the claim together with the reason.
@@ -143,12 +127,11 @@ _count(x::Real) = (isnan(x) || x < 0) ? nothing : float(x)
 _count(::Bool) = nothing
 
 # Same, for a count of taxa that a rate is taken over: a fraction of a taxon, or an infinite
-# number of them, is a column mix-up rather than a count. So is a whole number past the range
-# in which double-precision arithmetic holds every whole number exactly, which covers every
-# value beyond Int range: the conversion would otherwise throw there, and an input this
-# module cannot use has to come back as unknown with a reason, never as a crash. The rate and
-# the bound are computed in that arithmetic, so a count past the range could not be used
-# exactly even where it converts.
+# number of them, is a column mix-up. So is a whole number past the range in which
+# double-precision arithmetic holds every whole number exactly, which covers everything beyond
+# Int range; the conversion would throw there, and an input this module cannot use comes back
+# as unknown with a reason, never as a crash. The rate and the bound are computed in that
+# arithmetic, so a count past the range could not be used exactly even where it converts.
 _whole(::Any) = nothing
 _whole(x::Real) = (isfinite(x) && 0 <= x <= maxintfloat(Float64) && isinteger(x)) ? Int(x) : nothing
 _whole(::Bool) = nothing
@@ -696,10 +679,9 @@ function scan_evidence_status(; scan_sha256 = nothing, record_sha256s = nothing,
                               bar_in_other_records = nothing,
                               threshold_bits_in_other_records = nothing,
                               uniprot_release_in_other_records = nothing)
-    # Every keyword arrives as whatever a record reader produced — a count, a float, a
-    # string, `nothing` — and a body compiled afresh for each combination of those types costs
-    # seconds per combination while buying nothing, since each value is classified by hand
-    # below. One compiled body serves them all.
+    # Every keyword arrives as whatever a record reader produced: a count, a float, a
+    # string, `nothing`. A body compiled afresh for each combination of those types costs
+    # seconds per combination and buys nothing, since each value is classified by hand below.
     @nospecialize
     reasons = String[]
 

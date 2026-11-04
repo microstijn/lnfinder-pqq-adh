@@ -93,43 +93,34 @@ n_zero_stratum_cells, min_bg_stratum_cell)`, where `var` is the variance of the 
 on the natural-log scale; the interval is that variance carried to log2 and taken 1.96
 standard errors either side.
 
-STRATUM HYGIENE. A phylum thinner than `min_fg_k` in the foreground or `min_bg_k` in the
-background is relabelled "Other phyla" in BOTH arms before any counting, so a single-taxon
+Stratum hygiene: a phylum thinner than `min_fg_k` in the foreground or `min_bg_k` in the
+background is relabelled "Other phyla" in both arms before any counting, so a single-taxon
 stratum cannot carry a large weight against a near-empty background cell. A stratum with
-foreground units but no background units is dropped entirely; `n_strata` reports how many
-strata actually contributed.
+foreground units but no background units is dropped entirely, and `n_strata` counts the
+strata that contributed.
 
-VARIANCE, AND WHY FRACTIONAL WEIGHTS MAKE IT CONSERVATIVE. The delta-method variance
-`(1/a - 1/n1) + v0/p0^2` treats the weights as fixed and both hit totals as binomial: the
-first term is the variance of log(a/n1) for a ~ Bin(n1, p1), and `v0` sums the binomial
-variances of the per-stratum background shares. For a fractional weight vector those
-totals are sums of bounded values in [0,1] rather than counts of Bernoulli draws, and such
-a sum has variance no larger than the binomial one with the same mean. The formula is
-therefore an UPPER BOUND on the true variance, and the intervals it returns are
-conservative — wider than they need to be, never narrower. It is deliberately left alone
-rather than adjusted, because adjusting it would need a model for how the weights were
-split, and an interval that is too wide is the safer error.
+The delta-method variance `(1/a - 1/n1) + v0/p0^2` treats the weights as fixed and both hit
+totals as binomial: the first term is the variance of log(a/n1) for a ~ Bin(n1, p1), and
+`v0` sums the binomial variances of the per-stratum background shares. A fractional weight
+vector makes those totals sums of bounded values in [0,1], whose variance is no larger than
+the binomial one with the same mean, so the formula is an upper bound and the intervals it
+returns are wider than they need to be, never narrower.
 
-THIN AND EMPTY BACKGROUND CELLS. That bound concerns the form of the variance, not how well
-its plug-in value is estimated, and it says nothing about a thin cell. A stratum whose
-background cell c_k is empty adds nothing to p0 and nothing to v0, because the plug-in
-binomial variance of a share estimated as zero is zero, so the stratum that knows least
-about the background contributes no uncertainty at all. A cell of one or two units is
-better only in degree. The row totals cannot reveal either case: when one stratum
-carries most of the weight, a background total `b` well clear of any gating threshold can
-sit next to that heavy stratum's own cell being empty. Two disclosures therefore travel with every estimate,
-taken over the strata that contributed (after the collapse, so a merged "Other phyla" is one
-cell):
+That bound concerns the form of the variance, not how well its plug-in value is estimated.
+A stratum whose background cell c_k is empty adds nothing to p0 and nothing to v0, because
+the plug-in binomial variance of a share estimated as zero is zero; a cell of one or two
+units is better only in degree. The row totals reveal neither case: a background total `b`
+well clear of any gating threshold can sit beside an empty cell in the stratum carrying
+most of the weight. Two disclosures therefore travel with every estimate, over the strata
+that contributed (after the collapse, so a merged "Other phyla" is one cell):
 
   - `n_zero_stratum_cells`, how many contributing strata have c_k == 0;
   - `min_bg_stratum_cell`, the smallest c_k among them, NaN when none contributed.
 
-`min_bg_stratum_cell` is always a Float64 and is never rounded. A cell built from
-fractional weights may hold a third of a unit, and rounding it would report an empty cell
-that is not empty, or a whole unit that does not exist. Keeping one type also keeps a Bool
-hit vector and its 0/1 Float equivalent bitwise identical on this field, as on the others.
-The disclosures change no arithmetic: p0, v0 and the interval are computed exactly as
-before.
+`min_bg_stratum_cell` is always a Float64 and is never rounded: a cell built from
+fractional weights may hold a third of a unit. One type also keeps a Bool hit vector and
+its 0/1 Float equivalent bitwise identical on every field. The disclosures change no
+arithmetic.
 """
 function standardised(fg_phy::AbstractVector, fg_hit::AbstractVector,
                       bg_phy::AbstractVector, bg_hit::AbstractVector;
@@ -227,20 +218,18 @@ categories of this contrast.
 
 `fg_phy`/`bg_phy` are per-unit phylum labels and `fg_w`/`bg_w` map a category name to its
 per-unit weight vector (see `flag_weights`); a category missing from one arm scores zero
-there. `contrast` and `unit` are copied into every row so that several contrasts can be
-concatenated into one table. `unit` is what states the currency of n1 and n2 ("taxa",
-"genera", "sequences"), and rows carrying different units must never be compared with each
-other.
+there. `contrast` and `unit` are copied into every row, so several contrasts concatenate
+into one table. `unit` states the currency of n1 and n2 ("taxa", "genera", "sequences"),
+and rows carrying different units must never be compared with each other.
 
 Categories with no hits on either side are skipped. `tested` marks the rows whose combined
 hit total reaches `min_cell`; only those enter the BH correction, and the rest carry a NaN
-q-value rather than a number that would invite a comparison the data cannot support.
+q-value.
 
 `n_zero_stratum_cells` and `min_bg_stratum_cell` are copied from `standardised` and are
-appended AFTER every other column, so a reader that addresses columns by position still
-finds the earlier ones where they were. `tested` and `continuity_corrected` look only at
-the row totals `a` and `b`; these two columns are what show a row whose totals are healthy
-while the standardised interval rests on an empty or near-empty stratum cell.
+appended after every other column. `tested` and `continuity_corrected` look only at the row
+totals `a` and `b`; the two disclosures are what show a row with healthy totals whose
+standardised interval rests on an empty or near-empty stratum cell.
 """
 function contrast_rows(fg_phy::AbstractVector, fg_w::AbstractDict,
                        bg_phy::AbstractVector, bg_w::AbstractDict;

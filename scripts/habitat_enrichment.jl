@@ -321,13 +321,11 @@ const USAGE = """
 Usage: julia --project=. scripts/habitat_enrichment.jl [options]
 
 Options:
-  --categories <path>          REQUIRED, and there is no default. The category-selection
-                               criteria file: which category each recorded outcome rule
-                               speaks for, which categories the grid counts are exported
-                               for, and which phylum the standardisation shares are quoted
-                               for. These are selections made from this data set's own
-                               estimates, not constants of this software, so this step
-                               neither invents them nor falls back to any. See THE SELECTED
+  --categories <path>          REQUIRED, no default. The category-selection criteria file:
+                               which category each recorded outcome rule speaks for, which
+                               categories the grid counts are exported for, and which phylum
+                               the standardisation shares are quoted for. This step invents
+                               none of them and falls back to none. See THE SELECTED
                                CATEGORIES in the header
   --config <name>              configuration column of the taxon-call table (default primary)
   --bg-exclusion <mode>        $(join(EXCLUSION_MODES, " | "))
@@ -337,8 +335,8 @@ Options:
   --movein-pool <path>         the lanthanide-type pool the $MOVEIN_MODE level
                                moves: a census hit table with classification and TaxID
                                columns. Read only by that mode; without it the level falls
-                               back to the scan's own lanthanide-class call, which is a
-                               different measurement and is recorded as such (no default)
+                               back to the scan's own lanthanide-class call, a different
+                               measurement, recorded as such (no default)
   --chem-col <flags|winner>    chemistry source; defaults by configuration
   --boot <n>                   resampling replicates for the sharing intervals
   --seed <n>                   seed of that resampling
@@ -653,18 +651,15 @@ The category selection one run is held to: one value per role of `SELECTION_ROLE
 prefix each keyed role's name derives to, the governed set the rule roles make, and the digest
 of the bytes all of that came from.
 
-WHY THE FILE ALSO STATES HOW MANY SELECTIONS IT HOLDS, AND WHICH ROLES. Neither is measured on
-anything, and both nevertheless have to reach the run — for the reason the replication gates'
-targets file states its own size. A file that lost a row is a run that filed one category's
-numbers under nobody's name, and "which categories this analysis is about" is not something a
-run may discover from the file it was handed. The declared roles are compared with the file's
-in BOTH directions, so a file written for another version of this script — one that names a
-role nobody fills, or leaves a role nobody declares unfilled — is a refusal and not a quieter
-success.
+The file also states how many selections it holds and which roles. Neither is measured on
+anything, and both are checked anyway, for the reason the replication gates' targets file
+states its own size: a file that lost a row is a run that filed one category's numbers under
+nobody's name. The declared roles are compared with the file's in both directions, so a file
+written for another version of this script, naming a role nobody fills or leaving a role
+nobody declares unfilled, is a refusal.
 
-WHY EVERY ROW MUST CARRY A NOTE. A category name with no record of where it came from cannot
-be told apart from one transcribed out of this analysis's own output, and which of those it is
-happens to be the single most important fact about a selected set. The note is not parsed and
+Every row must carry a note. A category name with no record of where it came from cannot be
+told apart from one transcribed out of this analysis's own output. The note is not parsed and
 gates nothing; its absence is a refusal.
 """
 function read_category_selection(path::AbstractString)
@@ -971,22 +966,18 @@ const PRIMARY_UNITS = ("taxa", "taxa (chemistry)")
 """
     analyse(calls, config, chem_col, excluded; ca_class_taxids, moved_in) -> NamedTuple
 
-Build the arms, the weight vectors and the result rows for ONE specification: a
-configuration of the taxon-call table, a chemistry column, the set of frame taxids the
-background exclusion removes, the census taxids whose classified sequences are
-calcium-class only (`nothing` when the census table could not be read, which leaves the
-disclosed calcium arm out rather than silently equating it to the non-Ln arm), and
-`moved_in`, the frame taxids the move-in level hands to the FOREGROUND. `moved_in` is empty
-for every other specification, which is why every other specification is unchanged by it.
+Build the arms, the weight vectors and the result rows for ONE specification: a configuration
+of the taxon-call table, a chemistry column, the set of frame taxids the background exclusion
+removes, the census taxids whose classified sequences are calcium-class only (`nothing` when
+the census table could not be read, which leaves the disclosed calcium arm out instead of
+equating it to the non-Ln arm), and `moved_in`, the frame taxids the move-in level hands to the
+foreground. `moved_in` is empty for every other specification, which leaves them unchanged.
 
-This is the only arm builder in the file, and it is called twice — once for the run's own
-specification and once for the anchor. That is the point: an anchor computed by a second
-copy of this logic would drift away from the primary path, and the anchor's whole job is to
-be the same measurement on earlier settings.
-
-Everything it returns is derived from those arguments, so nothing about the run's
-configuration can leak into the anchor. The masks come back too, because the coverage,
-drop-bucket and evidence sections need the candidate sets, not just the arms.
+The only arm builder in the file, called twice: for the run's own specification and for the
+anchor, which has to be the same measurement on earlier settings. Everything it returns is
+derived from those arguments, so the run's configuration cannot leak into the anchor. The masks
+come back too, because the coverage, drop-bucket and evidence sections need the candidate sets
+and not just the arms.
 """
 function analyse(calls::DataFrame, config::AbstractString, chem_col::Symbol,
                  excluded::Set{Int}; ca_class_taxids::Union{Set{Int},Nothing},
@@ -1634,19 +1625,16 @@ end
 """
     scan_table_state(path) -> (state, reasons, pending_beside_it, displaced_copy_on_disk)
 
-What the file `--scan` names IS, as a matter of file state rather than of content:
-`:published` (a table a scan run promoted to its final name), `:displaced` (the `.stale`
-copy a failing run moved aside), `:unpromoted` (a `.pending` file no run has promoted), or
-`:absent`.
+What the file `--scan` names is, as a matter of file state rather than content: `:published`
+(a table a scan run promoted to its final name), `:displaced` (the `.stale` copy a failing run
+moved aside), `:unpromoted` (a `.pending` file no run has promoted), or `:absent`.
 
-WHY A NAME IS EVIDENCE. The producer publishes its table and its three records together or
-not at all, and on a refused acceptance check it renames the last published set to `.stale`.
-A `.stale` set is therefore internally consistent — it was a passing run once — so every
-content check is satisfied by it, and the digests match one another. What it is not is a
-table any current run vouches for: a later run looked at the same frame and refused it. A
-`.pending` file beside a published one says the same thing from the other side, that the most
-recent attempt did not publish, so the published table may have been superseded by a run
-whose outcome nobody recorded.
+The name is evidence. The producer publishes its table and its three records together or not
+at all, and renames the last published set to `.stale` on a refused acceptance check. A
+`.stale` set passes every content check and its digests match, because it was a passing run
+once; what it lacks is a current run that vouches for it. A `.pending` file beside a published
+one says the most recent attempt did not publish, so the published table may have been
+superseded by a run whose outcome nobody recorded.
 
 The reasons are joined with the module's, so the emitted reason list says which of the two
 kinds of doubt applies. The two sibling flags are looked at once, here, and reported as seen.
@@ -1701,28 +1689,24 @@ end
     read_scan_records(threshold_path, recall_path, acceptance_path, release_path;
                       read_bytes = read) -> NamedTuple
 
-The scan's three persisted records and its search space's release record, each read from
-disk ONCE: `threshold`/`recall` (typed, by the producer's readers), `threshold_kv`/
-`recall_kv` (the same records as written, for the provenance keys the summary echoes
-verbatim), `acceptance` with `acceptance_error`, `release_kv` (the UniProtKB release record
-the scan wrote beside its search-space download), and whether each file existed at that read.
+The scan's three persisted records and its search space's release record, each read from disk
+ONCE: `threshold`/`recall` (typed, by the producer's readers), `threshold_kv`/`recall_kv` (the
+same records as written, for the provenance keys the summary echoes verbatim), `acceptance`
+with `acceptance_error`, `release_kv` (the UniProtKB release record the scan wrote beside its
+search-space download), and whether each file existed at that read.
 
-WHY ONCE. The threshold and recall records are read two ways, and two reads of one path are
-two moments: a scan run promoting between them would leave typed fields that were checked
-beside provenance text that was not. Each key/value file is therefore read once, through
-`read_bytes`, into a private snapshot, and every reader parses the snapshot. The snapshot is
-a file only because the producer's readers take a path. The acceptance table has one reader,
-so its one read is that reader's. `read_bytes` exists for the same reason as in
-`read_scan_table`: a test can answer differently on a second read.
+The threshold and recall records are read two ways, so each key/value file is read once,
+through `read_bytes`, into a private snapshot that every reader parses: two reads of one path
+could straddle a scan run that promotes between them. The acceptance table has one reader, so
+its one read is that reader's. `read_bytes` exists for the same reason as in `read_scan_table`:
+a test can answer differently on a second read.
 
-WHY THE RELEASE RECORD IS HERE. The recall record names the release its search space came
-from, and the licence holds that name against the release record itself; the summary reports
-the same record. Reading it with the others means the release the licence was checked against
-and the release the table reports are one read of one file.
+The release record is read here because the recall record names the release its search space
+came from, the licence holds that name against the release record itself, and the summary
+reports it: one read of one file for all three.
 
 `acceptance` is `nothing`, with the reader's message in `acceptance_error`, when the file is
-not an acceptance table. An older record of a different shape is a record of something
-else, and that refusal makes the evidence unknown, which withholds the licence, rather than
+not an acceptance table. That makes the evidence unknown and withholds the licence instead of
 ending a run that can still report its numbers.
 """
 function read_scan_records(threshold_path::AbstractString, recall_path::AbstractString,
@@ -1900,7 +1884,9 @@ function leftover_counts(scan, arm_taxids)
 end
 
 """
-    scan_evidence_and_licence(arms; table_read, table_state, records, required_checks)
+    scan_evidence_and_licence(arms; table_read, table_state, records,
+                             required_checks = REQUIRED_GATED_CHECKS,
+                             pre_registered_bar = ScanRecords.MIN_RECALL)
         -> NamedTuple
 
 Everything the background licence is decided from, assembled in one place and handed to the
@@ -1915,13 +1901,10 @@ Returns `frame`, `leftovers`, `table_counts`, `evidence` (the module's
 scan evidence as the licence sees it), `removal` (`background_removal_complete`) and `code`.
 
 `arms` must be an `analyse` result, or a value of the same shape: the frame comparison reads
-its `frame_scanned` mask — the frame as the scan saw it — and not the analysed `frame`, which
+its `frame_scanned` mask, the frame as the scan saw it, and not the analysed `frame`, which
 the move-in level makes smaller.
 
-WHY THIS IS A FUNCTION. As top-level script code this wiring is reachable by no test, and a
-one-line change to it — the evidence verdict replaced by `true`, the file-state gate
-dropped, the record's own pass field forwarded in place of the re-derived verdict — licenses
-the strong code on a refused or displaced table while every suite stays green. Every input
+This wiring is a function because as top-level script code no test reaches it. Every input
 the licence reads is passed here and nowhere else:
 
   * the recall verdict is the module's re-derivation on the lower bound, never the record's
@@ -3070,9 +3053,9 @@ CSV.write(SUMOUT, DataFrame(key = first.(SUMMARY), value = last.(SUMMARY)))
 
 println("""
 
-READING IT. `crude` is unadjusted; `STD` reweights the background to the foreground phylum
-mix. Every number below is read back from $(basename(SUMOUT)); none is typed into this file.
-Every decision below is a CODE, not a phrase: the step that writes prose maps codes to words.
+Reading it: `crude` is unadjusted; `STD` reweights the background to the foreground phylum
+mix. Every number below is read back from $(basename(SUMOUT)), none typed into this file.
+Every decision below is a code; the step that writes prose maps codes to words.
 
   Ln arm $(fmt("n1_taxa")) taxa ($(fmt("n_archaea_fg")) archaeal, $(fmt("n_bacteria_fg")) bacterial) against $(fmt("n2_taxa")) background taxa.
   Selection $(fmt("selection_file")) [$(SEL.digest[1:12])]: the rules speak for $(joined(GOVERNED));
@@ -3101,7 +3084,7 @@ Every decision below is a CODE, not a phrase: the step that writes prose maps co
     newly $(blank("categories_newly_excluding_zero")) | pre-existing $(blank("categories_preexisting_excluding_zero")) | no longer $(blank("categories_no_longer_excluding_zero")) | undecidable now $(blank("categories_undecidable_in_primary")) | legend-only $(blank("categories_legend_only"))
     smallest background stratum cell behind each: $(blank("categories_excluding_zero_min_bg_stratum_cell"))
   Rows with an empty background stratum cell: $(fmt("rows_with_a_zero_stratum_cell")) of $(fmt("rows_total")) ($(fmt("rows_with_a_zero_stratum_cell_registered")) of $(fmt("rows_registered_contrasts")) registered); smallest cell $(fmt("rows_min_bg_stratum_cell")).
-  Coverage differs between the arms: $(fmt("coverage_differs_at_1pct")) — every ratio is
+  Coverage differs between the arms: $(fmt("coverage_differs_at_1pct")); every ratio is
   conditional on being annotated.""")
 BG_EXCL == MOVEIN_MODE &&
     println("""

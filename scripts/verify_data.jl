@@ -40,16 +40,15 @@ Options:
 Exit status: 0 when every listed file is present and matches; 1 when a required file is
 missing, any digest differs, or the two records disagree; 2 on a command-line error.
 
-A manifest has two kinds of entry. REQUIRED entries are the archived files: a missing one
-is a failure. OPTIONAL entries are files the archive does not carry because a reader
-regenerates or re-fetches them from a public source; a missing one is reported and is not
-a failure, a mismatching one is. docs/DATA.md says which is which and why.
+Entry kinds. REQUIRED entries are the archived files: a missing one is a failure.
+OPTIONAL entries are files the archive does not carry because a reader regenerates or
+re-fetches them from a public source: a missing one is only reported, a mismatching one
+is a failure. docs/DATA.md says which is which and why.
 
-TWO RECORDS, NOT ONE. An archive carries its own MANIFEST.sha256, and that copy is the
-complete one, so it is what a run is checked against when it is there. On its own it
-would only establish that the archive agrees with itself, so whenever some other record
-is used the repository's docs/data_manifest.sha256 is ALSO consulted, for the paths it
-covers, and a disagreement between the two is a failure in its own right.
+Two records are consulted. An archive's own MANIFEST.sha256 is the complete copy, so a
+run is checked against it when it is there. Whenever some other record is used, the
+repository's docs/data_manifest.sha256 is also consulted for the paths it covers, and a
+disagreement between the two is itself a failure.
 """
 
 # ---- command line, before anything is loaded or opened ----------------------------

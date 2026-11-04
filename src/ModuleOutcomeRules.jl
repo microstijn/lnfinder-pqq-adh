@@ -368,47 +368,34 @@ _bounds(v) = error("a variant interval must be (lo, hi), got a $(typeof(v))")
             undecidable_in_primary)
 
 Partition the categories whose primary interval excludes zero against the categories that
-already did so in the earlier ANCHOR run, which is what makes "new" a measurable property
-instead of an impression.
+already did so in the earlier ANCHOR run, which is what makes "new" a measurable property.
+No constant can answer that question; only the anchor set can.
 
 `primary_sig` and `anchor_sig` are the label sets of the two runs; `governed` names the
 categories the rules already handle individually, which therefore need no standing of their
 own here; `primary_undecidable` names the categories whose primary interval could not be
-computed. All four may be any iterable of labels, and every returned set is a sorted,
-de-duplicated `Vector{String}`.
+computed, a category the primary run has no row for among them. All four may be any iterable
+of labels, and every returned set is a sorted, de-duplicated `Vector{String}`.
 
   `newly`                   primary minus anchor: excludes zero now and did not before.
   `legend_only`             `newly` minus `governed`: the ones no other rule speaks for.
-  `preexisting`             primary and anchor, minus `governed`: carried over, not new.
+  `preexisting`             primary and anchor, minus `governed`: excluded zero in both runs.
   `no_longer`               anchor minus primary, minus `primary_undecidable`: excluded
                             zero before, and now has an interval that includes it.
   `undecidable_in_primary`  anchor minus primary, within `primary_undecidable`: excluded
                             zero before, and has no primary interval to say anything now.
 
-THE DEFECT THIS FORECLOSES. An expression that compares the current run against a hard-coded
-tuple of names and calls everything else new nominates a category even on the anchor itself,
-where nothing can be new; it can quietly demote a category already standing in the earlier
-report, or present a carried-over one as a discovery. No constant can answer this question;
-only the anchor set can.
+A category that is in `primary_sig` stays there even when it is also undecidable, since it
+excluded zero on whichever unit was measured.
 
-A LOSS IS A MEASUREMENT. A category missing from the primary set is missing either because
-its primary interval includes zero or because it has no interval at all, and only the first
-says the earlier result went away. Reporting both as `no_longer` is the uncomputed-estimate-
-read-as-a-null defect again, one level up, so the second are returned apart. A category the
-primary run has no row for has no computed interval either, and belongs in
-`primary_undecidable`. A category that is in `primary_sig` stays there even when it is also
-undecidable, since it excluded zero on whichever unit was measured.
+`primary_undecidable` has no default, so the distinction cannot be forgotten by leaving it
+out. A caller that cannot say which primary intervals were computed passes `nothing` (or
+`missing`), and then no absence from the primary set is evidence: `no_longer` is empty and
+every anchor category the primary set lacks is returned in `undecidable_in_primary`.
 
-THE KEYWORD HAS NO DEFAULT, so the distinction cannot be forgotten by leaving it out. A caller
-that cannot say which primary intervals were computed passes `nothing` (or `missing`), and
-then no absence from the primary set is evidence: `no_longer` is empty and every anchor
-category the primary set lacks is returned in `undecidable_in_primary`.
-
-WHEN THE ANCHOR IS UNAVAILABLE (`nothing` or `missing`) every set is empty and
-`anchor_available` is false. Empty is the only safe answer: treating an absent anchor as an
-empty one would declare the entire primary set new. An EMPTY anchor set is not the same
-input — it says the earlier run had nothing excluding zero, and then everything in the
-primary set really is new.
+An anchor that is unavailable (`nothing` or `missing`) gives empty sets throughout and
+`anchor_available` false. An EMPTY anchor set is a different input: it says the earlier run
+had nothing excluding zero, and then everything in the primary set really is new.
 """
 function category_sets(primary_sig, anchor_sig, governed; primary_undecidable)
     prim = _labels(primary_sig)
@@ -472,31 +459,25 @@ The exact one-sided Clopper-Pearson lower confidence bound on a recall observed 
 recovered out of `n`: the smallest true recall at which recovering `k` or more of `n` still
 has probability `alpha`. At the default it is the one-sided 95 % lower bound.
 
-  `n == 0`   NaN. An empty sample bounds nothing, and a number invented for it would read
-             as evidence.
+  `n == 0`   NaN. An empty sample bounds nothing.
   `k == 0`   0.0. Recovering nothing is consistent with a recall of zero.
   `k == n`   `alpha^(1/n)`, in closed form: recovering all `n` has probability `p^n`.
   otherwise  the root in `p` of P(X >= k | n, p) = alpha, found by bisection on the binomial
              upper tail until the bracket is narrower than 1e-12. The tail rises
              monotonically in `p`, so the bracket always holds the root.
 
-WHY A BOUND AND NOT THE RATE. A bar on the recall is a claim about the prefilter, not about
-the sample: that it misses fewer carriers than the bar allows. A sample that recovered every
-taxon it flagged has a point estimate of one whatever its size, so the point estimate clears
-every bar on a sample of three as readily as on a sample of three thousand. The lower bound is
-what the sample can vouch for, and it reaches a bar only once the sample is large enough for
-the absence of a miss to say something.
+A bar on recall is a claim about the prefilter: that it misses fewer carriers than the bar
+allows. A sample that recovered every taxon it flagged has a point estimate of one whatever
+its size, so the bound is what the sample can vouch for, and it reaches a bar only once the
+sample is large enough for the absence of a miss to say something.
 
 A negative count, `k > n`, a Bool in place of a count, a count beyond what double-precision
-arithmetic holds exactly, and an `alpha` outside (0, 1) are each an `ArgumentError`. Every one
-is a mistake at the call site, and a number returned for it would bound a sample that does
-not exist.
+arithmetic holds exactly, and an `alpha` outside (0, 1) are each an `ArgumentError`.
 
-THE TAIL IS SUMMED WHERE ITS MASS IS. Each term starts in log space, so no binomial
-coefficient overflows, and the sum runs from `k` away from the binomial's mode, where the
-terms only fall, stopping once what is left cannot move the sum at double precision. The
-cost grows with the spread of the binomial rather than with `n`, so an absurdly large count
-gives a slow answer rather than an allocation the size of the count.
+Each term of the tail starts in log space, so no binomial coefficient overflows, and the sum
+runs from `k` away from the binomial's mode, where the terms only fall, stopping once what is
+left cannot move the sum at double precision. The cost grows with the spread of the binomial
+rather than with `n`.
 """
 function recall_lower_bound(k::Integer, n::Integer; alpha::Real = RECALL_ALPHA)
     (k isa Bool || n isa Bool) &&
@@ -627,19 +608,18 @@ Whether the records the background carrier scan persisted beside its table vouch
 table that was actually read, and what the recall verdict is once it is re-derived from the
 record's own counts, on the lower confidence bound, instead of read from its pass field.
 
-THE TABLE AND ITS RECORDS.
+The table and its records:
 
   `scan_sha256`              the SHA-256 hex digest of the scan table, computed by the caller
-                             from the very bytes it parsed — never taken from a record.
+                             from the very bytes it parsed, never taken from a record.
   `record_sha256s`           the digest each persisted record says it describes: a Dict or
                              NamedTuple keyed by record name, a Vector of `name => digest`
                              pairs, or a plain list of digests. A record whose rows each
                              carry a digest may give all of them as a Vector.
   `acceptance_checks`        the check column of the scan's acceptance table, row by row.
   `acceptance_verdicts`      its verdict column, in the same order.
-  `required_checks`          the names of the gated checks the scan writes. The caller names
-                             them because a check's wording belongs to the scan, and a module
-                             that spelled it out would silently stop matching when it changed.
+  `required_checks`          the names of the gated checks the scan writes, named by the
+                             caller because a check's wording belongs to the scan.
   `flagged_row_value`        the value of the acceptance row that counts the flagged taxa.
   `table_n_flagged`          the taxa with at least one hit, counted by the caller in the
                              table it parsed.
@@ -647,7 +627,7 @@ THE TABLE AND ITS RECORDS.
                              members at the length cut-off.
   `table_n_family`           the taxa with such a member, counted in the parsed table.
 
-THE RECALL RECORD, AND WHAT THE OTHER RECORDS SAY OF THE SAME FIELDS.
+The recall record, and what the other records say of the same fields:
 
   `recall_n_sampled`         taxa in the recall sample.
   `recall_n_full_flagged`    taxa of the sample that the full-proteome search flagged.
@@ -664,52 +644,40 @@ THE RECALL RECORD, AND WHAT THE OTHER RECORDS SAY OF THE SAME FIELDS.
 
 `ok` is true only when all five of these hold.
 
-  1. EVERY RECORD DESCRIBES THIS TABLE. Each digest equals `scan_sha256`. Records written by a
-     run whose acceptance check failed, sitting beside a table left from an earlier run, carry
-     a different digest; so does a record copied in from another scan. Records that agree
+  1. Every record describes this table: each digest equals `scan_sha256`. Records that agree
      with one another but not with the table read are foreign all the same.
-  2. NOTHING WAS REFUSED, AND NO GATE WAS LEFT OUT. The verdicts are non-empty, every one is
-     PASS, MISS or DISCLOSED, and none is MISS. A table that covers the frame but found no
-     carriers anywhere passes every count a consumer can compute from it, and the scan's own
-     acceptance check is the one place that can refuse it. But a table with its gated rows
-     removed has no MISS left to find, so refusal alone is not enough: the check names must
-     line up with the verdicts, at least one gated check must be required, and every
-     required check must appear exactly once and not as a disclosure, which would mean its
-     bar was never applied.
-  3. THE ACCEPTANCE TABLE COUNTS THE TABLE READ. Its flagged-taxa value and its family
-     denominator equal the same counts taken from the parsed table. A digest ties a record to
-     bytes; this ties the record's numbers to what those bytes contain.
-  4. THE RECALL RECORD AGREES WITH ITSELF AND WITH THE OTHER RECORDS. Its rate equals
+  2. Nothing was refused, and no gate was left out. The verdicts are non-empty, every one is
+     PASS, MISS or DISCLOSED, and none is MISS. The check names line up with the verdicts, at
+     least one gated check is required, and every required check appears exactly once and not
+     as a disclosure, which would mean its bar was never applied.
+  3. The acceptance table counts the table read: its flagged-taxa value and its family
+     denominator equal the same counts taken from the parsed table.
+  4. The recall record agrees with itself and with the other records. Its rate equals
      `n_recovered / n_full_flagged` to the six decimals it is written in, and its lower bound
      equals `recall_lower_bound(n_recovered, n_full_flagged)` to 1e-9, each NaN exactly when
      nothing was flagged. It flags no more taxa than it sampled. Its bar, cutoff and release
-     equal the other records'. A bar read only from the record whose counts it judges can be
-     lowered together with them, which is why the bar is held against another record's.
-  5. THE RECALL VERDICT HOLDS, ON THE LOWER BOUND. `recall_pass_derived` is
-     `n_full_flagged > 0 && recall_lower_bound(n_recovered, n_full_flagged) >= bar`, and it must
-     be true. A record whose full search flagged nothing has measured nothing, so it cannot
-     pass. A sample that recovered every flagged taxon but is too small for its bound to reach
-     the bar has not shown that the bar is met, whatever its point estimate.
+     equal the other records', since a bar read only from the record whose counts it judges
+     can be lowered together with them.
+  5. The recall verdict holds, on the lower bound. `recall_pass_derived` is
+     `n_full_flagged > 0 && recall_lower_bound(n_recovered, n_full_flagged) >= bar`, and it
+     must be true.
 
-THE PASS FIELD IS JUDGED ON THE QUANTITY IT IS TAKEN ON. The record's pass field is the scan's
-own gate, and that gate is the point estimate, `n_recovered / n_full_flagged >= bar`. The field
-must equal that verdict re-derived from the counts, so a field that contradicts its own counts
-is still refused, while a record that is honest about a point estimate its bound cannot back
-is refused for the bound and not reported as inconsistent.
+The record's own pass field is the scan's gate, taken on the point estimate
+`n_recovered / n_full_flagged >= bar`, and must equal that verdict re-derived from the counts.
+A field that contradicts its own counts is refused as inconsistent; a field honest about a
+point estimate its bound cannot back is refused for the bound.
 
 `recall_pass_derived` is `nothing` when the verdict cannot be derived: a count that is
 unknown, not a whole non-negative number, or past the range in which double-precision
-arithmetic holds whole numbers exactly, a recovered count larger than the flagged count (no rate of a sample can exceed one), or a bar
-that is not a fraction in (0, 1] — a bar of zero passes every record, and a bar above one
-passes none. `recall_rate` and `recall_lower_bound` are the rate and bound the counts give,
-NaN over an empty sample and `nothing` where `recall_pass_derived` is, so a caller can report
-the numbers the verdict rests on rather than the record's copies of them.
+arithmetic holds whole numbers exactly, a recovered count larger than the flagged count, or a
+bar that is not a fraction in (0, 1]. `recall_rate` and `recall_lower_bound` are the rate and
+bound the counts give, NaN over an empty sample and `nothing` where `recall_pass_derived` is,
+so a caller can report the numbers the verdict rests on.
 
-UNKNOWN IS NOT CLEAN HERE EITHER. Every keyword defaults to `nothing`, so a caller that has
-not read one of the records cannot obtain `ok` by leaving it out. A missing or malformed
-digest is a reason of its own, and so is a verdict outside the vocabulary, a blank cell
-included. `reasons` names every failure, not only the first, each prefixed by the keyword it
-concerns.
+Every keyword defaults to `nothing`, so a caller that has not read one of the records cannot
+obtain `ok` by leaving it out. A missing or malformed digest is a reason of its own, and so is
+a verdict outside the vocabulary, a blank cell included. `reasons` names every failure, not
+only the first, each prefixed by the keyword it concerns.
 
 The caller passes `ok` on to `background_removal_complete` as `scan_evidence_ok` and
 `recall_pass_derived` as `recall_pass`. A bound below the bar is inside `ok` too, so a caller
@@ -885,38 +853,30 @@ be free of, and if not, why not.
   `left_hmm_hit`      carriers with an HMM hit still present in the ANALYSED background arm.
   `left_ipr_ge500`    carriers found by the family signature at the length cut-off, likewise
                       counted over the analysed arm.
-  `recall_pass`       the verdict of the prefilter recall check, as a Bool — the one
+  `recall_pass`       the verdict of the prefilter recall check, as a Bool: the one
                       `scan_evidence_status` re-derives on the lower confidence bound, not
                       the record's own field, which is taken on the point estimate.
   `frame_matches`     whether the scanned taxon set is the analysed frame, as a Bool.
   `scan_evidence_ok`  the `ok` of `scan_evidence_status`: whether the scan's persisted
                       records vouch for the table the counts above were taken from.
 
-`complete` is true only when all five are known and all five are clean. `reasons` names
-every failure, so a caller emits the cause rather than just the verdict.
+`complete` is true only when all five are known and all five are clean. `reasons` names every
+failure.
 
-WHY FIVE INPUTS AND NOT A FLAG. A predicate that reduces to "the exclusion flag was set"
-grants the licence on no measurement at all: one of its counts is structurally zero for any
-input, the other is populated only for taxa that already have a hit, a recall verdict that is
-printed and never persisted is a verdict nothing can check, and whether the scan covered the
-frame is never asked. Such a predicate answers "complete" for a background that still holds
-carriers, and for an input from which nothing has been removed.
+The fifth input is there because three of the other four are computed from the same scan
+table, so a table that found nothing satisfies all three at once. The frame comparison stays
+for the same reason: a carrier whose row is missing from the table reads as no carrier. What
+tells "measured clean" from "measured nothing" is evidence from outside the table, the scan's
+own acceptance record, tied to the table by its digest.
 
-WHY THE FIFTH INPUT. Three of the other four are computed from the same scan table, so a
-table that found nothing satisfies all three at once: no carrier is left because none was
-ever reported, and the taxon set still matches. A carrier whose row is missing from the
-table reads as no carrier too, which is why the frame comparison stays. Only evidence
-from outside the table can tell "measured clean" from "measured nothing", and that
-evidence is the scan's own acceptance record, tied to the table by its digest.
+Where the exclusion itself is "any HMM hit", `left_hmm_hit` is zero by construction over the
+analysed arm, and the completeness of that half rests on the recall check and the scan
+evidence.
 
-Where the exclusion itself is "any HMM hit", `left_hmm_hit` is zero by construction over
-the analysed arm, and the completeness of that half rests on the recall check and the scan
-evidence rather than on the count.
-
-SO EVERY INPUT IS REQUIRED, AND UNKNOWN IS NOT CLEAN. A count that is `missing`, `nothing`,
-NaN, negative or non-numeric, and a verdict that is not a Bool, each make the answer false
-with a reason of their own. The keywords default to `nothing` so that a caller which has
-not measured one of them cannot obtain a licence by leaving it out.
+Every input is required, and unknown is not clean. A count that is `missing`, `nothing`, NaN,
+negative or non-numeric, and a verdict that is not a Bool, each make the answer false with a
+reason of their own. The keywords default to `nothing` so that a caller which has not
+measured one of them cannot obtain a licence by leaving it out.
 """
 function background_removal_complete(; left_hmm_hit = nothing, left_ipr_ge500 = nothing,
                                      recall_pass = nothing, frame_matches = nothing,

@@ -948,23 +948,17 @@ _candidate_lengths(df::AbstractDataFrame) =
     _rank_candidates(df, organism) -> DataFrame
 
 Rank the UniProt hits for one control row: the same columns plus `score`, best first.
-
-Pure — a table in, a table out, no network — so the ranking can be exercised offline on a
-fixture of the exact hits that have to come out in a given order.
+Pure, no network.
 
 The score sums independent statements about a hit:
-  * `+2` reviewed (Swiss-Prot): a curated entry over an automatic one;
-  * `+1` the hit organism contains the target genus and species;
-  * `±`  the subunit bias of [`_subunit_bonus`](@ref) — the catalytic large subunit carries
-    the active-site triad, the small subunit does not;
-  * `-5` the entry is a FRAGMENT: a partial sequence need not contain the active-site
-    column at all, so it cannot answer the question the control set asks;
-  * `-2` fewer than `_MIN_INTACT_LENGTH` residues.
 
-The two penalties are what reviewed-plus-organism alone cannot express: to that score a
-short, unreviewed fragment from the right organism ranks exactly as well as a complete
-entry, and a fragment that reaches the control set carries its label onto a sequence that
-need never have been aligned over the catalytic column.
+| delta | statement |
+|-------|-----------|
+| `+2`  | reviewed (Swiss-Prot): a curated entry over an automatic one |
+| `+1`  | the hit organism contains the target genus and species |
+| `±`   | the subunit bias of [`_subunit_bonus`](@ref): the catalytic large subunit carries the active-site triad, the small subunit does not |
+| `-5`  | the entry is a fragment: a partial sequence need not contain the active-site column at all, so it cannot answer the question the control set asks |
+| `-2`  | fewer than `_MIN_INTACT_LENGTH` residues |
 
 Ties keep the order UniProt returned, so equally good hits are never reshuffled.
 """
@@ -993,7 +987,7 @@ end
 The ordered `(mode, query)` pairs `_uniprot_search` tries, stopping at the first that
 returns anything. The keyword tiers appear only when a protein-name keyword is known:
 
-  1. `name_reviewed`       — reviewed entries whose PROTEIN NAME matches the keyword, in
+  1. `name_reviewed`       — reviewed entries whose protein name matches the keyword, in
      the full organism;
   2. `gene`                — gene symbol + full organism;
   3. `name_reviewed+genus` — as 1, on genus/species (drops the strain);
@@ -1001,24 +995,18 @@ returns anything. The keyword tiers appear only when a protein-name keyword is k
   5. `name`                — protein-name keyword + full organism, reviewed or not;
   6. `name+genus`          — protein-name keyword + genus/species.
 
-Two orderings are at work, and they are independent. Within one organism specificity the
-reviewed protein-name question is asked BEFORE the gene one, because the gene tiers cannot
-see an entry that carries no gene name at all: a curated, full-length entry with an empty
-`gene_names` field never enters the candidate list, the search stops at the first tier that
-answered, and the row is resolved from whatever unreviewed material happens to carry the
-symbol. Asking Swiss-Prot by protein name first puts the curated entry in front of
-[`_rank_candidates`](@ref), which is the only place it can be weighed at all.
+Two independent orderings. The reviewed protein-name question precedes the gene one at each
+organism specificity, because a curated, full-length entry with an empty `gene_names` field
+is invisible to the gene tiers; asking Swiss-Prot by protein name first puts it in front of
+[`_rank_candidates`](@ref).
 
-Then the exact organism is tried before genus/species, and that is why the reviewed tier
-needs both forms. UniProt writes a strain as a parenthesised qualifier rather than as part
-of the organism name, so a control row naming its strain matches NOTHING under the exact
-form and everything under the looser one — a reviewed-only tier that existed solely in the
-exact form would silently never fire for exactly the rows it was added for.
+The exact organism precedes genus/species, and the reviewed tier needs both forms: UniProt
+writes a strain as a parenthesised qualifier outside the organism name, so a control row
+naming its strain matches nothing under the exact form and everything under the looser one.
 
-Name-based matches are looser than gene-based ones in one specific way: a protein-name
-keyword is shared by the whole enzyme family, so a hit can be the right family and the
-wrong paralogue. `_uniprot_search` reports the mode for that reason, and every proposal is
-flagged for human confirmation.
+A protein-name keyword is shared by the whole enzyme family, so a name-based hit can be the
+right family and the wrong paralogue. `_uniprot_search` reports the mode for that reason,
+and every proposal is flagged for human confirmation.
 """
 function _search_tiers(gene::AbstractString, organism::AbstractString,
                        protein_keyword::Union{Nothing,AbstractString})

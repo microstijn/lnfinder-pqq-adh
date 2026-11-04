@@ -597,34 +597,27 @@ end
 Pick one taxid for a rescued accession. Pure.
 
 Precedence:
- 1. `own` — the accession's own UniParc cross-reference — wins outright (`uniparc_own_xref`);
+ 1. `own`, the accession's own UniParc cross-reference, wins outright (`uniparc_own_xref`);
  2. otherwise the single cellular (or viral) commonTaxon (`uniparc_common_taxon`);
  3. otherwise, when no cellular candidate exists at all, a single non-cellular one
     (`uniparc_common_noncellular`);
- 4. otherwise `missing` / `unresolved` — an ambiguous entry stays unanswered rather than
-    being handed an arbitrary first-listed organism.
+ 4. otherwise `missing` / `unresolved`: an ambiguous entry stays unanswered.
 
-A metagenome taxid is KEPT rather than swapped, because it is what the source record says.
-Where a cellular commonTaxon also exists it is reported beside it in `alt_cellular_taxid`,
-so a downstream analysis can choose without the original being lost.
+A metagenome taxid is kept, not swapped, because it is what the source record says. Where a
+cellular commonTaxon also exists it is reported beside it in `alt_cellular_taxid`.
 
-!!! warning "NOT CALLED BY THE PIPELINE"
+!!! warning "Not called by the pipeline"
 
-    Nothing in the pipeline calls this, and wiring it in would break the census rather than
-    improve it. Pass 2 does not resolve through commonTaxon. It resolves through UniParc
-    entries that name a single organism, which is why the live vocabulary is
-    `uniparc_single_organism` and why `TAXID_SOURCES` does not contain either of the two
-    sources returned below. A row carrying `uniparc_common_taxon` or
-    `uniparc_common_noncellular` is REFUSED by `load_taxid_cache` and fails the ledger's
-    source check, so connecting this function to the assembly would not enable a safeguard -
-    it would produce rows the rest of the module throws away.
+    Pass 2 resolves through UniParc entries that name a single organism, not through
+    commonTaxon, so the live vocabulary is `uniparc_single_organism` and `TAXID_SOURCES`
+    contains neither source returned here. `load_taxid_cache` refuses a row carrying
+    `uniparc_common_taxon` or `uniparc_common_noncellular`, and such a row fails the
+    ledger's source check.
 
-    It is kept, with its tests, because it is the written record of the metagenome policy:
-    a metagenome taxid is kept rather than swapped. That policy holds. What does NOT
-    hold is any impression that the policy is being ENFORCED on the census: the
-    `common_taxon_ids` and `alt_cellular_taxid` columns are structurally empty on every row
-    (see the assembly), and a reader who takes them for a live safeguard is reading a column
-    nothing writes to. `TAXID_SOURCES` pins that in a test.
+    It is kept, with its tests, as the written record of the metagenome policy above. The
+    census does not enforce that policy: the `common_taxon_ids` and `alt_cellular_taxid`
+    columns are structurally empty on every row (see the assembly). `TAXID_SOURCES` pins
+    that in a test.
 """
 function choose_taxid(own, common)
     cellular = unique(h.taxid for h in common if is_cellular_toplevel(h.toplevel))
@@ -716,18 +709,16 @@ Fetch `/uniparc/<upi>/databases` and pick the accession's own cross-reference. T
 filter keeps the payload to this accession's cross-reference; `Link` headers are followed,
 so an answer that spans more than one page still yields it.
 
-WHY THIS REPORTS COMPLETENESS AND NOT ONLY A HIT. A miss means one of two different things
-and they may not be treated alike. Either the entry genuinely holds no cross-reference for
-this accession — a fact about the data, and cacheable forever — or this particular response
-came back short. A short answer here is NOT an error: the service returns HTTP 200 with
-fewer records than it says it holds, so `polite_get` has nothing to retry and the paging
-loop simply ends early. Cached, that becomes a permanent "no cross-reference" for an
-accession that has one, and no later run ever asks again.
+`complete` separates the two things a miss can mean: the entry genuinely holds no
+cross-reference for this accession, which is cacheable forever, or this response came back
+short. A short answer is not an error. The service returns HTTP 200 with fewer records than
+it says it holds, so `polite_get` has nothing to retry and the paging loop ends early;
+cached, that is a permanent "no cross-reference" for an accession that has one.
 
-So the count of records actually seen is compared against the `x-total-results` the service
+The count of records seen is therefore compared against the `x-total-results` the service
 declares, exactly as pass 1 compares them, and `complete` says whether the miss is a
 statement about the data. Only a complete miss may be written to the cache. A hit needs no
-such test: having found the cross-reference, how many other rows the page held is moot.
+such test.
 """
 function fetch_own_xref(upi::AbstractString, accession::AbstractString;
                         fetch = default_fetch, pace_s::Real = PASS3_PACE_S, sleeper = sleep)

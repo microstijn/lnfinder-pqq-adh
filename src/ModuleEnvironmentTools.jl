@@ -398,33 +398,30 @@ end
 """
     resolve_chemistry(combos, rule; share_threshold=SHARE_THRESHOLD) -> Dict{String,Float64}
 
-Per-flag weights on the chemistry axis: which conditions a taxon is scored for, and with how
-much weight.
+Per-flag weights on the chemistry axis. `combos` is the tally of chemistry-bearing terms per
+flag combination, keyed as `habitat_chemistry` writes them (`"Alkaline+Hypersaline" => 1`).
+Pass counts: rounded shares move a flag that sits exactly on the threshold. The axis is
+non-exclusive, so each flag is scored on its own and the weights are not a distribution over
+flags.
 
-`combos` is the tally of chemistry-bearing terms per flag COMBINATION, keyed as
-`habitat_chemistry` writes them (`"Alkaline+Hypersaline" => 1`). Pass counts, not rounded
-shares: a flag sitting exactly on the threshold lands on either side of it depending on how
-its shares were rounded and summed.
+`CHEMISTRY_RULES`:
 
-The axis is non-exclusive — the conditions are not alternatives to each other — so every flag
-is scored in a table of its own and the weights are NOT a distribution over flags. Rules
-(`CHEMISTRY_RULES`), each with what one taxon's weights sum to:
-  • `:any_term` (the primary rule) — weight 1 to every flag that any term carries, i.e.
-    exactly the flags of `chemistry_flags`. Sums to the number of distinct flags, at least 1.
-  • `:share` — weight 1 to every flag named by at least `share_threshold` of the
-    chemistry-bearing terms; a combination counts toward EACH flag it names. Sums to a whole
-    number from 0 to the number of flags present; 0 when no flag reaches the share.
-  • `:winner_fractional` — the exclusive winner: the combinations tied at the top of the tally,
-    each flag weighted by the fraction of those `k` combinations that name it (tied between
-    `Thermal` and `Alkaline+Thermal`, Thermal carries 1 and Alkaline 1/2). Per combination the
-    weights sum to 1; per flag they sum to the mean number of flags in the tied combinations,
-    at least 1. There is no mention step, unlike the back-compatible `chemistry` winner: the
-    tie is settled on the tally alone, which is all `chemistry_profile` records, so the rule
-    can be recomputed from the written table.
+| rule | weight 1 to | weights sum to |
+|---|---|---|
+| `:any_term` (primary) | every flag any term carries | distinct flags, at least 1 |
+| `:share` | every flag named by at least `share_threshold` of the terms | 0 to the flags present |
+| `:winner_fractional` | each top-tied flag, fractionally | 1 per combination |
 
-Every single weight lies in (0, 1], for the reason `resolve` gives. A tally with no
-chemistry-bearing term returns an empty map under every rule; an unknown rule raises, naming
-the valid ones.
+`:any_term` scores exactly the flags of `chemistry_flags`. Under `:share` a combination counts
+toward each flag it names, and the sum is 0 when no flag reaches the share. `:winner_fractional`
+takes the `k` combinations tied at the top of the tally and weights each flag by the fraction of
+them that names it, so a tie between `Thermal` and `Alkaline+Thermal` carries Thermal 1 and
+Alkaline 1/2; per flag the weights then sum to the mean flag count of the tied combinations, at
+least 1. The tie is settled on the tally alone, with no mention step, so the rule can be
+recomputed from the written table.
+
+Every weight lies in (0, 1], for the reason `resolve` gives. A tally with no chemistry-bearing
+term returns an empty map under every rule; an unknown rule raises, naming the valid ones.
 """
 function resolve_chemistry(combos::AbstractDict, rule::Symbol;
                            share_threshold::Real = SHARE_THRESHOLD)
@@ -472,60 +469,49 @@ end
                        chemistry_rule=:any_term,
                        share_threshold=SHARE_THRESHOLD) -> NamedTuple
 
-Collapse ALL of a taxon's OmniCrobe habitat relations into one call, deterministically.
+Collapse all of a taxon's OmniCrobe habitat relations into one call, deterministically.
 
-`relations` is one entry per returned relation (`obtid`, `name`, and — from
-`parse_relations` — `forms`); `path_of(obtid) -> String` resolves the OBT path (injected so
-this is testable offline, and so the caller controls caching).
+`relations` is one entry per returned relation (`obtid`, `name`, and, from `parse_relations`,
+`forms`); `path_of(obtid) -> String` resolves the OBT path. It is injected, so the caller
+controls caching and this stays testable offline.
 
-Why this exists: taking `json[1]` — an arbitrary single relation out of up to thousands —
-would assign *Methylorubrum extorquens*, a model phyllosphere methylotroph, the habitat
-"blood"; everything downstream inherits that draw.
-
-THE RULE, in the order it is applied:
+The rule, in the order it is applied:
 
 1. **Rank** the distinct terms by mentions, ties broken by OBT id. The ranking decides what a
-   `max_distinct` cap drops, so leaving equal-mention terms in `Dict` order would make the
-   cap's victims depend on hash layout.
+   `max_distinct` cap drops.
 2. **Filter, then truncate.** Walk that ranking, resolving paths lazily, and keep terms until
    `max_distinct` usable ones are held; terms never looked at are counted in `n_truncated`.
-   With `drop_generic = true` the generic nodes (`GENERIC_TERMS`) go, and with
-   `isolation = :term` so do isolation sources — off the TYPE axis, because they record where
-   a strain was OBTAINED, not where it lives. `Lab-medium` leaves both axes; `Food/substance`
-   stays on the chemistry axis, since OBT files the bare term `salt` there and that is a
-   salinity statement. `isolation = :taxon` is what the `legacy` configuration selects:
-   nothing is filtered and the caller drops whole taxa afterwards on the winning type.
-3. **Tally** the kept terms per category, weighting each term by 1 (`weighting = :distinct`,
-   the default — robust to literature attention, so a taxon with very many relations about one
-   well-studied context does not win on volume alone) or by its mentions
-   (`weighting = :mentions`).
+   `drop_generic = true` drops the generic nodes (`GENERIC_TERMS`). `isolation = :term` drops
+   isolation sources from the type axis, since they record where a strain was obtained:
+   `Lab-medium` leaves both axes, while `Food/substance` stays on the chemistry axis, where OBT
+   files the bare term `salt`. `isolation = :taxon`, which the `legacy` configuration selects,
+   filters nothing and leaves the caller to drop whole taxa afterwards on the winning type.
+3. **Tally** the kept terms per category, weighting each term by 1 (`weighting = :distinct`, the
+   default) or by its mentions (`weighting = :mentions`).
 4. **Resolve** the winner with `tie_rule` (see `resolve`) and the chemistry weights with
-   `chemistry_rule` (see `resolve_chemistry`). The four rules that pick ONE category —
-   `:mentions_fractional`, `:fractional`, `:alphabetical`, `:legacy_dict` — settle the fine
-   type, the coarse pillar and the chemistry winner alike, which is the behaviour the
-   replication configuration reproduces. The three `TYPE_ONLY_RULES` added for the one-axis-at-
-   a-time sensitivity runs settle the TYPE axis only: under them the chemistry winner is taken
-   on the primary rule, so that moving the type rule cannot move a chemistry field and a
-   variant stays one move off the specification it varies.
+   `chemistry_rule` (see `resolve_chemistry`). The four rules that pick one category,
+   `:mentions_fractional`, `:fractional`, `:alphabetical` and `:legacy_dict`, settle the fine
+   type, the coarse pillar and the chemistry winner alike, which is what the replication
+   configuration reproduces. The three `TYPE_ONLY_RULES`, added for the one-axis-at-a-time
+   sensitivity runs, settle the type axis only: under them the chemistry winner is taken on the
+   primary rule.
 
 Returns the winning `category` and fine `habitat_type` (a residual tie reads `"A|B"`, a
 multi-label call `"A+B"`, an uncalled taxon `UNRESOLVED`), a representative `name` (the
-most-mentioned term *within* the winning type, `missing` when no category was called), the
-`confidence` values, the non-exclusive `chemistry_flags`, and the raw counts every downstream
-sensitivity rule needs — `type_counts`, `type_mentions`, `type_weights`, `chemistry_weights`,
-`chemistry_flag_counts`, `n_isolation_terms`, `n_generic_terms`, `isolation_only`,
-`generic_only` — so a variant rule can be recomputed without refetching anything.
+most-mentioned term within the winning type, `missing` when no category was called), the
+`confidence` values, the non-exclusive `chemistry_flags`, and the raw counts a variant rule
+needs to be recomputed without refetching: `type_counts`, `type_mentions`, `type_weights`,
+`chemistry_weights`, `chemistry_flag_counts`, `n_isolation_terms`, `n_generic_terms`,
+`isolation_only` and `generic_only`.
 
-Chemistry is NON-EXCLUSIVE: `chemistry_flags` is the union of every flag over the kept terms
-(a taxon in a hot brine reads `Hypersaline+Thermal`), while the back-compatible `chemistry`
-field still reports the single winning flag combination. `chemistry_weights` is what
-`chemistry_rule` decides — how much weight each flag carries — and it is the only field that
-rule touches: the flags, the winner, the counts and the profile are the raw evidence and stay
-as they are under every chemistry rule. `chem_text` chooses which text the keyword fallback
-reads: `:forms_union` (every surface form, the default), `:object_name` (the ontology term
-alone) or `:first_form` (the first surface form — the name the committed tables carry, so
-replication only); it decides which terms carry a flag, which is a different question from how
-the flags a term carries are weighted, so the two knobs stay apart.
+Chemistry is non-exclusive: `chemistry_flags` is the union of every flag over the kept terms (a
+taxon in a hot brine reads `Hypersaline+Thermal`), while the back-compatible `chemistry` field
+reports the single winning flag combination. `chemistry_weights` is the weight `chemistry_rule`
+gives each flag, and the only field it touches: the flags, the winner, the counts and the
+profile are unchanged under every chemistry rule. `chem_text` chooses which text the keyword
+fallback reads: `:forms_union` (every surface form, the default), `:object_name` (the ontology
+term alone) or `:first_form` (the first surface form, the name the committed tables carry, so
+replication only).
 """
 function aggregate_habitats(relations, path_of; weighting::Symbol = :distinct,
                             max_distinct::Int = 50, isolation::Symbol = :term,
@@ -868,25 +854,21 @@ end
     fetch_relations(taxid; cache_dir=nothing, getter=HTTP.get, retries=0, retry_delay=1.0,
                     backoff=2.0, pause=0, user_agent) -> Vector{Relation} | Nothing
 
-Every habitat relation OmniCrobe holds for `taxid`.
+Every habitat relation OmniCrobe holds for `taxid`. Returns `nothing` when the fetch failed,
+and an empty vector when the taxon genuinely has no habitat relation, so a network blip cannot
+enter the analysis as "this organism has no known habitat". Callers must handle `nothing`;
+where the collapsed reading really is wanted, it is
+`something(fetch_relations(t), EnvironmentTools.Relation[])`.
 
-Returns `nothing` when the FETCH FAILED, and an empty vector when the taxon genuinely has no
-habitat relation. Collapsing the two into one value — a bare `catch` returning an empty
-vector — lets a network blip enter the analysis as the ecological statement "this organism
-has no known habitat". Callers must handle `nothing`; where the collapsed reading is really
-wanted, it is `something(fetch_relations(t), EnvironmentTools.Relation[])`.
+`cache_dir` makes a run idempotent and replayable offline: `<cache_dir>/<taxid>.json` is read
+when it exists, and the raw response body is written there after a successful fetch (status 200
+only). `getter` is injected for tests.
 
-`cache_dir` makes a run idempotent and replayable offline: `<cache_dir>/<taxid>.json` is
-read when it exists, and the RAW response body is written there after a successful fetch
-(status 200 only). Storing the raw body rather than the parsed rows means a later parser fix
-can be replayed over the same bytes without refetching. `getter` is injected for tests.
-
-`retries` (default 0: one request, nothing asked again unless the caller asks for it)
-re-asks only on a transient failure — status 429, 500, 502, 503 or 504, or a request that
-raised before any status came back — waiting `retry_delay * backoff^(attempt-1)` seconds
-before each new attempt; any other non-200 is returned as a failure at once. `pause` sleeps
-after a fetch that actually went out and succeeded (never after a cache hit), so a long run
-stays polite, and `user_agent` names this client to the service.
+`retries` (default 0, one request) re-asks only on a transient failure: status 429, 500, 502,
+503 or 504, or a request that raised before any status came back. It waits
+`retry_delay * backoff^(attempt-1)` seconds before each new attempt; any other non-200 is
+returned as a failure at once. `pause` sleeps after a fetch that went out and succeeded, never
+after a cache hit, so a long run stays polite. `user_agent` names this client to the service.
 """
 function fetch_relations(taxid::Int; cache_dir::Union{AbstractString,Nothing} = nothing,
                          getter = HTTP.get, retries::Int = 0, retry_delay::Real = 1.0,
@@ -988,26 +970,25 @@ _weights_str(d::AbstractDict) =
                          cache_dir=nothing)
 
 Annotate `df` with OmniCrobe habitat, aggregated over every relation a taxon has (see
-`aggregate_habitats`, whose keyword arguments are passed straight through). Adds, besides the
-original two columns:
+`aggregate_habitats`, whose keyword arguments are passed straight through). Besides the
+original two columns it adds:
 
-  • `habitat_confidence`  — winning pillar's share of the tallied weight (0–1). **Filter on
-    this before drawing ecological conclusions**; a 0.35 call is a coin-toss between pillars.
-  • `habitat_n_relations` / `habitat_n_distinct` — how much evidence the call rests on.
-  • `habitat_profile`     — the full pillar distribution, e.g. "Aquatic:0.5;Terrestrial:0.3".
-  • `habitat_type_counts` / `habitat_type_weights` — the raw distinct-term count per fine
-    type, and the 1/k weight each winner carries when the tie rule had to split one. Together
-    they let a downstream table be recomputed under a different rule without refetching.
-  • `habitat_chemistry_flags` / `habitat_chemistry_flag_counts` — the NON-EXCLUSIVE chemistry
+  • `habitat_confidence`: the winning pillar's share of the tallied weight (0-1). Filter on
+    this before drawing ecological conclusions.
+  • `habitat_n_relations`, `habitat_n_distinct`: how much evidence the call rests on.
+  • `habitat_profile`: the full pillar distribution, e.g. "Aquatic:0.5;Terrestrial:0.3".
+  • `habitat_type_counts`, `habitat_type_weights`: the distinct-term count per fine type, and
+    the 1/k weight each winner carries when the tie rule had to split one.
+  • `habitat_chemistry_flags`, `habitat_chemistry_flag_counts`: the non-exclusive chemistry
     union and how many terms voted for each flag, next to the single-winner
     `habitat_chemistry`.
 
-`habitat_specific` is the most-mentioned term *within* the winning pillar (not the first
-relation returned, which ignores the pillar), so `agg_habitat` consumes it directly.
+`habitat_specific` is the most-mentioned term within the winning pillar, which `agg_habitat`
+consumes directly.
 
 `cache_dir` is handed straight to `fetch_relations`, so a re-run reads the stored response
-bodies instead of the API. TaxIDs whose fetch FAILED are counted and reported: their rows
-are blank, and a blank row from a failed fetch must not be read as "no habitat".
+bodies instead of the API. TaxIDs whose fetch failed are counted and reported; their rows are
+blank, and a blank row from a failed fetch must not be read as "no habitat".
 """
 function fetch_omnicrobe_env!(df::DataFrame; taxid_col=:TaxID, weighting::Symbol = :distinct,
                               max_distinct::Int = 50,

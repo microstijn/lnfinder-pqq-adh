@@ -98,23 +98,20 @@ Options:
   --census <path>            census table, for the disclosed calcium comparator arm
   --figdir <path>            where every output goes (default: \$LNFINDER_FIGDIR, else figs/)
   --anchor-reference <path>  an earlier run's rows CSV; the all-legacy anchor is compared
-                             against it row by row. While the anchor levels are evaluated a
-                             run without it is refused, for the same reason as one without
-                             --anchor-targets: a check one dropped flag removes is a check
-                             nobody misses. While they are retired (ANCHOR_LEVELS_RETIRED)
-                             there are no anchor rows, so it is not required: the run records
-                             the comparison as not applicable, and a path given anyway is
-                             recorded by name and not opened
-  --anchor-targets <path>    the transcribed anchor targets, their named exceptions, the NAMES
+                             against it row by row. Required, as --anchor-targets is, while
+                             the anchor levels are evaluated. While they are retired
+                             (ANCHOR_LEVELS_RETIRED) there are no anchor rows, so it is not
+                             required: the run records the comparison as not applicable, and
+                             a path given anyway is recorded by name and not opened
+  --anchor-targets <path>    the transcribed anchor targets, their named exceptions, the names
                              of the registered one-at-a-time levels, the file the targets were
-                             transcribed FROM with its digest, and the three counts the file
+                             transcribed from with its digest, and the three counts the file
                              declares about itself, as kind,anchor,unit,category,quantity,
                              value,tol,note,digest with kind in
                              target|exception|variant|expect|source
   --no-anchors               run with no target file and no reference at all, and say so in
                              the output. Neither half of the wiring check is then made and the
-                             registered set is compared against nothing; this has to be typed,
-                             because a check that is skipped by default is a check nobody runs
+                             registered set is compared against nothing, so it has to be typed
   --no-figure                write the tables and skip the rendered panel. Refused if the
                              figure directory already holds a panel of the current name, which
                              this run would leave standing beside its own tables
@@ -416,26 +413,21 @@ const FLAG_UNITS_BOTH = Tuple(u for u in HE.PRIMARY_UNITS)
 """
     VARIANT_AXES
 
-What an axis LETTER means, as data rather than as a naming convention: which field of a
-specification the axis varies, the levels that field may take, and the units the axis can
-reach.
+What an axis letter means, as data: which field of a specification the axis varies, the levels
+that field may take, and the units the axis can reach.
 
-WHY A NAME HAS TO BE BOUND TO A COMPUTATION. Everything this step publishes about a variant
-is published under the variant's NAME — the breaker list beside a category, the column heads
-of the written table, the levels named as excluding zero where the primary does not — and a
-name is free text. A level renamed onto an axis it does not belong to, or a rule the recorded
-decision deliberately keeps OUTSIDE the set running under the name of one that is inside it,
-moves no count, breaks no anchor and changes no number: every check that compares a variant
-with the PRIMARY still passes, and what is published is a correct number under the name of a
-rule that did not produce it. So the name is checked against what the specification actually
-runs, in the run, before anything is computed from it.
+A name has to be bound to a computation. Everything this step publishes about a variant is
+published under the variant's name, and a name is free text: a level renamed onto an axis it
+does not belong to, or a rule the recorded decision keeps outside the set running under the
+name of one inside it, moves no count, breaks no anchor and changes no number, so a correct
+number is published under the name of a rule that did not produce it. The name is checked
+against what the specification runs, in the run, before anything is computed from it.
 
-THE UNITS ARE DECLARED AND NOT INFERRED. A one-at-a-time grid over two orthogonal rule
-families leaves cells no axis can reach, and the written table marks them `n.r.`. Derived
-from the measured movement alone, that mark cannot tell an axis that was never able to touch
-a unit from a variant that LOST its wiring to it — and the loss is then published as
-orthogonality. Declaring the map makes those two different statements, and
-`assert_axes_reach_the_units_they_declare` makes the difference fatal.
+The unit lists are a declaration. A one-at-a-time grid over two orthogonal rule families
+leaves cells no axis can reach, and the written table marks them `n.r.`. The measured movement
+alone cannot tell an axis that was never able to touch a unit from a variant that lost its
+wiring to it; the declared map can, and `assert_axes_reach_the_units_they_declare` makes the
+difference fatal.
 """
 const VARIANT_AXES = (
     (axis = "T", field = :tie_rule,  levels = Tuple(String(r) for r in TYPE_LEVELS),
@@ -544,35 +536,25 @@ end
 """
     assert_the_set_is_the_declared_one(enumerated, declared) -> Int
 
-The levels this run enumerated must be exactly the levels declared OUTSIDE it, name for name,
+The levels this run enumerated must be exactly the levels declared outside it, name for name,
 in both directions.
 
-WHY THE DECLARATION CANNOT LIVE IN THIS FILE. Every other check here compares one part of this
-file with another part of it, and `VARIANT_AXES` reads its levels off the very tuples
-`sensitivity_specs` enumerates. A level deleted from a tuple, or replaced by a rule the
-recorded decision keeps outside the set, is therefore SELF-CONSISTENT: the wiring and the
-vocabulary move together, the name binding still passes, the counts still agree with
-themselves, and the run publishes the set it happens to hold as the set it was supposed to
-hold. What that costs is a column: a category whose breakers were the levels that left is
-published with a shorter breaker list, or with none, and the word beside it can change from
-fragile to a colour while every number in the run is correct. Nothing inside a file can refuse
-an edit to that file, so the set arrives as an input — the same input the anchor targets
-arrive in, because a rule NAME is not a quantity measured on any data and this file may carry
-none of those.
+The declaration cannot live in this file. `VARIANT_AXES` reads its levels off the very tuples
+`sensitivity_specs` enumerates, so a level deleted from a tuple is self-consistent: the wiring
+and the vocabulary move together, every count agrees with itself, and the run publishes the
+set it happens to hold as the set it was supposed to hold, with every number in it correct and
+a category's breaker list a level shorter. Nothing inside a file can refuse an edit to that
+file, so the set arrives as an input, the same input the anchor targets arrive in.
 
 Both directions are refused. A level that is declared and did not run took its column with it;
 a level that ran and is not declared decides a published result under a name the registered
 set does not carry.
 
-WHAT THE FAILURE MAY NOT SAY. A guard whose message names the level the declaration holds and
-the run does not has written half an edit: deleting that name from the declaration makes the
-failure go away, makes every count agree with itself again, and publishes the shorter grid
-under the registered set's name — which is the precise outcome this guard exists to refuse.
-So the difference is named, because a failure nobody can diagnose is a failure nobody fixes,
-and the message then says outright that the two repairs are not equivalent and which of them
-is the defect. The declared SIZE of the set is checked separately, in `read_anchor_targets`,
-so that making the two lists agree by shortening one of them leaves the file inconsistent
-with its own count rather than quietly consistent.
+The message names which side the difference is on, and says that the two repairs are not
+equivalent and which of them is the defect: striking the name from the declaration also makes
+the failure go away, and publishes the shorter grid under the registered set's name. The
+declared size of the set is checked separately, in `read_anchor_targets`, so making the two
+lists agree by shortening one of them leaves the file inconsistent with its own count.
 """
 function assert_the_set_is_the_declared_one(enumerated, declared)
     have = sort(unique(String[String(v) for v in enumerated]))
@@ -823,25 +805,20 @@ end
 
 No two levels may produce the same numbers on every cell the flag reads.
 
-`assert_variants_differ_from_each_other` compares DECLARATIONS, and on this set every
-declaration differs by construction. What a declaration cannot see is two levels whose
-declarations differ and whose NUMBERS do not — and that needs no edit to this file at all. The
-five non-primary configurations of the call table are produced by one upstream script; a block
-written twice, a configuration label assigned in the wrong loop iteration, or a re-export that
-reused a frame makes two of them the same table, and the two levels that read them are then
-one measurement published as two columns. The set has lost a level while keeping its name, the
-count of variants does not move, every anchor is met, and a category both of them broke keeps
-one breaker where a reader counts two.
+`assert_variants_differ_from_each_other` compares declarations, and on this set every
+declaration differs by construction. Two levels whose declarations differ and whose numbers do
+not need no edit to this file: the five non-primary configurations of the call table come from
+one upstream script, where a re-export that reused a frame makes two of them the same table,
+published as two columns with every anchor met and a category both of them broke keeping one
+breaker where a reader counts two.
 
-WHAT IS REFUSED, AND WHAT IS NOT. Two levels of one axis are EXPECTED to be close, and a level
-that differs from its sibling on a single taxon is a legitimate near-clone: it still separates
-itself somewhere, it moves fewer cells than its sibling, and `variant_cells_moved` reports
-that beside it. What is refused is a pair with no cell anywhere between them — not a small
-difference but no difference at all. A cell one of them wrote a row for and the other did not
-counts as a difference, for the same reason it counts as movement in `estimate_movement`: the
-two tables say different things about it.
+Two levels of one axis are expected to be close, and a level that differs from its sibling on
+a single taxon is a legitimate near-clone: `variant_cells_moved` reports beside it how few
+cells it moved. What is refused is a pair with no cell anywhere between them. A cell one of
+them wrote a row for and the other did not counts as a difference, as it counts as movement in
+`estimate_movement`.
 
-The number returned is how many distinct MEASUREMENTS the variants made, which equals the
+The number returned is how many distinct measurements the variants made, which equals the
 number of variants exactly when no two of them are one measurement.
 """
 function assert_no_two_variants_are_one_measurement(rows, expected_variants,
@@ -1147,22 +1124,19 @@ end
     type_reconstruction_over(calls, configs) -> (per_configuration, rows, mismatches, example)
 
 `type_reconstruction_check` over every configuration whose committed weight column the
-registered type rule wrote, not over the primary alone.
+registered type rule wrote.
 
-WHY THE WHOLE SET AND NOT THE ONE CONFIGURATION THE VARIANTS ARE REWRITTEN FROM. The type
-variants are recomputed from the primary configuration's tallies, so checking that one is what
-licenses the rewrite — and that was the whole of this check. But four of the other
-configurations ARE registered levels: the text, generic-term and isolation variants are their
-committed weight columns read under a level's name, and nothing recomputed those from their own
-tallies. A configuration whose weight column was re-exported from a sibling — the shape a
-regeneration that covered one arm and not the other leaves behind — keeps its own tallies,
-its own counts and its own row count, so every other guard here stays silent: the declaration
-is untouched, the name still describes the rule, the level still varies the primary and still
-moves something, and it reaches exactly the units its axis declares. The tallies are the one
+The type variants are recomputed from the primary configuration's tallies, so checking that
+one licenses the rewrite, and that was the whole of this check. But four of the other
+configurations are registered levels too: the text, generic-term and isolation variants are
+their committed weight columns read under a level's name, and nothing recomputed those from
+their own tallies. A configuration whose weight column was re-exported from a sibling, the
+shape a regeneration that covered one arm and not the other leaves behind, keeps its own
+tallies, counts and row count, so every other guard here stays silent. The tallies are the one
 place the substitution shows.
 
-`per_configuration` carries the row count each check was made over, because a check whose scope
-is not recorded is a check whose scope can shrink without the report changing.
+`per_configuration` carries the row count each check was made over, so the scope of a check
+cannot shrink without the report changing.
 """
 function type_reconstruction_over(calls::AbstractDataFrame, configs)
     per = Pair{String,Int}[]
@@ -1607,22 +1581,17 @@ const DECLARED_UNIT_SERIES = (FLAG_UNITS_TYPE..., "sequences", "genera")
 The table about to be published, checked against what the specifications say they measure:
 every declared contrast, every declared unit series, and every declared category is there.
 
-WHY A SHAPE CHECK AND NOT A ROW COUNT. Every other guard in this file asks whether a row that
-IS there is right. None of them asks whether a row that should be there is missing, and the
-two failures do not look alike: a table short of one whole contrast carries no wrong number
-anywhere, meets every anchor target, reproduces every reference row and exits 0. What a reader
-downstream sees is a complete-looking file, because "complete" is not a property any column of
-it states. A missing input is the ordinary way this happens — the arm builder leaves a
-contrast out rather than emitting a panel of zeros, which is the right decision for the arm
-and the wrong one for the table — and a stale input that names nobody is the same silence with
-a file still on disk.
+No other guard here asks whether a row that should be there is missing, and a table short of
+one whole contrast carries no wrong number anywhere, meets every anchor target, reproduces
+every reference row and exits 0. The ordinary cause is a missing input: the arm builder leaves
+a contrast out instead of emitting a panel of zeros.
 
-THREE DIMENSIONS, BECAUSE THE TABLE HAS THREE. A contrast is a comparison; a unit is what the
-denominator counts; a category is the name the row is about. Losing any one of them shrinks
-the output without moving a number, so each is declared — from the library, never from this
-run's own rows — and each is named on its way out. The per-specification check is the one that
-bites hardest: a contrast absent from EVERY specification is an input that did not arrive,
-while a contrast absent from one is a specification that did not run.
+The table has three dimensions, so the check has three. A contrast is a comparison; a unit is
+what the denominator counts; a category is the name the row is about. Each is declared from
+the library, never from this run's own rows, and each is named on its way out. The
+per-specification check separates two causes: a contrast absent from every specification is an
+input that did not arrive, while a contrast absent from one is a specification that did not
+run.
 
 The vocabularies are arguments so a caller working on fixtures can state its own; the defaults
 are the library's and are what the run uses.
@@ -1754,37 +1723,33 @@ end
     classify_category(primary_lo, primary_hi, variants) -> (flag, breakers, meaning,
                                                             primary_excludes_zero)
 
-The registered robustness rule, with no relaxation: a category carries a sign only if the
-PRIMARY interval excludes zero and EVERY one-at-a-time variant excludes it on the same side.
-It is `fragile` when the primary excludes zero and a variant does not, and `null` whenever the
-primary interval includes zero. There is no majority tier and no class of nearly-robust rows:
-a rule that counts votes would let the size of the grid decide the colour of a row.
+The registered robustness rule over the one-at-a-time grid, with no relaxation, no majority
+tier and no nearly-robust class:
 
-`fragile` IS A PROPERTY OF A CLAIM, AND A NULL PRIMARY MAKES NO CLAIM. The recorded rule
-gives the fragile shape one meaning — a result that the registered specification states and
-some variant does not reproduce — and gives a primary that includes zero a different
-treatment entirely: the claim is dropped and the row stays neutral. A category whose primary
-includes zero while some variant excludes it is therefore `null` and not `fragile`, however
-interesting those variants are. Filing it under `fragile` would put a word shaped like "state
-it tentatively" on a row that has nothing to state, and would make the flag column a third
-neutral tier for anything downstream that keys colour off it.
+| flag | when |
+|---|---|
+| a sign | the primary interval excludes zero and every variant excludes it on the same side |
+| `fragile` | the primary excludes zero and a variant does not |
+| `null` | the primary interval includes zero |
 
-THOSE VARIANTS ARE STILL REPORTED, because they are the informative part of a null row: a
-level under which the category WOULD be distinguishable from the background is worth seeing,
-and `breaking_variants_are` says which of the two senses the names carry. What changes is the
-word in the column a colour is taken from, not what the table knows.
+`fragile` is a property of a claim, and a primary that includes zero makes no claim: the
+fragile shape means a result the registered specification states and some variant does not
+reproduce. A category whose primary includes zero while some variant excludes it is therefore
+`null`, however interesting those variants are, so that nothing downstream keying colour off
+the flag reads a third neutral tier.
+
+Those variants are still reported, being the informative part of a null row: a level under
+which the category would be distinguishable from the background is worth seeing, and
+`breaking_variants_are` says which of the two senses the names carry.
 
 `variants` is `name => (lo, hi)`, in whatever order; a variant whose interval could not be
-computed, including a category that has no row at all under that variant, is a BREAKER and
-never a variant that agrees. `breakers` names them, so the flag is auditable rather than
-asserted, and `meaning` says what being named there means — the three branches name three
-different things, and a column of names whose sense depends on the flag beside it is a column
-that will be read wrong.
+computed, including a category that has no row at all under that variant, is a breaker and
+never a variant that agrees. `breakers` names them, so the flag is auditable, and `meaning`
+says what being named there means, the three branches naming three different things.
 
-`primary_excludes_zero` travels beside the flag so that anything downstream keys on the fact
-rather than on the word: a reader of the word alone cannot tell a neutral row that some
-variant would have coloured from one the whole grid agrees is neutral, and a reader of the
-boolean never has to.
+`primary_excludes_zero` travels beside the flag so that anything downstream can key on the
+fact: a reader of the word alone cannot tell a neutral row that some variant would have
+coloured from one the whole grid agrees is neutral.
 """
 function classify_category(primary_lo, primary_hi, variants)
     label(p) = String(strip(string(first(p))))
@@ -1835,21 +1800,19 @@ end
 The flag of every category the grid measured, on the rows the flag reads.
 
 A category is keyed on its unit as well as its name, because the taxon unit and the chemistry
-unit are two different measurements of two different things and a category belongs to exactly
-one of them. The variant intervals are also handed to the recorded tier function, which is
-what makes the depletion tier decidable at all: the tier is defined by this grid, and with no
-grid to consult the function can only answer that it does not know.
+unit measure two different things and a category belongs to exactly one of them. The variant
+intervals are also handed to the recorded tier function, which is what makes the depletion
+tier decidable: with no grid to consult it can only answer that it does not know.
 
-THE TIER IS A VERDICT ON A DEPLETION, so it is emitted only where there is one to judge. Its
+The tier is a verdict on a depletion, so it is emitted only where there is one to judge. Its
 three levels read "state it", "state it tentatively" and "drop the claim" about a category the
-registered specification puts BELOW the background; on a category the same specification puts
-above it, the same three words describe a claim nobody made, and the worst of them sits in the
-column next to an enriched row looking like a verdict against it. A positive primary estimate
-therefore gets an empty tier rather than the tier's own name for "nothing here".
+registered specification puts below the background; on one the same specification puts above
+it, those words describe a claim nobody made, so a positive primary estimate gets an empty
+tier.
 
-`n_variants_that_moved_the_estimate` says how many of the expected variants actually produced
-a different number for this cell. It is the honest denominator of "every variant agrees": the
-rest are cells the variant's axis cannot reach, and counting them as agreement would report
+`n_variants_that_moved_the_estimate` says how many of the expected variants produced a
+different number for this cell. It is the denominator of "every variant agrees": the rest are
+cells the variant's axis cannot reach, and counting them as agreement would report
 perturbations that were never applied.
 """
 function robustness(rows, expected_variants;
@@ -1939,36 +1902,28 @@ const EXPECTED_COUNTS = (:targets, :variants, :reference_rows)
     read_anchor_targets(path) -> (targets, exceptions, variants, expected, sources)
 
 Everything the targets file declares: the transcribed anchor targets, the rows of an earlier
-run that are known NOT to reproduce with the reason each does not, the NAMES of the registered
+run that are known not to reproduce with the reason each does not, the names of the registered
 one-at-a-time levels, the counts the file makes about itself, and the file each target was
-transcribed FROM with that file's digest.
+transcribed from with that file's digest.
 
 No target is typed into this script: a target is a number measured on this dataset, and the
 script carries none. The targets for the deposited data ship as a separate file,
 `dat/criteria/anchor_targets.csv`, passed by `--anchor-targets`. A run given no targets file
-checks nothing and says so; a run given one must meet every target in it. An EXCEPTION is a
-row of the earlier run that a later, deliberate change of the analysis moved — it is excluded
-from the row-by-row comparison BY NAME, with its reason travelling beside it into the output,
-which is the opposite of widening a tolerance until the difference disappears.
+checks nothing and says so; a run given one must meet every target in it. An exception is a
+row of the earlier run that a later, deliberate change of the analysis moved; it leaves the
+row-by-row comparison by name, with its reason travelling beside it into the output.
 
-WHY THE SET, THE COUNTS AND THE SOURCE ARE HERE. None of them is a quantity measured on
-anything: one is a list of rule names, three are counts of this file's own contents, and the
-last is a file name with a digest. All of them nevertheless have to reach the RUN. The set,
-because everything inside the script that could contradict a deleted level is enumerated from
-the same tuples the level was deleted from. The counts, because the strength of the whole
-wiring check is otherwise an input: a file that lost rows is a run that checked fewer targets
-and reported success in the same words as a complete one. The source, because a target read off
-this grid's own output is byte-for-byte what an honestly transcribed one looks like — the two
-implementations agree far below any band here — so the only thing that can distinguish them is
-a machine-checkable statement of WHICH bytes the numbers were taken from, and a note in prose
-is not one. A file that declares any of them is refused, so a thinned, re-transcribed or
-re-sourced file is a failure rather than a quieter success.
+None of the set, the counts and the source is a quantity measured on anything, and all three
+still have to reach the run: the script enumerates its own levels from the same tuples a
+deleted level was deleted from, the strength of the whole wiring check is otherwise an input,
+and a target read off this grid's own output is byte-for-byte what an honestly transcribed one
+looks like. A file that omits the levels, the source or any of the counts is refused, as is one whose
+declared counts disagree with what it carries.
 
-NO TARGET MAY BE TAKEN TWICE. Two rows on one (anchor, unit, category, quantity) are one check
-counted twice: they meet or miss together. A file can then carry its declared number of targets
-while pinning fewer CELLS than the count suggests — and a duplicated row that cannot fail can
-stand in, one for one, for a row that can, leaving every reported number identical to an honest
-run's.
+No target may be taken twice. Two rows on one (anchor, unit, category, quantity) are one check
+counted twice: they meet or miss together, so the file could carry its declared number of
+targets while pinning fewer cells, and a duplicated row that cannot fail could stand in for a
+row that can.
 """
 function read_anchor_targets(path::AbstractString)
     isfile(path) || error("--anchor-targets $path does not exist")
@@ -2102,18 +2057,15 @@ end
 
 Each declared source, digested where it is present beside the targets file.
 
-WHAT THIS CAN AND CANNOT SAY. It cannot prove a target was transcribed honestly: a number is
-a number, and the implementation this grid is checked against agrees with it far below any
-band in the file. What it can do is pin WHICH bytes the file claims to have been transcribed
-from, so that the claim is a fact a later run re-checks rather than a sentence in a `note`
-column that no program reads and that a re-transcription does not update. A source regenerated
-from a broken run's output — the shape that replaces both halves of this gate at once — no
+This cannot prove a target was transcribed honestly. What it pins is which bytes the file
+claims to have been transcribed from, as a fact a later run re-checks rather than a sentence
+in a `note` column that no program reads. A source regenerated from a broken run's output no
 longer has the declared digest, and the run stops.
 
 An absent source is reported and not refused. The targets this repository ships travel with
 their sources beside them, so a run on them digests both; a targets file a reader writes may
 name an implementation that is not distributed with it, and a run of this script must not
-require that file, or the directory it lives in, present. What is refused is a source that IS
+require that file, or the directory it lives in, present. What is refused is a source that is
 there and is not the bytes the file names.
 """
 function check_target_sources(targets_path::AbstractString, sources)
@@ -2170,21 +2122,19 @@ end
     levels_named_in_a_breaker_list(flags) -> Vector{String}
     unanchored_published_levels(flags, targets) -> Vector{String}
 
-Which levels this run PUBLISHES by name, and which of those no target pins.
+Which levels this run publishes by name, and which of those no target pins.
 
-WHY THE REQUIREMENT IS DERIVED AND NOT LISTED. A target on the registered specification says
-the primary's own row is the right number; it says nothing about the fourteen intervals that
-decide, together with it, the word beside a category. The levels that reach print are the ones
-a breaker list names — those names are the published claim "this rule, and not that one, is
-what the result does not survive" — and a wiring error confined to one such level's inputs
-rewrites that list while every count in the run agrees with itself. So the levels that must be
-anchored are read off what this run actually published rather than written down: a level that
-starts or stops breaking a category moves the requirement with it, and a list written here
-would go stale in exactly the run where it mattered.
+The requirement is derived from what the run published. A target on the registered
+specification says the primary's own row is the right number; it says nothing about the
+fourteen intervals that decide, together with it, the word beside a category. The levels that
+reach print are the ones a breaker list names, and a wiring error confined to one such level's
+inputs rewrites that list while every count in the run agrees with itself. A level that starts
+or stops breaking a category therefore moves the requirement with it, where a list written
+here would go stale in exactly the run where it mattered.
 
-A target on ANY cell of the level is enough. The failure this catches — a configuration
+A target on any cell of the level is enough. The failures this catches, a configuration
 re-exported from a sibling, a scan column half populated, two configurations that exchanged
-labels upstream — moves a level's arms wholesale, not one category of them.
+labels upstream, move a level's arms wholesale.
 """
 levels_named_in_a_breaker_list(flags) =
     sort(unique(String[String(strip(v)) for f in flags
@@ -2213,22 +2163,17 @@ reference_shape(r) = (contrast = r.contrast, unit = r.unit, habitat = r.category
     scoped_reference(ref, exceptions; units) -> (table, excluded)
 
 The earlier run's rows, scoped for the row-by-row comparison the enrichment step's own
-`reference_row_diff` then makes: restricted to the units whose definition did not change,
-and with the named exceptions removed.
+`reference_row_diff` then makes: restricted to the units whose definition did not change, and
+with the named exceptions removed.
 
-Two things are scoped out, and both are named rather than absorbed. A unit that was
-REDEFINED since the earlier run is not the same measurement under the same name, so
-comparing it would report a change made on purpose as a failure to reproduce. An EXCEPTION
-is a single row a later, deliberate change of the analysis moved; it leaves the comparison
-by name, carrying its reason into the output, which is the opposite of widening a tolerance
-until the difference disappears. The removed rows come back by name so the output can carry
-them instead of losing them.
+Two things are scoped out, and both are named. A unit that was redefined since the earlier run
+is not the same measurement under the same name, so comparing it would report a change made on
+purpose as a failure to reproduce. An exception is a single row a later, deliberate change of
+the analysis moved; it leaves the comparison by name, carrying its reason into the output.
 
-BOTH KINDS COME BACK COUNTED, and that matters more for the units than for the exception. A
-reader of the provenance alone sees "N of N rows agree" and concludes the earlier run is
-reproduced; if the rows a redefinition removed are not reported beside that, the count is
-taken over a scope nobody can see, and the redefinition — which is the largest deliberate
-difference between the two runs — is the one thing the output does not mention.
+The removed rows come back in `excluded`, counted, so the output can carry them. That matters
+more for the units than for the exception: a count of agreeing rows taken over a scope nobody
+can see still reads as "N of N rows agree".
 """
 function scoped_reference(ref::AbstractDataFrame, exceptions; units)
     ex = Set{Tuple{String,String}}((sv(e.unit), sv(e.category)) for e in exceptions)
@@ -2265,23 +2210,19 @@ const REFERENCE_OUT_OF_SCOPE_REASON =
 
 The census table, refused when it is not there or when it names nobody.
 
-WHY THIS INPUT IS AN ERROR AND NOT A DISCLOSURE. The call table and the background scan both
-stop a run when they are missing, and so must this one: it is the input that decides how much
-of the grid gets written. The disclosed Ca-class comparator arm is defined by the census, and
-an arm with no membership is left OUT of the arm builder rather than emitted as a panel of
-zeros — the right decision for an arm, and the wrong one for a table, because what comes out
-the other end is every other contrast, complete and correct, in a file with no column saying
-that a comparison is absent. A path that was never updated, or a census not yet regenerated,
-then costs a published table an entire contrast at exit 0 with no warning.
+A missing census stops the run, instead of being disclosed in the provenance: it decides how
+much of the grid gets written. The disclosed Ca-class comparator arm is defined by the census,
+and an arm with no membership is left out of the arm builder instead of emitted as a panel of
+zeros, so a stale path costs a published table an entire contrast at exit 0, in a file with no
+column saying that a comparison is absent.
 
-A FILE THAT NAMES NOBODY IS THE SAME FAILURE WITH BYTES ON DISK. The reader hands back
+A file that names nobody is the same failure with bytes on disk. The reader hands back
 `nothing` when it cannot find the file and an empty membership when the file holds no
 calcium-class taxon, and the arm builder cannot tell those apart either, so both are refused
 here.
 
-AND THE DIGEST IS TAKEN BECAUSE THE FILE IS THERE. A digest written empty for an absent file
-reads in the provenance as a digest that was taken and says nothing: one blank field where
-the difference between two runs is a missing contrast.
+The digest is taken because the file is there. Written empty for an absent file it would read
+in the provenance as a digest that was taken and says nothing.
 """
 function require_census(path::AbstractString)
     isfile(path) ||
@@ -2375,11 +2316,11 @@ columns_note() = """
 crude_hi, std, lo, hi, n_strata, n_zero_stratum_cells, min_bg_stratum_cell, tested, q_bh,
 feeds_flag`.
 
-* `lo` and `hi` are the STANDARDISED bounds — the ones every rule in this pipeline reads.
+* `lo` and `hi` are the standardised bounds, the ones every rule in this pipeline reads.
   `crude_lo` and `crude_hi` are the crude ones, reported beside them and deciding nothing.
-* `unit` and `contrast` are ADDITIONS to the registered column list. Without them a genus row
+* `unit` and `contrast` are additions to the registered column list. Without them a genus row
   and a taxon row of the same specification and category share one key, and so do the Ln arm
-  and a comparator arm; the table would carry whichever was written last and look complete.
+  and a comparator arm, and the table would carry whichever was written last.
 * `unit` carries the subset suffix, so the currency of `n1` and `n2` is part of the row key.
 * `feeds_flag` is true only for the rows the robustness flag reads: the registered
   specification or a one-at-a-time variant of it, the Ln arm against the background, on the

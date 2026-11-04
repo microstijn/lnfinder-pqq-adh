@@ -131,34 +131,29 @@ every entry of LNFINDER_RELATION_SEED (a semicolon-separated path list).
 
 Options:
   --gate-targets <path>  the expected value, tolerance and comparison of every replication
-                         gate whose expected value is a MEASUREMENT of this dataset, as
+                         gate whose expected value is a measurement of this dataset, as
                          kind,gate,expected,tol,note with kind in
                          equal|at_least|expect|census. A `census` row carries, in its
                          expected column, the sha256 of the census the four comparisons
                          against the committed calls were written for; they are made only
                          when the census this run reads has that digest
-  --no-gates             run without those gates at all, and say so in the report. This has
-                         to be typed: the gates are the only thing between a silently
-                         drifted call table and every estimate downstream of it, so a gate
-                         set skipped by default is a gate set nobody runs. With no targets
-                         file nothing declares a census, so the four comparisons against
-                         the committed calls are not made either
+  --no-gates             run without those gates at all, and say so in the report. It has
+                         to be typed. With no targets file nothing declares a census, so
+                         the four comparisons against the committed calls are not made
+                         either
   --out <path>           write the call table here instead of over the committed one. A
-                         verification re-run needs this, because the committed table is the
-                         input of every downstream step: a re-run that overwrites it has
-                         destroyed the thing it was re-running to check
+                         verification re-run needs this, since the committed table is the
+                         input of every downstream step
   --census <path>        read the census from here instead of the deposited one (the
-                         census_habitat input under the data root). The census fixes the
-                         taxid universe and every per-taxon label, so a run against a
-                         re-annotated census is a different measurement: the path and the
-                         sha256 are recorded in the report, and the four gates that compare
-                         this run against the committed calls are made only if the targets
-                         file declares that digest
+                         census_habitat input under the data root). The path and the sha256
+                         are recorded in the report, and the four gates that compare this
+                         run against the committed calls are made only if the targets file
+                         declares that digest
   -h, --help             print this text and exit
 
 Nothing is published unless every gate passed. The outputs are built in a `_staging`
-directory beside each destination and moved into place at the very end, so a run that fails a
-gate leaves what it built there and leaves the destination holding the last good run.
+directory beside each destination and moved into place at the very end, so a run that fails
+a gate leaves what it built there and leaves the destination holding the last good run.
 
 Exit status: 0 on a completed run with every gate met; 1 on a command-line error, a missing
 or malformed input, or a failed replication gate.
@@ -383,22 +378,16 @@ const ACCOUNTED_GATES = unique(vcat(String[g.gate for g in MEASURED_GATES],
 `gates`: every gate the targets file declares, by name, with its comparison, its expected
 value where the file carries one, its tolerance, and the note recording where the number came
 from. `census`: the census the file says the REPRODUCTION_GATES were written for, as
-`(sha256, note)`, or `nothing` when it declares none — which is not a refusal, because a file
-can carry the measured gates of a census the committed calls do not belong to; it is what
-`reproduction_scope` declines those four gates on.
+`(sha256, note)`, or `nothing` when it declares none. `nothing` is not a refusal, because a
+file can carry the measured gates of a census the committed calls do not belong to; it is
+what `reproduction_scope` declines those four gates on.
 
-A census is declared by content, not by name: one `census` row, no gate named, the census's
-sha256 in the expected column, no tolerance (a digest matches or it does not), and a note
-saying which census that is.
+A census is declared by content: one `census` row, no gate named, the census's sha256 in the
+expected column, no tolerance (a digest matches or it does not), and a note saying which
+census that is.
 
-WHY THE FILE ALSO STATES HOW MANY GATES IT HOLDS, AND WHICH. Neither is a quantity measured
-on anything, and both nevertheless have to reach the run. The count, because a file that lost
-rows is a run that checked fewer gates and printed "All replication gates passed" in the same
-words as a complete one — how much of this table is checked is not something a run may
-discover from the file it was handed. The set, because a file written for an older version of
-this script would otherwise declare gates nobody evaluates and stay silent about the ones
-nobody declared. Both are compared with `declared` in both directions, so a thinned,
-half-merged or stale file is a failure rather than a quieter success.
+The file also states how many gates it holds and which ones. Both are compared with
+`declared` in both directions, so a thinned, half-merged or stale file is a failure.
 """
 function read_gate_targets(path::AbstractString, declared)
     isfile(path) || error("--gate-targets $path does not exist")

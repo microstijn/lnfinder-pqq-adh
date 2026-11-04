@@ -1008,18 +1008,15 @@ Write one run's per-taxon table and its three records, then promote all four or 
 1. The table's bytes go to `<out_csv>.pending`; their sha256 is the run's scan_sha256.
 2. threshold.txt and recall.txt get `run_id`, `scan_sha256` and `derived_at` (= run_id)
    appended, acceptance.tsv gets both identity columns filled, and each is written as
-   `<name>.pending`. The hash is taken HERE and nowhere else, so no record can carry a
-   hash other than that of the table beside it.
+   `<name>.pending`. The hash is taken here and nowhere else.
 3. No verdict MISS: the three records and then the table are renamed to their final
-   names, replacing whatever an earlier run left.
-   Any verdict MISS: nothing is promoted. A table and records an earlier run left under
-   the final names are renamed to `.stale`, so no consumer can pair them with this run or
-   read a table no current run vouches for. This run's files stay `.pending`.
+   names, replacing whatever an earlier run left. Any verdict MISS: nothing is promoted,
+   this run's files stay `.pending`, and a table and records an earlier run left under
+   the final names are renamed to `.stale`.
 
-Returns (promoted, scan_sha256, staled, pending) with the paths moved and left behind. A
-`.stale` file from an earlier failure is not touched by a later promotion and is never
-read as a scan result; the one read of it is the recall sample column, see
-`default_recall_reference`.
+Returns (promoted, scan_sha256, staled, pending): the paths moved and left behind. A
+`.stale` file is never touched by a later promotion and is never read as a scan result,
+except for the recall sample column, see `default_recall_reference`.
 """
 function publish_scan(; out_csv::AbstractString, csv::AbstractVector{UInt8},
                         threshold_path::AbstractString, threshold_pairs,

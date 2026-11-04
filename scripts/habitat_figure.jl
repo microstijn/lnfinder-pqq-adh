@@ -77,18 +77,17 @@ const USAGE = """
 Usage: julia --project=. scripts/habitat_figure.jl [options]
 
 Options:
-  --categories <path>              REQUIRED, and there is no default. The category-selection
-                                   criteria file — the same one step 3 was given, so that the
-                                   two steps cannot disagree about which categories the run is
-                                   about. It names the category whose sharing ratio is read
-                                   back, the categories whose intervals are counted across
-                                   every specification, and the phylum whose shares are
-                                   quoted. Those are selections made from this data set's own
-                                   estimates, not constants of this software
+  --categories <path>              REQUIRED, no default. The category-selection criteria
+                                   file, the same one step 3 was given. It names the
+                                   category whose sharing ratio is read back, the
+                                   categories whose intervals are counted across every
+                                   specification, and the phylum whose shares are quoted.
+                                   Each is a selection made from this data set's own
+                                   estimates
   --figdir <path>                  the figure directory: every output goes there, and the
                                    inputs marked <figdir> are read from it by default
-                                   (default: \$LNFINDER_FIGDIR). It must already exist; it is
-                                   never created
+                                   (default: \$LNFINDER_FIGDIR). It must already exist and
+                                   is never created
   --stats <path>                   enrichment rows
                                    (default: <data>/habitat/habitat_enrichment.csv)
   --summary <path>                 arm summary, key,value

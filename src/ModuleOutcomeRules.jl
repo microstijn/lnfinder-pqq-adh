@@ -205,23 +205,14 @@ end
 """
     interval_code(lo, hi; excludes, includes) -> Symbol
 
-The caller's code for a decision keyed on one interval: `excludes` when `(lo, hi)` excludes
-zero, `includes` when it includes zero, and `:undecidable` whenever `interval_excludes_zero`
-answers so — a NaN, missing, non-numeric or swapped bound pair.
+`excludes` when `(lo, hi)` excludes zero, `includes` when it includes zero, and
+`:undecidable` whenever `interval_excludes_zero` answers so: a NaN, missing, non-numeric or
+swapped bound pair. Fixing the third case here stops a rule of this shape from mapping an
+uncomputed interval onto one of the decided codes.
 
-A rule of the form "do this if the interval includes zero, that if it excludes zero" has two
-decided outcomes and one that is not a decision. Written as a ternary next to each rule, the
-mapping is one edit away from sending the uncomputed case to one of the decided codes, which
-is how a Bool interval test comes to report estimates that do not exist. Here the third case
-is fixed and only the two decided codes are the caller's, so every rule of this shape is
-decided by one tested function and no second mapping has to live in a script.
-
-THE CODES ARE CHECKED BEFORE THE INTERVAL IS. Both keywords are required and must be
-Symbols. They must differ, because a rule whose two outcomes coincide does not depend on the
-interval at all, which is a mistake at the call site rather than a rule. Neither may be
-`:undecidable`, or an interval that was never computed would read the same as one that was.
-Each of these is an `ArgumentError` whatever the bounds are, so a bad call fails on the
-first run rather than on the first run whose interval happens to be decidable.
+The codes are checked before the interval. Both keywords are required, must be Symbols, must
+differ, and neither may be `:undecidable`. Each is an `ArgumentError` whatever the bounds are,
+so a bad call fails on the first run rather than on the first run with a decidable interval.
 """
 function interval_code(lo, hi; excludes, includes)
     (excludes isa Symbol && includes isa Symbol) ||
@@ -253,47 +244,33 @@ _in_share_domain(x) = 0 < x <= SHARE_MAX
 """
     sharing_wording_code(ratio, lo, hi; comparator_excludes_zero) -> (code, rule_used)
 
-Grade how much of a reference arm's effect a comparator arm reproduces, as
-`code ∈ (:none, :partial, :large)`, together with `rule_used` — the form of the rule that
-decided, so the grade is auditable rather than merely asserted.
+Grade how much of a reference arm's effect a comparator arm reproduces. `code` is one of
+`:none`, `:partial`, `:large`; `rule_used` names the form that decided, so the grade is
+auditable.
 
-`ratio` is the comparator estimate over the reference estimate; `lo`/`hi` are the bounds of
-an interval on that ratio, either of which may be NaN/`missing`/`nothing` when no interval
-was computed. `comparator_excludes_zero` takes a Bool or the Symbol from
-`interval_excludes_zero`, and describes the COMPARATOR's own estimate, not the ratio's.
+`ratio` is the comparator estimate over the reference estimate. `lo`/`hi` bound an interval on
+that ratio, either of which may be NaN, `missing` or `nothing` when none was computed.
+`comparator_excludes_zero` takes a Bool or the Symbol from `interval_excludes_zero`, and
+describes the COMPARATOR's own estimate, not the ratio's.
 
-THE FORMS, IN THE ORDER THEY GOVERN.
+The forms, in the order they govern:
 
-  `:comparator_null`  The comparator's own interval includes zero: there is no comparator
-                      effect to be a fraction of, so no grade is licensed whatever the
-                      ratio says. This overrides every form below.
-  `:undecidable`      The comparator's status is itself unknown, or neither a ratio nor an
-                      interval exists. Withholding the grade here is the whole point: an
-                      expression that folded this state into `:comparator_null` would print
-                      "the comparator interval includes zero" for an estimate that has never
-                      been computed.
-  `:out_of_domain`    A known ratio, or a known bound of the interval, lies outside
-                      (0, SHARE_MAX]. See below.
-  `:interval`         An interval on the ratio exists, and it supersedes the band — the
-                      recorded rules say so explicitly. The grade is taken at the lower
-                      bound, so an interval straddling a boundary takes the weaker grade.
-  `:band`             No interval; the point fraction sits inside a conservative band.
-  `:point`            No interval; the point fraction is clear of both bands.
+| `rule_used` | when |
+|---|---|
+| `:comparator_null` | comparator's own interval includes zero; overrides everything below |
+| `:undecidable` | comparator's status unknown, or no ratio and no interval |
+| `:out_of_domain` | a known ratio or bound outside (0, SHARE_MAX] |
+| `:interval` | an interval exists and supersedes the band; graded at its lower bound |
+| `:band` | no interval, point fraction inside a conservative band |
+| `:point` | no interval, point fraction clear of both bands |
 
-OUTSIDE THE DOMAIN THE ANSWER IS :none, NOT THE STRONGEST GRADE, AND IT SAYS SO. A share is a
-fraction of the reference effect, so this module grades only on (0, SHARE_MAX]. A ratio above
-one (the comparator is the more enriched arm), a ratio at or below zero (the arms move in
-opposite directions, or the comparator does not move), the huge ratio a near-zero
-denominator produces, and an interval reaching past either end are all outside it. A bare
-threshold comparison returns the strongest grade for exactly these inputs, including for a
-reference arm with no effect at all. `code` is then :none and `rule_used` is
-`:out_of_domain`, which is deliberately not the label of any grading form: a :none reached by
-grading a small fraction and a :none that refused to grade are different findings, and a
-table that gave both the same label could not be re-decided by its reader.
-
-Every known value is checked, including a bound whose partner is missing and a point ratio
-sitting beside an interval that is itself inside the domain. One value outside the domain
-means the estimate is not a share, whichever form would otherwise have decided.
+Outside the domain the answer is `:none`, not the strongest grade. A share is a fraction of the
+reference effect, so grading runs only on (0, SHARE_MAX]: a ratio above one, a ratio at or
+below zero, the huge ratio a near-zero denominator produces, and an interval reaching past
+either end all fall outside, and a bare threshold comparison would return the strongest grade
+for every one. `rule_used` is then `:out_of_domain`, which is not the label of any grading
+form, so a `:none` that refused to grade can be told from a `:none` that graded a small
+fraction. Every known value is checked, including a bound whose partner is missing.
 """
 function sharing_wording_code(ratio, lo, hi; comparator_excludes_zero)
     cmp = _zero_status(comparator_excludes_zero)
@@ -322,39 +299,29 @@ _zero_status(::Any) = :undecidable
     depletion_tier(primary_lo, primary_hi, variant_intervals;
                  expected_variants = nothing) -> (tier, breakers)
 
-Which robustness tier a depletion result reaches: `:t1` (every variant reproduces it),
-`:t2` (the primary excludes zero but at least one variant does not — `breakers` names
-them), `:t3` (the primary does not support the claim), or `:undecidable`.
+Which robustness tier a depletion result reaches: `:t1` every variant reproduces it, `:t2` the
+primary excludes zero but at least one variant does not and `breakers` names them, `:t3` the
+primary does not support the claim, or `:undecidable`.
 
-`variant_intervals` is the one-at-a-time sensitivity grid as `name => (lo, hi)` pairs — a
-Dict, a Vector of Pairs, a NamedTuple keyed by variant name, or `nothing` when the grid has
-not been computed. A variant's value may also be a NamedTuple carrying `lo` and `hi`.
-Anything else is an error rather than a guess.
+`variant_intervals` is the one-at-a-time grid as `name => (lo, hi)` pairs: a Dict, a Vector of
+Pairs, a NamedTuple keyed by variant name, or `nothing` when the grid has not been computed. A
+variant's value may also be a NamedTuple carrying `lo` and `hi`. Anything else errors rather
+than being guessed at.
 
-WHAT MAY BE DECIDED WITHOUT THE GRID, AND WHAT MAY NOT. `:t3` needs no grid: if the primary
-interval does not exclude zero on the depleted side there is no claim left for a variant to
-break, and the recorded rules drop it there. `:t1` and `:t2` are *defined* by the grid, so
-with no variants supplied this returns `:undecidable` rather than the tier the primary row
-happens to look like. Returning a tier the data cannot support is the defect this function
-exists to prevent, and a grid that does not exist yet supports neither strong tier.
+`:t3` needs no grid: with the primary interval not excluding zero on the depleted side, no
+claim is left for a variant to break. `:t1` and `:t2` are defined by the grid, so with no
+variants supplied this returns `:undecidable` rather than the tier the primary row happens to
+look like. An undecidable primary interval is `:undecidable` too, with no variants examined;
+ask `interval_excludes_zero` about the primary bounds to tell that case from an absent grid.
 
-An undecidable primary interval is `:undecidable` too, with no variants examined. The
-caller can tell the two undecidable cases apart — no primary estimate versus no grid — by
-asking `interval_excludes_zero` about the primary bounds, which is the same question this
-function asked first.
+A variant with no interval is a breaker, not a variant that agrees: it is named in `breakers`
+and the tier is `:t2`. `breakers` is sorted and free of duplicates.
 
-A VARIANT WITH NO INTERVAL IS A BREAKER, not a variant that agrees. The recorded rules
-require every variant to reproduce the depletion; one whose interval could not be computed
-has not reproduced it, so it is named in `breakers` and the tier is `:t2`. `breakers` is
-sorted and free of duplicates.
-
-A VARIANT THAT IS ABSENT IS NOT ONE THAT AGREES EITHER. A grid step that skips a variant
-which failed to run hands over a shorter grid, and every variant left in it may reproduce
-the depletion. The optional `expected_variants` names the grid the caller set out to run;
-while any of those names is missing from `variant_intervals`, `:t1` cannot be claimed and
-the answer is `:undecidable`, unless a variant that IS present already breaks the result,
-which decides `:t2` on its own. Without `expected_variants` the grid supplied is taken to
-be the whole grid, so a caller that can lose variants should always pass it.
+An absent variant does not agree either. `expected_variants` names the grid the caller set out
+to run; while any of those is missing from `variant_intervals`, `:t1` cannot be claimed and the
+answer is `:undecidable`, unless a variant that is present already breaks the result, which
+decides `:t2` on its own. Without `expected_variants` the grid supplied is taken to be the whole
+grid, so a caller that can lose variants should pass it.
 """
 function depletion_tier(primary_lo, primary_hi, variant_intervals; expected_variants = nothing)
     status = interval_excludes_zero(primary_lo, primary_hi)
